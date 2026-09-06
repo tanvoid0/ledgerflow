@@ -1,0 +1,79 @@
+{
+  "id": "16",
+  "title": "spring proxies",
+  "goal": "1.5.3 How Spring proxies add runtime behavior",
+  "tasks": [
+    {
+      "key": "define-what-proxy-how-relates",
+      "do": "Define what a proxy is and how it relates to the target object."
+    },
+    {
+      "key": "contrast-jdk-dynamic-proxies-cglib",
+      "do": "Contrast JDK dynamic proxies and CGLIB proxies by mechanism, not just name."
+    },
+    {
+      "key": "state-spring-s-default-selection",
+      "do": "State Spring's default selection rule, and Spring Boot's override of it."
+    },
+    {
+      "key": "force-cglib-proxytargetclass-spring-aop",
+      "do": "Force CGLIB with `proxyTargetClass` / `spring.aop.proxy-target-class`."
+    },
+    {
+      "key": "explain-which-beanpostprocessor-substitutes-prox",
+      "do": "Explain which `BeanPostProcessor` substitutes the proxy and at which step."
+    },
+    {
+      "key": "explain-why-self-invocation-bypasses",
+      "do": "Explain why self-invocation bypasses advice."
+    },
+    {
+      "key": "list-three-ways-work-around",
+      "do": "List three ways to work around self-invocation, with trade-offs."
+    },
+    {
+      "key": "list-every-method-kind-that",
+      "do": "List every method kind that cannot be advised by a proxy."
+    },
+    {
+      "key": "explain-why-injecting-jdk-proxied",
+      "do": "Explain why injecting a JDK-proxied bean by concrete class fails."
+    },
+    {
+      "key": "explain-where-field-state-lives",
+      "do": "Explain where field state lives on a CGLIB-proxied bean."
+    },
+    {
+      "key": "detect-proxy-type-at-runtime",
+      "do": "Detect the proxy type at runtime with `AopUtils`."
+    },
+    {
+      "key": "state-how-aspectj-weaving-avoids",
+      "do": "State how AspectJ weaving avoids these limitations."
+    },
+    {
+      "key": "self-invocation-runs-no-advice",
+      "do": "Self-invocation runs NO advice — the most-tested consequence."
+    },
+    {
+      "key": "final-methods-classes-are-silently",
+      "do": "`final` methods and classes are silently unadvised under CGLIB."
+    },
+    {
+      "key": "private-static-methods-are-never",
+      "do": "`private` and `static` methods are never advised."
+    },
+    {
+      "key": "transactional-on-non-public-method",
+      "do": "`@Transactional` on a non-public method is ignored by proxy-based AOP."
+    },
+    {
+      "key": "spring-boot-forces-cglib-plain",
+      "do": "Spring Boot forces CGLIB; plain Spring prefers JDK proxies when interfaces exist."
+    },
+    {
+      "key": "proxy-s-own-fields-are",
+      "do": "The proxy's own fields are uninitialised — state lives on the target."
+    }
+  ]
+}

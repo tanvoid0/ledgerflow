@@ -1,0 +1,121 @@
+{
+  "id": "21",
+  "title": "Kill a broker",
+  "estimate": "2 days",
+  "goal": "acks=all was three lines of configuration in step 09. This step is what those lines buy. Run a three-node Redpanda, replicate every topic, kill a node mid-stream and count nothing missing — then remove the safety margin and watch the producer refuse loudly instead of losing quietly.",
+  "startWith": "Step 09 finished; comfortable stopping and starting containers without ceremony.",
+  "newIdeas": [
+    {
+      "term": "Replication factor",
+      "plain": "Each partition gets a leader plus followers on other brokers. Producers and consumers only ever talk to the leader; followers exist to take over. rf=3 is the standard for anything that matters."
+    },
+    {
+      "term": "ISR and min.insync.replicas",
+      "plain": "The in-sync replicas are the copies that are caught up. <code>acks=all</code> waits for all of them, and <code>min.insync.replicas=2</code> with rf=3 means one broker can die without either losing data or blocking writes. It is the margin, written down."
+    },
+    {
+      "term": "NotEnoughReplicasException",
+      "plain": "What a producer gets when the ISR falls below the minimum. It looks like an outage and is actually the system keeping its promise: better to refuse a write than accept one that only exists in one place."
+    },
+    {
+      "term": "Unclean leader election",
+      "plain": "Letting a stale follower become leader restores availability by silently discarding acknowledged writes. Off by default. For money, it stays off — that is availability traded for truth, and the answer here is always truth."
+    }
+  ],
+  "tasks": [
+    {
+      "key": "grow-cluster-three-nodes",
+      "do": "Grow the cluster to three nodes",
+      "why": "Replication on one broker is a diagram. Everything in this step needs somewhere for the copies to live.",
+      "how": "Extend the compose file to three Redpanda nodes, then recreate the events topics with rf=3 and min.insync.replicas=2. Recreating loses local dev history — fine here, and a good reminder that in production this decision is made before the first byte, not after.",
+      "blocks": [
+        {
+          "label": "infra: docker-compose.kafka3.yml — the shape of it",
+          "kind": "paste",
+          "body": "# Three redpanda services: lf-redpanda-1/2/3, each with\n#   --seeds redpanda-1:33145 (all pointing at node 1)\n#   distinct ports mapped for kafka (9092/9192/9292) and admin\n# The redpanda docs' three-node compose is the reference;\n# copy it and rename to the lf- prefix."
+        },
+        {
+          "label": "Recreate the topic, replicated",
+          "kind": "shell",
+          "body": "docker exec -it lf-redpanda-1 rpk topic delete ledgerflow.ledger.wallet-hold.events.v1\ndocker exec -it lf-redpanda-1 rpk topic create ledgerflow.ledger.wallet-hold.events.v1 \\\n  -p 6 -r 3 -c min.insync.replicas=2"
+        }
+      ],
+      "check": {
+        "run": "docker exec -it lf-redpanda-1 rpk cluster health",
+        "expect": "Three brokers, all healthy, no leaderless partitions."
+      }
+    },
+    {
+      "key": "kill-broker-mid-stream-count",
+      "do": "Kill a broker mid-stream and count",
+      "why": "Ten in, ten out across a consumer restart was step 09. Ten in, ten out across a broker death is the same proof one layer down.",
+      "how": "Start a steady stream of holds, stop the broker that leads some of the topic's partitions, and let the stream keep running. The producer retries onto the new leaders; the consumer barely notices. When it is over, count events in against notifications out.",
+      "blocks": [
+        {
+          "label": "Steady stream, then pull the plug",
+          "kind": "shell",
+          "body": "for i in $(seq 1 50); do\n  curl -s -X POST localhost:8081/api/v1/holds \\\n    -H 'content-type: application/json' \\\n    -d \"{\\\"accountId\\\":\\\"11111111-1111-1111-1111-111111111111\\\",\\\"wallets\\\":[\\\"A-$i\\\"]}\" > /dev/null\n  sleep 0.2\ndone &\nsleep 3 && docker stop lf-redpanda-2"
+        },
+        {
+          "label": "Who leads now",
+          "kind": "shell",
+          "body": "docker exec -it lf-redpanda-1 rpk topic describe ledgerflow.ledger.wallet-hold.events.v1 -p"
+        }
+      ],
+      "check": {
+        "run": "docker exec -it lf-redpanda-1 rpk group describe notification-service",
+        "expect": "Lag drains to 0 and all 50 events were processed, despite a broker dying in the middle."
+      }
+    },
+    {
+      "key": "remove-margin-watch-refuse",
+      "do": "Remove the margin and watch it refuse",
+      "why": "The failure mode of min.insync.replicas is the whole reason to set it. You want to have seen the refusal in dev, because in production it pages someone.",
+      "how": "Set min.insync.replicas=3 on the topic — now every write needs every broker. Stop one broker and produce: the producer throws NotEnoughReplicas instead of accepting a write with no safety copy. Put it back to 2 and bring the broker up.",
+      "blocks": [
+        {
+          "label": "No margin, then a dead broker",
+          "kind": "shell",
+          "body": "docker exec -it lf-redpanda-1 rpk topic alter-config \\\n  ledgerflow.ledger.wallet-hold.events.v1 --set min.insync.replicas=3\ndocker stop lf-redpanda-3\n# now place a hold and watch ledger-service's log"
+        },
+        {
+          "label": "What the error means",
+          "kind": "note",
+          "body": "NotEnoughReplicasException is the broker declining to lie. The write would have been acknowledged with nowhere safe to put a copy — for a ledger, refusing is the correct behaviour, and your producer's retries plus the outbox from step 10 mean nothing is lost while it waits."
+        }
+      ],
+      "check": {
+        "run": "docker exec -it lf-redpanda-1 rpk topic describe ledgerflow.ledger.wallet-hold.events.v1",
+        "expect": "min.insync.replicas back at 2, all three brokers up, cluster healthy again."
+      }
+    }
+  ],
+  "proof": {
+    "run": "docker exec -it lf-redpanda-1 rpk cluster health\ndocker exec -it lf-redpanda-1 rpk group describe notification-service",
+    "expect": "A broker died mid-stream and every acknowledged write is still there; with the margin gone, writes failed fast instead of failing silently.",
+    "note": "Keep the single-node compose for daily work — three nodes is for this step and for demos. Note in the README that the dev default trades this guarantee for convenience."
+  },
+  "doneWhen": "A broker dies mid-stream and in equals out; with min.insync.replicas at the full count, the producer refuses instead of losing — and you have seen both with your own eyes.",
+  "services": [
+    "account-service",
+    "ledger-service",
+    "notification-service"
+  ],
+  "infra": [
+    "postgres",
+    "redpanda x3",
+    "schema registry"
+  ],
+  "lessons": [
+    {
+      "id": "21-scratch",
+      "title": "Scratch files keep the chaos scripts",
+      "teach": "<b>Ctrl+Alt+Shift+Insert</b> makes a scratch file. The 50-hold loop and the broker-kill sequence are scripts you will run a dozen times today and want next month for a demo — a scratch keeps them runnable and out of the repository.",
+      "trigger": {
+        "type": "action",
+        "id": "NewScratchFile"
+      },
+      "fallbackTip": "Keep the loops in scripts/ locally; don't commit them."
+    }
+  ]
+}

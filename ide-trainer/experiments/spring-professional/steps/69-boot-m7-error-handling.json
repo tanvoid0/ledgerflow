@@ -1,0 +1,67 @@
+{
+  "id": "69",
+  "title": "boot m7 error handling",
+  "goal": "BOOT-M7 Error handling & @ControllerAdvice",
+  "tasks": [
+    {
+      "key": "handle-domain-exception-exceptionhandler-on",
+      "do": "Handle a domain exception with `@ExceptionHandler` on `@RestControllerAdvice`."
+    },
+    {
+      "key": "return-responseentity-json-body-correct",
+      "do": "Return `ResponseEntity` with a JSON body and the correct status."
+    },
+    {
+      "key": "put-responsestatus-on-exception-type",
+      "do": "Put `@ResponseStatus` on an exception type and know what that does *not* give you (a custom body)."
+    },
+    {
+      "key": "implement-errorcontroller-as-marker-map",
+      "do": "Implement `ErrorController` as a marker and map `/error`."
+    },
+    {
+      "key": "state-that-custom-errorcontroller-bean",
+      "do": "State that a custom `ErrorController` bean replaces `BasicErrorController`."
+    },
+    {
+      "key": "name-server-error-include-message",
+      "do": "Name `server.error.include-message` and its default `never`."
+    },
+    {
+      "key": "explain-when-advice-runs-vs",
+      "do": "Explain when advice runs vs when `/error` runs."
+    },
+    {
+      "key": "use-jakarta-servlet-request-attributes",
+      "do": "Use `jakarta.servlet` request attributes in this lab; `javax.servlet` on the exam."
+    },
+    {
+      "key": "disable-replace-whitelabel-page-deliberately",
+      "do": "Disable or replace the Whitelabel page deliberately."
+    },
+    {
+      "key": "avoid-treating-controlleradvice-as-global",
+      "do": "Avoid treating `@ControllerAdvice` as a global filter-error handler."
+    },
+    {
+      "key": "404-no-handler-does-not",
+      "do": "404 with no handler does not hit `@ExceptionHandler` by default."
+    },
+    {
+      "key": "boot-2-3-errorcontroller-has",
+      "do": "Boot 2.3+ `ErrorController` has no `getErrorPath()`."
+    },
+    {
+      "key": "controlleradvice-without-responsebody-view-orien",
+      "do": "`@ControllerAdvice` without `@ResponseBody` is view-oriented."
+    },
+    {
+      "key": "exception-messages-are-hidden-unless",
+      "do": "Exception messages are hidden unless `include-message` allows them."
+    },
+    {
+      "key": "problemdetail-spring-6-boot-3",
+      "do": "`ProblemDetail` is Spring 6 / Boot 3 — not the 5.3 exam default answer."
+    }
+  ]
+}

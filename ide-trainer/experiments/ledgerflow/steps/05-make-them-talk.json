@@ -1,0 +1,143 @@
+{
+  "id": "05",
+  "title": "Make them talk",
+  "estimate": "1 day",
+  "goal": "Ledger must not hold a wallet that account has never heard of. That single requirement is what forces the first network call between your services.",
+  "startWith": "Step 04 finished: two services build from the root, each with its own database.",
+  "newIdeas": [
+    {
+      "term": "@HttpExchange",
+      "plain": "You declare an interface describing the remote API — method, path, body — and Spring generates the client. No hand-written URL strings, no <code>RestTemplate</code> boilerplate, and the interface doubles as documentation of what you depend on."
+    },
+    {
+      "term": "RestClient",
+      "plain": "The modern synchronous HTTP client in Spring Framework 6.1+. It replaces <code>RestTemplate</code> and backs the generated <code>@HttpExchange</code> client."
+    },
+    {
+      "term": "Synchronous coupling",
+      "plain": "Ledger now cannot answer a request unless account answers first. Account's latency is added to yours and account's downtime becomes yours. This is fine, common, and about to hurt — step 06 measures exactly how much."
+    }
+  ],
+  "tasks": [
+    {
+      "key": "declare-account-api-as-interface",
+      "do": "Declare the account API as an interface in ledger",
+      "why": "Writing down what you depend on, as a type, makes the dependency visible and testable.",
+      "how": "One interface, one annotation per method. Everything that follows — timeouts, retries, fallbacks — attaches to this one place rather than being spread over the calling code.",
+      "blocks": [
+        {
+          "label": "ledger: adapter/out/account/AccountClient.java",
+          "kind": "file",
+          "body": "package io.ledgerflow.ledger.adapter.out.account;\n\nimport org.springframework.web.service.annotation.GetExchange;\nimport org.springframework.web.bind.annotation.PathVariable;\n\nimport java.util.List;\nimport java.util.UUID;\n\npublic interface AccountClient {\n\n    @GetExchange(\"/api/v1/accounts/{id}\")\n    AccountView account(@PathVariable UUID id);\n\n    /** Only the fields ledger actually needs - not a copy of account's model. */\n    record AccountView(UUID id, String name, List<WalletView> wallets) {\n        public boolean hasWallet(String label) {\n            return wallets.stream().anyMatch(s -> label.equals(s.label()));\n        }\n    }\n\n    record WalletView(UUID id, String label) {}\n}"
+        },
+        {
+          "label": "ledger: config/AccountClientConfig.java",
+          "kind": "file",
+          "body": "package io.ledgerflow.ledger.config;\n\nimport io.ledgerflow.ledger.adapter.out.account.AccountClient;\nimport org.springframework.context.annotation.Bean;\nimport org.springframework.context.annotation.Configuration;\nimport org.springframework.web.client.RestClient;\nimport org.springframework.web.client.support.RestClientAdapter;\nimport org.springframework.web.service.invoker.HttpServiceProxyFactory;\n\n@Configuration\nclass AccountClientConfig {\n\n    @Bean\n    AccountClient accountClient(RestClient.Builder builder) {\n        // Deliberately no timeout yet. Step 06 makes you feel why that is a bug.\n        var rest = builder.baseUrl(\"http://localhost:8080\").build();\n        return HttpServiceProxyFactory\n                .builderFor(RestClientAdapter.create(rest))\n                .build()\n                .createClient(AccountClient.class);\n    }\n}"
+        }
+      ]
+    },
+    {
+      "key": "add-post-api-v1-holds",
+      "do": "Add POST /api/v1/holds, which validates the wallet with account before writing",
+      "why": "This is the first time one service's decision depends on another service's answer.",
+      "how": "The use case does three things in order: ask account whether the wallet exists, refuse if not, otherwise write the hold. Keep that logic in the application layer, not in the controller — step 15 will put authorization checks on it and step 10 will wrap it in a transaction.",
+      "blocks": [
+        {
+          "label": "ledger: domain/model/FundsHold.java",
+          "kind": "file",
+          "body": "package io.ledgerflow.ledger.domain.model;\n\nimport java.time.Instant;\nimport java.util.UUID;\n\npublic record FundsHold(UUID id, UUID accountId, String walletCode, Status status, Instant expiresAt) {\n\n    public enum Status { HELD, RELEASED, SOLD }\n\n    public static FundsHold hold(UUID accountId, String walletCode, Instant expiresAt) {\n        return new FundsHold(UUID.randomUUID(), accountId, walletCode, Status.HELD, expiresAt);\n    }\n}"
+        },
+        {
+          "label": "ledger: application/PlaceHold.java — the use case",
+          "kind": "file",
+          "body": "package io.ledgerflow.ledger.application;\n\nimport io.ledgerflow.ledger.adapter.out.account.AccountClient;\nimport io.ledgerflow.ledger.domain.model.FundsHold;\nimport io.ledgerflow.ledger.domain.model.UnknownWalletException;\nimport org.springframework.stereotype.Service;\nimport org.springframework.transaction.annotation.Transactional;\n\nimport java.time.Duration;\nimport java.time.Instant;\nimport java.util.List;\nimport java.util.UUID;\n\n@Service\npublic class PlaceHold {\n\n    private static final Duration HOLD_FOR = Duration.ofMinutes(10);\n\n    private final AccountClient account;\n    private final FundsHoldRepository holds;\n\n    PlaceHold(AccountClient account, FundsHoldRepository holds) {\n        this.account = account;\n        this.holds = holds;\n    }\n\n    @Transactional\n    public List<FundsHold> place(UUID accountId, List<String> walletCodes) {\n        var account = account.account(accountId);          // the network call\n\n        for (var label : walletCodes) {\n            if (!account.hasWallet(label)) throw new UnknownWalletException(accountId, label);\n        }\n\n        var expiry = Instant.now().plus(HOLD_FOR);\n        return holds.saveAll(walletCodes.stream()\n                .map(l -> FundsHold.hold(accountId, l, expiry))\n                .toList());\n    }\n}"
+        },
+        {
+          "label": "ledger: adapter/in/web/HoldController.java",
+          "kind": "file",
+          "body": "package io.ledgerflow.ledger.adapter.in.web;\n\nimport io.ledgerflow.ledger.application.PlaceHold;\nimport io.ledgerflow.ledger.domain.model.FundsHold;\nimport jakarta.validation.constraints.NotEmpty;\nimport jakarta.validation.constraints.NotNull;\nimport jakarta.validation.Valid;\nimport org.springframework.http.HttpStatus;\nimport org.springframework.web.bind.annotation.*;\n\nimport java.util.List;\nimport java.util.UUID;\n\n@RestController\n@RequestMapping(\"/api/v1/holds\")\nclass HoldController {\n\n    private final PlaceHold placeHold;\n\n    HoldController(PlaceHold placeHold) { this.placeHold = placeHold; }\n\n    record HoldRequest(@NotNull UUID accountId, @NotEmpty List<String> wallets) {}\n\n    @PostMapping\n    @ResponseStatus(HttpStatus.CREATED)\n    List<FundsHold> place(@Valid @RequestBody HoldRequest req) {\n        return placeHold.place(req.accountId(), req.wallets());\n    }\n}"
+        }
+      ],
+      "check": {
+        "run": "curl -s -X POST localhost:8081/api/v1/holds -H 'content-type: application/json' -d '{\"accountId\":\"11111111-1111-1111-1111-111111111111\",\"wallets\":[\"A-12\"]}' | jq",
+        "expect": "201 and a hold with status HELD."
+      }
+    },
+    {
+      "key": "run-both-services-watch-one",
+      "do": "Run both services and watch one request cross the boundary",
+      "why": "Seeing a single user action produce log lines in two processes is the moment microservices stop being an abstraction.",
+      "how": "Two terminals, two services, two log streams. Account is on 8080, ledger on 8081. Keep both visible — you will be watching them again in step 06 for a less happy reason.",
+      "blocks": [
+        {
+          "label": "Terminal 1 — account on 8080",
+          "kind": "shell",
+          "body": "./mvnw -pl services/account-service spring-boot:run"
+        },
+        {
+          "label": "Terminal 2 — ledger on 8081",
+          "kind": "shell",
+          "body": "./mvnw -pl services/ledger-service spring-boot:run"
+        },
+        {
+          "label": "Terminal 3 — a valid hold",
+          "kind": "shell",
+          "body": "curl -s -X POST localhost:8081/api/v1/holds \\\n  -H 'content-type: application/json' \\\n  -d '{\"accountId\":\"11111111-1111-1111-1111-111111111111\",\"wallets\":[\"A-12\"]}' | jq"
+        },
+        {
+          "label": "Terminal 3 — a wallet that does not exist, which must be refused",
+          "kind": "shell",
+          "body": "curl -i -X POST localhost:8081/api/v1/holds \\\n  -H 'content-type: application/json' \\\n  -d '{\"accountId\":\"11111111-1111-1111-1111-111111111111\",\"wallets\":[\"ZZ-99\"]}'"
+        },
+        {
+          "label": "Prove nothing was written for the bad wallet",
+          "kind": "shell",
+          "body": "docker exec -it lf-postgres psql -U ledgerflow -d ledger \\\n  -c 'SELECT wallet_code, status FROM funds_holds ORDER BY created_at DESC LIMIT 5;'"
+        }
+      ]
+    },
+    {
+      "key": "write-integration-test-cross-service",
+      "do": "Write an integration test for the cross-service path",
+      "why": "You want this covered without needing account to actually be running.",
+      "how": "Stub the client interface. This is the payoff for declaring the dependency as a type: the test replaces one bean and never opens a socket. Testing the real HTTP contract between the two is what step 17's contract testing is for.",
+      "blocks": [
+        {
+          "label": "ledger: src/test/java/io/ledgerflow/ledger/PlaceHoldIT.java",
+          "kind": "file",
+          "body": "package io.ledgerflow.ledger;\n\nimport io.ledgerflow.ledger.adapter.out.account.AccountClient;\nimport io.ledgerflow.ledger.application.PlaceHold;\nimport io.ledgerflow.ledger.domain.model.UnknownWalletException;\nimport org.junit.jupiter.api.Test;\nimport org.springframework.beans.factory.annotation.Autowired;\nimport org.springframework.boot.test.context.SpringBootTest;\nimport org.springframework.boot.testcontainers.service.connection.ServiceConnection;\nimport org.springframework.test.context.bean.override.mockito.MockitoBean;\nimport org.testcontainers.postgresql.PostgreSQLContainer;\nimport org.testcontainers.junit.jupiter.Container;\nimport org.testcontainers.junit.jupiter.Testcontainers;\n\nimport java.util.List;\nimport java.util.UUID;\n\nimport static org.assertj.core.api.Assertions.*;\nimport static org.mockito.Mockito.when;\n\n@Testcontainers\n@SpringBootTest\nclass PlaceHoldIT {\n\n    @Container @ServiceConnection\n    static PostgreSQLContainer postgres = new PostgreSQLContainer(\"postgres:17\");\n\n    @Autowired PlaceHold placeHold;\n    @MockitoBean AccountClient account;      // account does not have to be running\n\n    private static final UUID ACCOUNT = UUID.fromString(\"11111111-1111-1111-1111-111111111111\");\n\n    @Test\n    void refusesAWalletAccountDoesNotKnow() {\n        when(account.account(ACCOUNT)).thenReturn(\n            new AccountClient.AccountView(ACCOUNT, \"Demo Arena\",\n                List.of(new AccountClient.WalletView(UUID.randomUUID(), \"A-12\"))));\n\n        assertThatThrownBy(() -> placeHold.place(ACCOUNT, List.of(\"ZZ-99\")))\n            .isInstanceOf(UnknownWalletException.class);\n\n        assertThat(placeHold.place(ACCOUNT, List.of(\"A-12\"))).hasSize(1);\n    }\n}"
+        }
+      ],
+      "check": {
+        "run": "./mvnw -pl services/ledger-service -am test",
+        "expect": "Green."
+      }
+    }
+  ],
+  "proof": {
+    "run": "curl -i -X POST localhost:8081/api/v1/holds \\\n  -H 'content-type: application/json' \\\n  -d '{\"accountId\":\"11111111-1111-1111-1111-111111111111\",\"wallets\":[\"ZZ-99\"]}'",
+    "expect": "A 4xx problem+json, and no row in funds_holds.",
+    "note": "Two processes, one user action. Ledger is now unable to answer without account — write that sentence down, because step 06 is about what it costs."
+  },
+  "doneWhen": "Ledger refuses to hold a wallet that account does not know about, and the integration test covers it without account running.",
+  "services": [
+    "account-service",
+    "ledger-service"
+  ],
+  "infra": [
+    "postgres"
+  ],
+  "lessons": [
+    {
+      "id": "05-split-editor",
+      "title": "Split the editor",
+      "teach": "Right-click a tab → <b>Split Right</b>. Caller on the left, callee on the right — the fastest way to keep a client and its server side by side while you make them agree.",
+      "trigger": {
+        "type": "action",
+        "id": "SplitVertically"
+      },
+      "fallbackTip": "Two windows side by side."
+    }
+  ]
+}

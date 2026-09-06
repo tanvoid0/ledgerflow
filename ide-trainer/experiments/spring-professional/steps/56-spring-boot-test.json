@@ -1,0 +1,43 @@
+{
+  "id": "56",
+  "title": "spring boot test",
+  "goal": "4.2.1 Enable Spring Boot testing",
+  "tasks": [
+    {
+      "key": "state-what-springboottest-loads-that",
+      "do": "State what `@SpringBootTest` loads that a plain `@ExtendWith(SpringExtension.class)` does not."
+    },
+    {
+      "key": "list-all-four-webenvironment-values",
+      "do": "List all four `WebEnvironment` values and when to use each."
+    },
+    {
+      "key": "name-default-webenvironment",
+      "do": "Name the default `webEnvironment`."
+    },
+    {
+      "key": "choose-mockmvc-vs-testresttemplate-from",
+      "do": "Choose `MockMvc` vs `TestRestTemplate` from the environment."
+    },
+    {
+      "key": "use-localserverport-only-real-server",
+      "do": "Use `@LocalServerPort` only with a real server."
+    },
+    {
+      "key": "pin-classes-inner-springbootapplication-so",
+      "do": "Pin `classes` to an inner `@SpringBootApplication` so labs stay isolated."
+    },
+    {
+      "key": "predict-whether-two-test-classes",
+      "do": "Predict whether two test classes share a cached context."
+    },
+    {
+      "key": "set-inlined-properties-on-springboottest",
+      "do": "Set inlined `properties` on `@SpringBootTest`."
+    },
+    {
+      "key": "explain-why-security-auto-config",
+      "do": "Explain why Security auto-config on the classpath affects HTTP tests."
+    }
+  ]
+}

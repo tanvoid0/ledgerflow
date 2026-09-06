@@ -1,0 +1,39 @@
+{
+  "id": "38",
+  "title": "datetime api",
+  "goal": "1.3 Date-Time API — LocalDate, Instant, Period, Duration, zones, DST",
+  "tasks": [
+    {
+      "key": "parse-create-localdate-localtime-localdatetime",
+      "do": "Parse and create `LocalDate`, `LocalTime`, `LocalDateTime`"
+    },
+    {
+      "key": "use-instant-as-utc-timestamp",
+      "do": "Use `Instant` as a UTC timestamp"
+    },
+    {
+      "key": "compute-period-between-two-dates",
+      "do": "Compute `Period.between` two dates"
+    },
+    {
+      "key": "compute-duration-between-two-instants",
+      "do": "Compute `Duration.between` two instants or times"
+    },
+    {
+      "key": "attach-zoneid-get-zoneddatetime",
+      "do": "Attach a `ZoneId` to get `ZonedDateTime`"
+    },
+    {
+      "key": "predict-dst-behavior-plusdays-vs",
+      "do": "Predict DST behavior of `plusDays` vs `plusHours`"
+    },
+    {
+      "key": "treat-date-time-objects-as",
+      "do": "Treat date-time objects as immutable"
+    },
+    {
+      "key": "prefer-java-time-over-date",
+      "do": "Prefer `java.time` over `Date` / `Calendar` / `SimpleDateFormat`"
+    }
+  ]
+}

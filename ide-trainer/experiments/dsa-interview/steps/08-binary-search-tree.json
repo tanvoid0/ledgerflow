@@ -1,0 +1,43 @@
+{
+  "id": "08",
+  "title": "binary search tree",
+  "goal": "P3.2 BST invariants, insert, validity, in-order as sorted order",
+  "tasks": [
+    {
+      "key": "state-bst-invariant-as-subtree",
+      "do": "State the BST invariant as a subtree property, not a child comparison"
+    },
+    {
+      "key": "validate-descending-low-high-bounds",
+      "do": "Validate with descending `(low, high)` bounds"
+    },
+    {
+      "key": "use-order-traversal-whenever-sorted",
+      "do": "Use in-order traversal whenever sorted order helps"
+    },
+    {
+      "key": "give-complexity-as-o-height",
+      "do": "Give complexity as O(height) and say what height is when unbalanced"
+    },
+    {
+      "key": "stop-order-walk-early-when",
+      "do": "Stop an in-order walk early when the answer is known"
+    },
+    {
+      "key": "solve-all-four-exercises-inside",
+      "do": "Solve all four exercises inside their target times"
+    },
+    {
+      "key": "ask-about-duplicates-before-choosing",
+      "do": "Ask about duplicates before choosing `<` or `<=`"
+    },
+    {
+      "key": "say-o-log-n-if",
+      "do": "Say \"O(log n) if balanced, O(n) worst case\" unprompted"
+    },
+    {
+      "key": "draw-tree-where-naive-validity",
+      "do": "Draw a tree where the naive validity check fails"
+    }
+  ]
+}

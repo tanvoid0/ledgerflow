@@ -1,0 +1,79 @@
+{
+  "id": "22",
+  "title": "aop advice types",
+  "goal": "1.6.4 Advice types",
+  "tasks": [
+    {
+      "key": "name-all-five-advice-types",
+      "do": "Name all five advice types and when each runs."
+    },
+    {
+      "key": "reproduce-capability-table-from-memory",
+      "do": "Reproduce the capability table from memory: suppress, change return, swallow exception."
+    },
+    {
+      "key": "state-execution-order-all-five",
+      "do": "State the execution order of all five within one aspect, for both success and failure."
+    },
+    {
+      "key": "explain-why-only-around-can",
+      "do": "Explain why only `@Around` can alter behaviour."
+    },
+    {
+      "key": "bind-return-value-returning-exception",
+      "do": "Bind a return value with `returning` and an exception with `throwing`."
+    },
+    {
+      "key": "explain-how-bound-parameter-s",
+      "do": "Explain how the bound parameter's type narrows which join points match."
+    },
+    {
+      "key": "use-proceed-proceed-object-repeated",
+      "do": "Use `proceed()`, `proceed(Object[])`, repeated `proceed()`, and no `proceed()`."
+    },
+    {
+      "key": "explain-what-throwing-before-does",
+      "do": "Explain what a throwing `@Before` does to the target invocation."
+    },
+    {
+      "key": "explain-why-after-right-place",
+      "do": "Explain why `@After` is the right place for release logic."
+    },
+    {
+      "key": "choose-weakest-advice-type-that",
+      "do": "Choose the weakest advice type that satisfies a given requirement."
+    },
+    {
+      "key": "order-advice-across-multiple-aspects",
+      "do": "Order advice across multiple aspects with `@Order`."
+    },
+    {
+      "key": "around-must-return-proceed-s",
+      "do": "`@Around` MUST return `proceed()`'s value or callers receive `null`."
+    },
+    {
+      "key": "afterthrowing-observes-exception-cannot-stop",
+      "do": "`@AfterThrowing` observes the exception; it cannot stop propagation."
+    },
+    {
+      "key": "after-runs-on-both-success",
+      "do": "`@After` runs on BOTH the success and failure paths."
+    },
+    {
+      "key": "returning-throwing-names-must-match",
+      "do": "`returning` / `throwing` names must match the parameter name exactly."
+    },
+    {
+      "key": "bound-parameter-type-filters-matches",
+      "do": "The bound parameter type filters matches, silently."
+    },
+    {
+      "key": "proceedingjoinpoint-around-only",
+      "do": "`ProceedingJoinPoint` is `@Around`-only."
+    },
+    {
+      "key": "lower-order-outermost",
+      "do": "Lower `@Order` is outermost."
+    }
+  ]
+}

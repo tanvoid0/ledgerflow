@@ -1,0 +1,59 @@
+{
+  "id": "45",
+  "title": "spring data jpa",
+  "goal": "2.3.2 Spring Data JPA repositories",
+  "tasks": [
+    {
+      "key": "extend-jparepository-crudrepository-matching-id",
+      "do": "Extend `JpaRepository<T, ID>` (or `CrudRepository`) with matching id type."
+    },
+    {
+      "key": "use-built-save-findbyid-findall",
+      "do": "Use built-in `save`, `findById`, `findAll`, `deleteById`."
+    },
+    {
+      "key": "write-derived-query-findby-true",
+      "do": "Write a derived query (`findBy…And…True`, `countBy`, `existsBy`)."
+    },
+    {
+      "key": "write-query-jpql-named-parameters",
+      "do": "Write `@Query` JPQL with `:named` parameters."
+    },
+    {
+      "key": "add-modifying-on-update-delete",
+      "do": "Add `@Modifying` on UPDATE/DELETE queries."
+    },
+    {
+      "key": "state-that-findbyid-returns-optional",
+      "do": "State that `findById` returns `Optional` and does not throw for missing ids."
+    },
+    {
+      "key": "predict-startup-failure-when-derived",
+      "do": "Predict startup failure when a derived property does not exist."
+    },
+    {
+      "key": "contrast-jpql-entity-names-native",
+      "do": "Contrast JPQL entity names with native SQL table names."
+    },
+    {
+      "key": "derived-query-typos-fail-at",
+      "do": "Derived query typos fail at startup."
+    },
+    {
+      "key": "jpql-table-names",
+      "do": "JPQL ≠ table names."
+    },
+    {
+      "key": "modifying-required-dml-query",
+      "do": "`@Modifying` required for DML `@Query`."
+    },
+    {
+      "key": "findbyid-optional-not-emptyresultdataaccessexcep",
+      "do": "`findById` → `Optional`, not `EmptyResultDataAccessException`."
+    },
+    {
+      "key": "exam-javax-persistence-vs-lab",
+      "do": "Exam `javax.persistence` vs lab `jakarta.persistence`."
+    }
+  ]
+}

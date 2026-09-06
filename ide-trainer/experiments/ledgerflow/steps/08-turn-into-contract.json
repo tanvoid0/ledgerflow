@@ -1,0 +1,172 @@
+{
+  "id": "08",
+  "title": "Turn it into a contract",
+  "estimate": "3 days",
+  "goal": "That plain object was fine while one service consumed it. The moment a second one does, it is an API — and APIs need a stable shape, an owner, a version and a written definition.",
+  "startWith": "Step 07 finished: an event flows from ledger to notification.",
+  "newIdeas": [
+    {
+      "term": "Envelope",
+      "plain": "A wrapper carrying the metadata every event needs regardless of type: a unique <code>eventId</code>, what kind it is, which version, when it happened, and which user request caused it. The business data goes in <code>payload</code>."
+    },
+    {
+      "term": "correlationId / causationId",
+      "plain": "<b>Correlation</b> id: the original user request, copied unchanged onto everything that follows, so you can gather one story from six services. <b>Causation</b> id: the id of the single message that directly caused this one, so you can rebuild the chain."
+    },
+    {
+      "term": "Partition key",
+      "plain": "Kafka hashes the key to choose a partition, and one partition is ordered. Key by the aggregate id (the hold, the payment) and you get ordering per aggregate — which is what you actually need. A global order would require one partition, which means one consumer, which means no scale."
+    },
+    {
+      "term": "Schema Registry",
+      "plain": "A service that stores the agreed shape of each topic's messages and refuses changes that would break existing consumers. It turns \"please don't break the event\" from a code-review plea into a build failure."
+    },
+    {
+      "term": "BACKWARD compatibility",
+      "plain": "New consumers can read old messages. In practice: you may add optional fields, and you may not remove, rename or retype existing ones. Anything else needs a new major version and a new topic, with both running until consumers have moved."
+    },
+    {
+      "term": "Event-carried state transfer vs notification",
+      "plain": "Either the event carries everything a consumer needs, or it says \"something happened, go and ask me for the details\". The second re-introduces the synchronous call you added events to escape, and it puts load back on the producer. Default to the first."
+    }
+  ],
+  "tasks": [
+    {
+      "key": "move-event-into-libs-ledgerflow",
+      "do": "Move the event into libs/ledgerflow-events and wrap it in an envelope",
+      "why": "One definition, shared by producer and consumers, is the whole reason the library module exists.",
+      "how": "The envelope is generic so every event type gets the same metadata for free. Keep <b>only</b> the record types in this library — no publishing logic, no listeners. A shared library that contains behaviour makes all its users deploy together.",
+      "blocks": [
+        {
+          "label": "libs/ledgerflow-events/.../EventEnvelope.java",
+          "kind": "file",
+          "body": "package io.ledgerflow.events;\n\nimport java.time.Instant;\nimport java.util.UUID;\n\npublic record EventEnvelope<T>(\n        UUID eventId,          // unique per event: the idempotency key (step 11)\n        String eventType,      // \"ledger.FundsHeld\"\n        int schemaVersion,\n        UUID aggregateId,      // also the partition key\n        long aggregateVersion, // lets a consumer spot out-of-order arrivals\n        Instant occurredAt,\n        String correlationId,  // the user request that started all this\n        String causationId,    // the message that directly caused this one\n        T payload) {\n\n    public static <T> EventEnvelope<T> of(String type, UUID aggregateId, long version,\n                                          String correlationId, String causationId, T payload) {\n        return new EventEnvelope<>(UUID.randomUUID(), type, 1, aggregateId, version,\n                                   Instant.now(), correlationId, causationId, payload);\n    }\n}"
+        },
+        {
+          "label": "libs/ledgerflow-events/.../ledger/FundsHeld.java",
+          "kind": "file",
+          "body": "package io.ledgerflow.events.ledger;\n\nimport io.ledgerflow.events.Money;\nimport io.ledgerflow.events.WalletRef;\n\nimport java.time.Instant;\nimport java.util.List;\nimport java.util.UUID;\n\n/**\n * Event-carried state transfer: everything a consumer needs is here,\n * so nobody has to call ledger back to find out what happened.\n */\npublic record FundsHeld(\n        UUID holdId,\n        List<WalletRef> wallets,\n        Instant expiresAt,\n        Money totalAmount) {}"
+        },
+        {
+          "label": "Delete the two local copies",
+          "kind": "shell",
+          "body": "rm -f services/ledger-service/src/main/java/io/ledgerflow/ledger/domain/event/FundsHeld.java\n# and delete the nested 'record FundsHeld' from notification's listener"
+        }
+      ]
+    },
+    {
+      "key": "rename-topic-naming-convention-key",
+      "do": "Rename the topic to the naming convention and key by aggregate id",
+      "why": "A topic name is public API. It should say who owns it, what it is about, and which major version this is.",
+      "how": "The convention is <code>ledgerflow.&lt;context&gt;.&lt;aggregate&gt;.events.v&lt;major&gt;</code>. Key every message by the aggregate id — here, the hold id — so all events about one hold land in one partition and stay in order relative to each other. Ordering across different holds is not something you need, and demanding it would cost you all your parallelism.",
+      "blocks": [
+        {
+          "label": "Create the properly named topic",
+          "kind": "shell",
+          "body": "docker exec -it lf-redpanda rpk topic create ledgerflow.ledger.wallet-hold.events.v1 -p 3\ndocker exec -it lf-redpanda rpk topic list"
+        },
+        {
+          "label": "ledger: HoldEventPublisher — new topic, explicit key",
+          "kind": "paste",
+          "body": "static final String TOPIC = \"ledgerflow.ledger.wallet-hold.events.v1\";\n\npublic void publish(EventEnvelope<FundsHeld> envelope) {\n    kafka.send(TOPIC, envelope.aggregateId().toString(), envelope);\n    //               ^ the key. same hold -> same partition -> ordered.\n}"
+        },
+        {
+          "label": "Confirm your keys really do spread across partitions",
+          "kind": "shell",
+          "body": "docker exec -it lf-redpanda rpk topic consume \\\n  ledgerflow.ledger.wallet-hold.events.v1 -f '%p %k %v\\n' -n 20"
+        }
+      ],
+      "check": {
+        "run": "docker exec -it lf-redpanda rpk topic describe ledgerflow.ledger.wallet-hold.events.v1",
+        "expect": "Three partitions, and messages appearing in more than one of them."
+      }
+    },
+    {
+      "key": "add-schema-registry-register-event",
+      "do": "Add Schema Registry and register the event's schema",
+      "why": "So that breaking the contract fails a build instead of failing a consumer in production, three weeks later.",
+      "how": "Add the container, then set the subject's compatibility mode to BACKWARD. The registry stores a schema per topic and can tell you, before you deploy, whether a proposed change is safe.",
+      "blocks": [
+        {
+          "label": "infra/compose/docker-compose.yml — append",
+          "kind": "file",
+          "body": "cat >> infra/compose/docker-compose.yml << 'EOF'\n\n  schema-registry:\n    image: confluentinc/cp-schema-registry:7.7.0\n    container_name: lf-schema-registry\n    depends_on: [redpanda]\n    environment:\n      SCHEMA_REGISTRY_HOST_NAME: schema-registry\n      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: redpanda:29092\n      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081\n    ports: [\"18081:8081\"]      # 18081 on the host: 8081 is ledger's port\nEOF\ndocker compose -f infra/compose/docker-compose.yml up -d schema-registry"
+        },
+        {
+          "label": "Look at what is registered",
+          "kind": "shell",
+          "body": "curl -s localhost:18081/subjects | jq\ncurl -s localhost:18081/subjects/ledgerflow.ledger.wallet-hold.events.v1-value/versions/latest | jq"
+        },
+        {
+          "label": "Force BACKWARD compatibility on the subject",
+          "kind": "shell",
+          "body": "curl -s -X PUT localhost:18081/config/ledgerflow.ledger.wallet-hold.events.v1-value \\\n  -H 'content-type: application/json' -d '{\"compatibility\":\"BACKWARD\"}' | jq"
+        }
+      ]
+    },
+    {
+      "key": "gate-compatibility-ci",
+      "do": "Gate compatibility in CI",
+      "why": "A rule nobody can bypass beats a rule everybody agrees with.",
+      "how": "Before merging, ask the registry whether the proposed schema is compatible with the current one. A non-compatible answer fails the build. Try it deliberately: remove a field, watch it fail, then put it back.",
+      "blocks": [
+        {
+          "label": "Check a proposed schema — this is the gate",
+          "kind": "shell",
+          "body": "curl -s -X POST \\\n  localhost:18081/compatibility/subjects/ledgerflow.ledger.wallet-hold.events.v1-value/versions/latest \\\n  -H 'content-type: application/json' \\\n  -d @new-schema.json | jq\n# {\"is_compatible\": true}  -> safe to merge\n# {\"is_compatible\": false} -> you need a v2 topic"
+        },
+        {
+          "label": ".github/workflows/schema-check.yml (sketch)",
+          "kind": "file",
+          "body": "mkdir -p .github/workflows && cat > .github/workflows/schema-check.yml << 'EOF'\nname: schema-compatibility\non: [pull_request]\njobs:\n  check:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - name: Check every event schema against the registry\n        run: ./scripts/check-schemas.sh    # exits non-zero on is_compatible=false\nEOF"
+        }
+      ]
+    },
+    {
+      "key": "write-contract-document",
+      "do": "Write the contract document",
+      "why": "The test of a good contract is that someone you have never met can write a correct consumer from the document alone.",
+      "how": "One file per event under <code>docs/events/</code>. It must state the topic, the key, who produces it, who consumes it, the fields, the delivery guarantee and the ordering guarantee. The last two are the ones people forget, and they are the ones that decide whether a consumer is correct.",
+      "blocks": [
+        {
+          "label": "docs/events/ledger.FundsHeld.md",
+          "kind": "file",
+          "body": "cat > docs/events/ledger.FundsHeld.md << 'EOF'\n## ledger.FundsHeld (v1)\n\nTopic:     ledgerflow.ledger.wallet-hold.events.v1\nKind:      event-carried state transfer\nKey:       holdId\nRetention: 7 days\nProducer:  ledger-service\nConsumers: payment-service, balance-service, notification-service\n\n| Field       | Type             | Null | Notes                  |\n|-------------|------------------|------|------------------------|\n| holdId      | UUID             | no   | partition key          |\n| wallets       | array<WalletRef>   | no   | never empty            |\n| expiresAt   | timestamp-millis | no   | UTC                    |\n| totalAmount | Money            | no   | minor units + ISO-4217 |\n\nDelivery: at least once. Consumers MUST dedupe on envelope.eventId.\nOrdering: per holdId only. Nothing is guaranteed between different holds.\nA FundsHeld may arrive after WalletsReleased during a consumer rebalance -\ncheck aggregateVersion before applying.\nEOF"
+        }
+      ],
+      "check": {
+        "run": "./mvnw -pl libs/ledgerflow-events -am install",
+        "expect": "The library builds and both services compile against the shared event types."
+      }
+    }
+  ],
+  "proof": {
+    "run": "./mvnw -T 1C clean install\ndocker exec -it lf-redpanda rpk topic consume ledgerflow.ledger.wallet-hold.events.v1 -n 1",
+    "expect": "One message, in envelope shape, keyed by hold id.",
+    "note": "The event class now exists once, in a library both services depend on. Changing it is now a decision with a build gate behind it."
+  },
+  "doneWhen": "The event has a written contract, a stable key, one shared definition, and a CI check that stops you breaking it.",
+  "services": [
+    "account-service",
+    "ledger-service",
+    "notification-service"
+  ],
+  "infra": [
+    "postgres",
+    "redpanda",
+    "schema registry"
+  ],
+  "newThisStep": "schema registry",
+  "lessons": [
+    {
+      "id": "08-compare-files",
+      "title": "Diff two schema versions",
+      "teach": "Select two files in the project tree and press <b>Ctrl+D</b>. The diff viewer is how you check a schema change is actually backward compatible before the registry tells you it is not.",
+      "trigger": {
+        "type": "action",
+        "id": "CompareTwoFiles"
+      },
+      "fallbackTip": "git diff / diff -u"
+    }
+  ]
+}

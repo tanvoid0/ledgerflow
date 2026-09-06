@@ -1,0 +1,87 @@
+{
+  "id": "33",
+  "title": "actuator endpoints",
+  "goal": "6.3.1 Configure Actuator endpoints",
+  "tasks": [
+    {
+      "key": "name-at-least-ten-built",
+      "do": "Name at least ten built-in Actuator endpoints and what each reports."
+    },
+    {
+      "key": "distinguish-enabled-from-exposed-give",
+      "do": "Distinguish *enabled* from *exposed*, and give the property for each."
+    },
+    {
+      "key": "state-which-endpoints-are-exposed",
+      "do": "State which endpoints are exposed over HTTP by default, and which is disabled by default."
+    },
+    {
+      "key": "change-base-path-remap-individual",
+      "do": "Change the base path and remap an individual endpoint path."
+    },
+    {
+      "key": "move-actuator-separate-management-port",
+      "do": "Move Actuator to a separate management port."
+    },
+    {
+      "key": "configure-show-details-explain-each",
+      "do": "Configure `show-details` and explain each of its three values."
+    },
+    {
+      "key": "define-health-groups-liveness-readiness",
+      "do": "Define health groups for liveness and readiness probes."
+    },
+    {
+      "key": "populate-info-endpoint-build-git",
+      "do": "Populate the `info` endpoint with build and Git data."
+    },
+    {
+      "key": "change-log-level-at-runtime",
+      "do": "Change a log level at runtime through the `loggers` endpoint."
+    },
+    {
+      "key": "enable-expose-shutdown-argue-whether",
+      "do": "Enable and expose `shutdown`, and argue whether you should."
+    },
+    {
+      "key": "write-custom-endpoint-read-write",
+      "do": "Write a custom endpoint with read, write, and delete operations."
+    },
+    {
+      "key": "use-selector-accept-path-segment",
+      "do": "Use `@Selector` to accept a path segment."
+    },
+    {
+      "key": "configure-exposure-separately-web-jmx",
+      "do": "Configure exposure separately for web and JMX."
+    },
+    {
+      "key": "only-health-exposed-over-http",
+      "do": "Only `health` is exposed over HTTP by default."
+    },
+    {
+      "key": "enabled-exposed-both-switches-must",
+      "do": "Enabled ≠ exposed — both switches must allow it."
+    },
+    {
+      "key": "shutdown-only-endpoint-disabled-by",
+      "do": "`shutdown` is the only endpoint disabled by default."
+    },
+    {
+      "key": "exclude-wins-over-include",
+      "do": "`exclude` wins over `include`."
+    },
+    {
+      "key": "must-be-quoted-yaml",
+      "do": "`\"*\"` must be quoted in YAML."
+    },
+    {
+      "key": "show-details-defaults-never",
+      "do": "`show-details` defaults to `never`."
+    },
+    {
+      "key": "readoperation-get-writeoperation-post-deleteoper",
+      "do": "`@ReadOperation` = GET, `@WriteOperation` = POST, `@DeleteOperation` = DELETE."
+    }
+  ]
+}

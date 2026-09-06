@@ -1,0 +1,145 @@
+{
+  "id": "01",
+  "title": "identity and first repo",
+  "estimate": "30 min",
+  "goal": "A1 A repository, an identity, and one commit you made on purpose",
+  "startWith": "Open a terminal in an empty folder. Everything in this stage happens in a throwaway repo called <code>git-lab</code> — you will rewrite its history later, so do not use real work.",
+  "newIdeas": [
+    {
+      "term": "repository",
+      "plain": "A folder with a <code>.git</code> directory. All history lives there; delete it and you have plain files again."
+    },
+    {
+      "term": "commit",
+      "plain": "A snapshot of the whole tree plus who, when and why, identified by a hash."
+    },
+    {
+      "term": "working tree / index / HEAD",
+      "plain": "Three places a change can be: edited on disk, staged for the next commit, already committed."
+    }
+  ],
+  "tasks": [
+    {
+      "key": "set-name-email-globally-check",
+      "do": "Set your name and email globally, and check what git already thinks they are",
+      "why": "Every commit records them permanently. Fixing them later means rewriting history.",
+      "how": "Set them once per machine; a repo-local override drops the <code>--global</code>.",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git config --global user.name \"Your Name\"\ngit config --global user.email \"you@example.com\"\ngit config --global init.defaultBranch main\ngit config --list --show-origin | grep -E 'user\\.|init\\.'"
+        },
+        {
+          "label": "IntelliJ",
+          "kind": "note",
+          "body": "Settings → Version Control → Git has no identity field — IntelliJ reads this same global config. Set it in the terminal once and every IDE commit uses it."
+        }
+      ],
+      "check": {
+        "run": "git config --get user.email",
+        "expect": "your email, not empty"
+      }
+    },
+    {
+      "key": "create-lab-repo-make-first",
+      "do": "Create the lab repo and make the first commit",
+      "why": "<code>init</code> then <code>add</code> then <code>commit</code> is the whole model in three commands.",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "mkdir git-lab && cd git-lab\ngit init\necho '# git lab' > README.md\ngit add README.md\ngit commit -m \"first commit\""
+        },
+        {
+          "label": "IntelliJ",
+          "kind": "note",
+          "body": "VCS → <b>Enable Version Control Integration</b> creates the repo. New files raise a dialog asking to add them — that dialog is <code>git add</code>."
+        }
+      ]
+    },
+    {
+      "key": "look-at-same-commit-three",
+      "do": "Look at the same commit three ways: status, log, show",
+      "why": "Most git confusion is not knowing which of the three areas a change is sitting in. These three answer that.",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git status -sb\ngit log --oneline --graph --decorate --all\ngit show --stat HEAD"
+        },
+        {
+          "label": "IntelliJ",
+          "kind": "note",
+          "body": "The <b>Git</b> tool window (Alt+9) is the same three views: <i>Commit</i> tab is status, <i>Log</i> tab is log, clicking a commit is show."
+        }
+      ],
+      "check": {
+        "run": "git status --porcelain",
+        "expect": "empty — nothing uncommitted"
+      }
+    },
+    {
+      "key": "stage-change-then-unstage-without",
+      "do": "Stage a change, then unstage it without losing the edit",
+      "why": "Staging is a decision you can take back. Knowing that is what makes small commits cheap.",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "echo 'line two' >> README.md\ngit add README.md\ngit status -s          # M in the left column = staged\ngit restore --staged README.md\ngit status -s          # M moved right: unstaged, edit intact"
+        }
+      ],
+      "check": {
+        "run": "# read the two status lines: the M changes column and the edit survives",
+        "expect": "the M moves from left to right"
+      }
+    },
+    {
+      "key": "write-commit-message-stranger-can",
+      "do": "Write a commit message a stranger can act on",
+      "why": "A subject is read in a log of 500; the body is read by whoever debugs your change at 3am.",
+      "how": "Imperative subject under 50 characters, blank line, then <i>why</i> — not <i>what</i>, the diff already says what.",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git add -A\ngit commit             # opens your editor: subject, blank line, body"
+        },
+        {
+          "label": "IntelliJ",
+          "kind": "note",
+          "body": "<b>Ctrl+K</b> opens the Commit dialog. The message box is the same thing; the checkbox list on the left is the index."
+        }
+      ]
+    }
+  ],
+  "proof": {
+    "run": "git log --oneline",
+    "expect": "two or more commits",
+    "note": "Commits in a repo you created, with messages you meant."
+  },
+  "doneWhen": "You can say, for any file, whether it is untracked, modified, staged or committed — without guessing.",
+  "lessons": [
+    {
+      "id": "01-git-toolwindow",
+      "title": "The Git tool window (Alt+9)",
+      "teach": "<b>Alt+9</b> opens Git. Two tabs matter: <i>Commit</i> is <code>git status</code> with checkboxes, <i>Log</i> is <code>git log --graph</code> you can click. Everything in stage A has a home in here.",
+      "trigger": {
+        "type": "toolWindow",
+        "id": "Version Control"
+      },
+      "fallbackTip": "Older builds call it Version Control; newer ones split Commit into its own tool window."
+    },
+    {
+      "id": "01-commit-dialog",
+      "title": "Commit without the terminal (Ctrl+K)",
+      "teach": "<b>Ctrl+K</b>. The checkbox list is the index — ticking a file is <code>git add</code>, and unticking it is <code>git restore --staged</code>. The diff on the right is what you are about to commit, so read it before you write the message.",
+      "trigger": {
+        "type": "action",
+        "id": "CheckinProject"
+      },
+      "fallbackTip": "git add -p && git commit"
+    }
+  ]
+}

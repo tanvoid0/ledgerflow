@@ -1,0 +1,111 @@
+{
+  "id": "19",
+  "title": "The group, and the cost of changing it",
+  "estimate": "1 day",
+  "goal": "Consumer groups are how reads scale — and every change of membership stops the group, briefly, while partitions are dealt out again. Run three copies of one consumer, watch partitions move, then make rebalances incremental and restarts invisible.",
+  "startWith": "Step 18 finished: keyed events, and a topic whose partition count you can defend.",
+  "newIdeas": [
+    {
+      "term": "Consumer group",
+      "plain": "Consumers sharing a <code>group.id</code> divide the topic's partitions between them. A partition belongs to at most one member at a time — which is why partition count is the ceiling on useful consumers, and why step 09 capped listener concurrency."
+    },
+    {
+      "term": "Rebalance",
+      "plain": "The reassignment that runs when a member joins, leaves or dies. The eager default revokes <em>every</em> partition from <em>every</em> member first — the whole group pauses for one instance's deploy."
+    },
+    {
+      "term": "CooperativeStickyAssignor",
+      "plain": "Incremental rebalancing: only the partitions that actually move are revoked, the rest keep flowing. Two lines of configuration for most of the pain gone."
+    },
+    {
+      "term": "Static membership",
+      "plain": "<code>group.instance.id</code> gives a member a stable name. Restart it within the session timeout and the broker treats it as the same member — no rebalance at all. A deploy stops being a membership change."
+    }
+  ],
+  "tasks": [
+    {
+      "key": "run-three-copies-watch-deal",
+      "do": "Run three copies and watch the deal",
+      "why": "One instance owning six partitions is a diagram. Three instances owning two each — and stealing them when one dies — is the thing itself.",
+      "how": "Start two more notification-service instances on different ports. Describe the group and note which member owns which partitions. Then kill one and describe it again while the group recovers.",
+      "blocks": [
+        {
+          "label": "Two more instances",
+          "kind": "shell",
+          "body": "SERVER_PORT=8092 ./mvnw -pl services/notification-service spring-boot:run &\nSERVER_PORT=8093 ./mvnw -pl services/notification-service spring-boot:run &"
+        },
+        {
+          "label": "Who owns what",
+          "kind": "shell",
+          "body": "docker exec -it lf-redpanda rpk group describe notification-service"
+        }
+      ],
+      "check": {
+        "run": "docker exec -it lf-redpanda rpk group describe notification-service",
+        "expect": "Three members, partitions split between them; kill one and its partitions reappear under the survivors."
+      }
+    },
+    {
+      "key": "make-rebalance-incremental",
+      "do": "Make the rebalance incremental",
+      "why": "With the eager default, deploying one instance pauses all of them. In a payment flow that pause is user-visible latency, and it happens on every deploy you will ever do.",
+      "how": "Switch the assignor, restart the instances, then kill one again and watch the survivors keep consuming while only the dead member's partitions move.",
+      "blocks": [
+        {
+          "label": "notification: application.yml",
+          "kind": "paste",
+          "body": "spring:\n  kafka:\n    consumer:\n      properties:\n        partition.assignment.strategy: org.apache.kafka.clients.consumer.CooperativeStickyAssignor"
+        }
+      ],
+      "check": {
+        "run": "docker exec -it lf-redpanda rpk group describe notification-service",
+        "expect": "During the rebalance, surviving members keep their partitions and their lag stays flat — only the dead member's two move."
+      }
+    },
+    {
+      "key": "make-restarts-free-static-membership",
+      "do": "Make restarts free with static membership",
+      "why": "A rolling deploy of three instances is three rebalances you do not need. Static membership makes a restart a non-event, which is what it should have been all along.",
+      "how": "Give each instance a stable <code>group.instance.id</code> — it must be unique per instance, so derive it from something like the port or hostname, never hardcode one value for all three. Restart an instance inside the session timeout and describe the group: same assignment, no rebalance.",
+      "blocks": [
+        {
+          "label": "notification: application.yml",
+          "kind": "paste",
+          "body": "spring:\n  kafka:\n    consumer:\n      properties:\n        group.instance.id: notification-${server.port}\n        session.timeout.ms: 30000   # the window a restart must fit inside"
+        }
+      ],
+      "check": {
+        "run": "docker exec -it lf-redpanda rpk group describe notification-service",
+        "expect": "After a quick restart the member list and assignments are identical — no rebalance happened."
+      }
+    }
+  ],
+  "proof": {
+    "run": "docker exec -it lf-redpanda rpk group describe notification-service\n# then Ctrl-C one instance and run it again",
+    "expect": "Killing a member moves only its partitions; restarting a member moves nothing.",
+    "note": "If a restart still triggers a rebalance, it took longer than session.timeout.ms, or two instances share a group.instance.id."
+  },
+  "doneWhen": "Three consumers share the topic; killing one moves only its partitions; restarting one moves nothing.",
+  "services": [
+    "account-service",
+    "ledger-service",
+    "notification-service"
+  ],
+  "infra": [
+    "postgres",
+    "redpanda",
+    "schema registry"
+  ],
+  "lessons": [
+    {
+      "id": "19-parallel-run",
+      "title": "One run configuration, three instances",
+      "teach": "Edit Configurations → tick <b>Allow multiple instances</b> and add <code>SERVER_PORT</code> per copy — or duplicate the configuration three times. Rebalance experiments mean starting and killing members constantly; the Run tool window gives each a tab and a stop button, which beats three terminals you have to find first.",
+      "trigger": {
+        "type": "action",
+        "id": "editRunConfigurations"
+      },
+      "fallbackTip": "SERVER_PORT=8092 ./mvnw -pl services/notification-service spring-boot:run in separate terminals."
+    }
+  ]
+}

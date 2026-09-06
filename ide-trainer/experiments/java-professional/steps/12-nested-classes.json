@@ -1,0 +1,39 @@
+{
+  "id": "12",
+  "title": "nested classes",
+  "goal": "3.1 Nested class variants (static, inner, local, anonymous)",
+  "tasks": [
+    {
+      "key": "distinguish-static-nested-vs-inner",
+      "do": "Distinguish static nested vs inner vs local vs anonymous"
+    },
+    {
+      "key": "construct-outer-staticnested-without-outer",
+      "do": "Construct `Outer.StaticNested` without an outer instance"
+    },
+    {
+      "key": "construct-outer-new-inner-explain",
+      "do": "Construct `outer.new Inner()` and explain the hidden outer reference"
+    },
+    {
+      "key": "use-outer-this-when-names",
+      "do": "Use `Outer.this` when names collide"
+    },
+    {
+      "key": "state-effectively-final-rule-captured",
+      "do": "State the effectively-final rule for captured locals"
+    },
+    {
+      "key": "write-one-off-anonymous-class",
+      "do": "Write a one-off anonymous class implementing an interface"
+    },
+    {
+      "key": "explain-why-inner-instances-can",
+      "do": "Explain why inner instances can pin outer objects for GC"
+    },
+    {
+      "key": "access-private-members-across-nested",
+      "do": "Access `private` members across nested/outer boundary"
+    }
+  ]
+}

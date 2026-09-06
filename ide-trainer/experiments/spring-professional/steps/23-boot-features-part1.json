@@ -1,0 +1,75 @@
+{
+  "id": "23",
+  "title": "boot features part1",
+  "goal": "6.1.1a Spring Boot features (part 1)",
+  "tasks": [
+    {
+      "key": "state-what-spring-boot-adds",
+      "do": "State what Spring Boot adds on top of Spring Framework, in one sentence."
+    },
+    {
+      "key": "name-three-annotations-springbootapplication-com",
+      "do": "Name the three annotations `@SpringBootApplication` combines."
+    },
+    {
+      "key": "explain-what-starter-what-does",
+      "do": "Explain what a starter is and what it does *not* contain."
+    },
+    {
+      "key": "describe-auto-configuration-terms-conditional",
+      "do": "Describe auto-configuration in terms of conditional bean definitions."
+    },
+    {
+      "key": "explain-why-auto-configuration-runs",
+      "do": "Explain why auto-configuration runs after user configuration."
+    },
+    {
+      "key": "walk-through-main-phases-springapplication",
+      "do": "Walk through the main phases of `SpringApplication.run()`."
+    },
+    {
+      "key": "explain-how-boot-deduces-application",
+      "do": "Explain how Boot deduces the application type."
+    },
+    {
+      "key": "describe-embedded-server-model-how",
+      "do": "Describe the embedded-server model and how to swap Tomcat for another server."
+    },
+    {
+      "key": "explain-what-makes-executable-jar",
+      "do": "Explain what makes an executable jar executable."
+    },
+    {
+      "key": "contrast-commandlinerunner-applicationrunner",
+      "do": "Contrast `CommandLineRunner` and `ApplicationRunner`."
+    },
+    {
+      "key": "customise-bootstrap-springapplicationbuilder",
+      "do": "Customise the bootstrap with `SpringApplicationBuilder`."
+    },
+    {
+      "key": "starters-contain-no-code-only",
+      "do": "Starters contain no code — only curated dependencies."
+    },
+    {
+      "key": "component-scanning-starts-at-annotated",
+      "do": "Component scanning starts at the annotated class's package."
+    },
+    {
+      "key": "auto-configuration-applied-after-own",
+      "do": "Auto-configuration is applied AFTER your own configuration."
+    },
+    {
+      "key": "boot-still-supports-traditional-war",
+      "do": "Boot still supports traditional war deployment."
+    },
+    {
+      "key": "spring-boot-starter-parent-optional",
+      "do": "`spring-boot-starter-parent` is optional; the BOM is the alternative."
+    },
+    {
+      "key": "commandlinerunner-gets-raw-args-applicationrunne",
+      "do": "`CommandLineRunner` gets raw args; `ApplicationRunner` gets parsed ones."
+    }
+  ]
+}

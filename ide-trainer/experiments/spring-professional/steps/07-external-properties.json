@@ -1,0 +1,63 @@
+{
+  "id": "07",
+  "title": "external properties",
+  "goal": "1.3.1 Use External Properties",
+  "tasks": [
+    {
+      "key": "describe-role-environment-how-relates",
+      "do": "Describe the role of the `Environment` and how it relates to `PropertySource`."
+    },
+    {
+      "key": "add-properties-file-context-propertysource",
+      "do": "Add a properties file to the context with `@PropertySource`."
+    },
+    {
+      "key": "inject-single-value-value-including",
+      "do": "Inject a single value with `@Value`, including a default (`${key:fallback}`)."
+    },
+    {
+      "key": "explain-why-propertysourcesplaceholderconfigurer",
+      "do": "Explain why `PropertySourcesPlaceholderConfigurer` must be declared `static`."
+    },
+    {
+      "key": "state-precedence-order-command-line",
+      "do": "State the precedence order of command-line args, env vars, system properties, and `application.properties`."
+    },
+    {
+      "key": "distinguish-env-getproperty-from-env",
+      "do": "Distinguish `env.getProperty()` from `env.getRequiredProperty()`."
+    },
+    {
+      "key": "explain-relaxed-binding-server-port",
+      "do": "Explain relaxed binding (`server.port` vs `SERVER_PORT`)."
+    },
+    {
+      "key": "describe-how-spring-converts-string",
+      "do": "Describe how Spring converts a `String` property into `int`, `Duration`, or a `List`."
+    },
+    {
+      "key": "compare-value-configurationproperties-say-when",
+      "do": "Compare `@Value` with `@ConfigurationProperties` and say when each fits."
+    },
+    {
+      "key": "property-placeholder-spel-different-resolvers",
+      "do": "`${...}` is a property placeholder; `#{...}` is SpEL — different resolvers."
+    },
+    {
+      "key": "unresolvable-placeholder-fails-startup-does",
+      "do": "An unresolvable placeholder fails startup, it does not inject `null`."
+    },
+    {
+      "key": "propertysource-reads-properties-not-yml",
+      "do": "`@PropertySource` reads `.properties`, not `.yml`, without a custom factory."
+    },
+    {
+      "key": "defaults-are-written-colon-timeout",
+      "do": "Defaults are written with a colon: `${timeout:30}`."
+    },
+    {
+      "key": "value-field-still-null-inside",
+      "do": "A `@Value` field is still `null` inside the constructor."
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "id": "05",
+  "title": "switch patterns",
+  "goal": "2.1 switch statements/expressions and pattern matching",
+  "tasks": [
+    {
+      "key": "contrast-classic-colon-switch-fall",
+      "do": "Contrast classic colon switch (fall-through, `break`) with arrow cases (no fall-through)"
+    },
+    {
+      "key": "write-switch-expression-that-exhaustive",
+      "do": "Write a switch *expression* that is exhaustive (`default` or complete enum/sealed cases)"
+    },
+    {
+      "key": "use-yield-colon-style-switch",
+      "do": "Use `yield` in a colon-style switch expression block"
+    },
+    {
+      "key": "bind-type-pattern-case-string",
+      "do": "Bind a type pattern (`case String s`) and a guarded pattern (`when`)"
+    },
+    {
+      "key": "handle-case-null-vs-npe",
+      "do": "Handle `case null` vs NPE when null is omitted"
+    },
+    {
+      "key": "state-that-cannot-mix-one",
+      "do": "State that `->` and `:` cannot mix in one switch"
+    },
+    {
+      "key": "explain-pattern-variable-scope-case",
+      "do": "Explain pattern-variable scope (case body only)"
+    },
+    {
+      "key": "recognize-dominance-errors-case-object",
+      "do": "Recognize dominance errors (`case Object` before `case String`)"
+    }
+  ]
+}

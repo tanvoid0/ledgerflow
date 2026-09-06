@@ -1,0 +1,168 @@
+{
+  "id": "15",
+  "title": "Make it fast, and prove it",
+  "estimate": "4 days",
+  "goal": "Almost every portfolio repository has an architecture. Almost none has a measurement. A before and after table on the authorisation path is the one line on your CV another candidate cannot copy without doing the work.",
+  "startWith": "Step 14 finished. You optimise against timers you already trust, or you optimise against noise.",
+  "services": [
+    "all"
+  ],
+  "infra": [
+    "+ gatling",
+    "+ async-profiler"
+  ],
+  "newThisStep": "load harness · profiler",
+  "newIdeas": [
+    {
+      "term": "Closed vs open model",
+      "plain": "A closed load model keeps N users in flight and waits for each response, so a slow system simply receives less load and hides its own problem. An open model arrives at a fixed rate whatever the system is doing, which is how real payment traffic behaves. Use the open model, or your numbers flatter you."
+    },
+    {
+      "term": "Coordinated omission",
+      "plain": "The measurement bug where a stalled request stops the load generator sending, so the stall never appears in the percentiles. It is why a tool reporting a clean p99 can be sitting on a two second pause. Gatling with an open injection profile avoids it."
+    },
+    {
+      "term": "Virtual threads",
+      "plain": "Java 21 onward gives you threads the JVM schedules itself, so a request blocked on the database no longer occupies an operating system thread. For a service that spends its life waiting on IO, which is every payment service, it can change the throughput ceiling without changing the code."
+    },
+    {
+      "term": "Flame graph",
+      "plain": "A stacked view of where the CPU actually spent its time, sampled from the running JVM. Wide bar means expensive. It replaces the guess about which method is slow with a picture of which one is."
+    }
+  ],
+  "proof": {
+    "run": "./scripts/load-auth.sh baseline && ./scripts/load-auth.sh tuned",
+    "expect": "Two runs, same profile, and a p99 that moved for a reason you can name.",
+    "note": "Record the baseline before you change anything. A number you cannot compare to is not a result."
+  },
+  "doneWhen": "The README carries a table of p50, p95, p99 and throughput before and after, each row traced to the specific change that moved it.",
+  "tasks": [
+    {
+      "key": "write-load-profile-before-touch",
+      "do": "Write the load profile before you touch any code",
+      "why": "The optimisation you feel like doing and the optimisation the system needs are rarely the same one. The baseline is what tells them apart, and you can only capture it once.",
+      "how": "Model the authorisation path as an open injection profile: a fixed arrival rate, held long enough that the JIT has warmed and the connection pool has settled. Discard the first thirty seconds. Record p50, p95, p99 and achieved throughput, and commit the result file so the comparison survives your memory.",
+      "blocks": [
+        {
+          "label": "scripts/load-auth.sh",
+          "kind": "shell",
+          "body": "#!/usr/bin/env bash\nset -euo pipefail\nLABEL=\"${1:-baseline}\"\n\n./mvnw -q -pl load gatling:test \\\n  -Dgatling.simulationClass=io.ledgerflow.load.AuthorizeSimulation \\\n  -DrateRps=\"${RATE:-200}\" -DdurationSec=\"${DURATION:-180}\"\n\nmkdir -p docs/perf\ncp -r load/target/gatling/authorizesimulation-* \"docs/perf/${LABEL}\"\necho \"recorded docs/perf/${LABEL}\""
+        },
+        {
+          "label": "load: AuthorizeSimulation.java",
+          "kind": "paste",
+          "body": "public class AuthorizeSimulation extends Simulation {\n\n    private static final int RATE = Integer.getInteger(\"rateRps\", 200);\n    private static final int SECONDS = Integer.getInteger(\"durationSec\", 180);\n\n    ScenarioBuilder authorize = scenario(\"authorize\")\n        .exec(http(\"POST /authorizations\")\n            .post(\"/api/v1/authorizations\")\n            .header(\"Idempotency-Key\", session -> UUID.randomUUID().toString())\n            .body(StringBody(\"\"\"\n                {\"accountId\":\"#{accountId}\",\"currency\":\"GBP\",\"amountMinor\":1299}\"\"\"))\n            .check(status().in(201, 409)));\n\n    {\n        // Open model: arrivals do not wait for responses, so a stall shows up\n        // in the percentiles instead of quietly throttling the load.\n        setUp(authorize.injectOpen(constantUsersPerSec(RATE).during(SECONDS)))\n            .protocols(http.baseUrl(\"http://localhost:8082\"));\n    }\n}"
+        }
+      ],
+      "check": {
+        "run": "ls docs/perf/baseline",
+        "expect": "A committed baseline you can point a later run at."
+      }
+    },
+    {
+      "key": "find-bottleneck-instead-guessing-at",
+      "do": "Find the bottleneck instead of guessing at it",
+      "why": "Everyone guesses the database. It is often the outbox poll, the JSON serialiser or a pool sized for a laptop. Two hours with a profiler will save you a week of optimising the wrong method.",
+      "how": "Attach async-profiler to the running service while the load is on and take a CPU flame graph and a wall-clock one. Read the wall-clock graph first: a payment service spends its life waiting, so the CPU picture alone will mislead you. Then ask Postgres what it actually ran, using pg_stat_statements ordered by total time rather than by call count.",
+      "blocks": [
+        {
+          "label": "Flame graph off the running JVM",
+          "kind": "shell",
+          "body": "PID=$(jps -l | grep ledger-service | cut -d' ' -f1)\n\n# wall clock first: this service waits more than it computes\nasprof -d 60 -e wall -f docs/perf/wall.html \"$PID\"\nasprof -d 60 -e cpu  -f docs/perf/cpu.html  \"$PID\""
+        },
+        {
+          "label": "Ask the database what it really ran",
+          "kind": "shell",
+          "body": "docker exec -it lf-postgres psql -U ledgerflow -d ledger -c \"\n  SELECT calls,\n         round(total_exec_time::numeric, 1) AS total_ms,\n         round(mean_exec_time::numeric, 2)  AS mean_ms,\n         left(query, 90) AS query\n  FROM pg_stat_statements\n  ORDER BY total_exec_time DESC\n  LIMIT 10;\""
+        }
+      ],
+      "check": {
+        "run": "open docs/perf/wall.html",
+        "expect": "You can name the top two costs, and neither of them is a guess."
+      }
+    },
+    {
+      "key": "fix-top-two-one-at",
+      "do": "Fix the top two, one at a time, measuring between them",
+      "why": "Changing three things and rerunning once tells you the total moved and nothing about which change moved it. That is the difference between an anecdote and a result you can defend in an interview.",
+      "how": "Take the largest cost first. The usual winners on this path are an outbox poll fetching one row per round trip when it could claim a batch, a missing partial index on the unpublished rows, a connection pool sized without reference to the database max, and an N+1 across postings. Change one, rerun the same profile, record it, then move to the next.",
+      "blocks": [
+        {
+          "label": "ledger: claim a batch instead of a row at a time",
+          "kind": "paste",
+          "body": "@Query(value = \"\"\"\n    SELECT * FROM outbox\n    WHERE published_at IS NULL\n    ORDER BY id\n    LIMIT :batch\n    FOR UPDATE SKIP LOCKED\n    \"\"\", nativeQuery = true)\nList<OutboxRow> claimBatch(@Param(\"batch\") int batch);"
+        },
+        {
+          "label": "The index that keeps that poll flat as the table grows",
+          "kind": "paste",
+          "body": "-- Partial: the outbox is almost entirely published rows, and indexing\n-- those costs write time to buy nothing.\nCREATE INDEX CONCURRENTLY idx_outbox_unpublished\n    ON outbox (id) WHERE published_at IS NULL;"
+        },
+        {
+          "label": "Rerun the identical profile and record it",
+          "kind": "shell",
+          "body": "RATE=200 DURATION=180 ./scripts/load-auth.sh outbox-batched"
+        }
+      ],
+      "check": {
+        "run": "ls docs/perf",
+        "expect": "One directory per change, so every row of the final table has a run behind it."
+      }
+    },
+    {
+      "key": "run-same-load-on-virtual",
+      "do": "Run the same load on virtual threads and on platform threads",
+      "why": "It is one line of configuration and it produces a number about a language feature every interviewer is currently curious about. It is also a genuine test of whether you understand what your service spends its time doing.",
+      "how": "Turn on virtual threads, rerun the identical profile, and record it beside the platform thread run. Then look for the case that spoils it: a synchronized block held across a blocking call pins the carrier thread and gives back the ceiling you just bought. Finding one in your own code and writing down what you did about it is worth more than the speedup.",
+      "blocks": [
+        {
+          "label": "application.properties",
+          "kind": "paste",
+          "body": "spring.threads.virtual.enabled=true"
+        },
+        {
+          "label": "Two runs, one profile",
+          "kind": "shell",
+          "body": "SPRING_THREADS_VIRTUAL_ENABLED=false ./scripts/load-auth.sh platform-threads\nSPRING_THREADS_VIRTUAL_ENABLED=true  ./scripts/load-auth.sh virtual-threads"
+        },
+        {
+          "label": "Look for pinning before you believe the number",
+          "kind": "shell",
+          "body": "# every pinning event, with the stack that caused it\njava -Djdk.tracePinnedThreads=full -jar ledger-service/target/ledger-service.jar"
+        }
+      ],
+      "check": {
+        "run": "grep -c \"thread pinned\" docs/perf/pinning.log || true",
+        "expect": "Either no pinning, or a named cause and a note on what you changed."
+      }
+    },
+    {
+      "key": "put-table-readme-above-architecture",
+      "do": "Put the table in the README, above the architecture diagram",
+      "why": "A reader gives the repository about forty seconds. Architecture is what they expected. A measured improvement with the reason next to it is what makes them read the rest, and it is the sentence that ends up on the CV.",
+      "how": "One table. Columns for p50, p95, p99 and throughput. One row per change, each naming what moved and why. Say what the load was and on what hardware, because a number without its conditions reads as a number somebody made up.",
+      "blocks": [
+        {
+          "label": "README.md",
+          "kind": "paste",
+          "body": "## Authorisation path, measured\n\nOpen model, 200 requests per second sustained for 180s, single node,\nPostgres 17 in Docker, 8 core laptop. Full runs in `docs/perf/`.\n\n| Change                          |  p50 |  p95 |   p99 | tps |\n|---------------------------------|-----:|-----:|------:|----:|\n| Baseline                        |      |      |       |     |\n| Outbox claims a batch of 100    |      |      |       |     |\n| Partial index on unpublished    |      |      |       |     |\n| Virtual threads                 |      |      |       |     |\n\nEach row is a single change, measured against the row above it."
+        }
+      ],
+      "check": {
+        "run": "head -30 README.md",
+        "expect": "The numbers are the first thing on the page after the one line description."
+      }
+    }
+  ],
+  "lessons": [
+    {
+      "id": "15-profiler",
+      "title": "Profile, don't guess",
+      "teach": "Run the service with <b>Run with Profiler</b> and load it. A flame graph settles where the time goes in one run; a guess costs you a day of optimising the wrong method.",
+      "trigger": {
+        "type": "toolWindow",
+        "id": "Profiler"
+      },
+      "fallbackTip": "Ultimate only. Community: async-profiler attached by pid."
+    }
+  ]
+}

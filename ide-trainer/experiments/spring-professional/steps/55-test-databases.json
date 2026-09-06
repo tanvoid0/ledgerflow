@@ -1,0 +1,47 @@
+{
+  "id": "55",
+  "title": "test databases",
+  "goal": "4.1.4 Tests with Databases",
+  "tasks": [
+    {
+      "key": "explain-why-embedded-database-used",
+      "do": "Explain why an embedded database is used in tests and which Boot starters pull one in."
+    },
+    {
+      "key": "predict-whether-springboottest-method-transactio",
+      "do": "Predict whether a `@SpringBootTest` method is transactional without extra annotations."
+    },
+    {
+      "key": "place-sql-on-class-on",
+      "do": "Place `@Sql` on a class and on a method and state which scripts run."
+    },
+    {
+      "key": "use-sqlmergemode-merge-when-class",
+      "do": "Use `@SqlMergeMode(MERGE)` when class- and method-level scripts must both run."
+    },
+    {
+      "key": "choose-before-test-method-vs",
+      "do": "Choose `BEFORE_TEST_METHOD` vs `AFTER_TEST_METHOD`."
+    },
+    {
+      "key": "use-sqlconfig-transactionmode-isolated-when",
+      "do": "Use `@SqlConfig(transactionMode = ISOLATED)` when a script must commit independently."
+    },
+    {
+      "key": "state-when-dirtiescontext-justified-name",
+      "do": "State when `@DirtiesContext` is justified and name two method/class modes."
+    },
+    {
+      "key": "contrast-rollback-default-commit",
+      "do": "Contrast `@Rollback` (default) with `@Commit`."
+    },
+    {
+      "key": "keep-hibernate-ddl-auto-from",
+      "do": "Keep Hibernate `ddl-auto` from clobbering `@Sql` tables."
+    },
+    {
+      "key": "isolate-memory-database-so-test",
+      "do": "Isolate an in-memory database so test classes do not share tables."
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "id": "66",
+  "title": "boot m4 config validation",
+  "goal": "BOOT-M4 @ConfigurationProperties validation",
+  "tasks": [
+    {
+      "key": "bind-prefix-configurationproperties-register-typ",
+      "do": "Bind a prefix with `@ConfigurationProperties` and register the type as a bean."
+    },
+    {
+      "key": "put-validated-on-properties-type",
+      "do": "Put `@Validated` on the properties type so constraints run at startup."
+    },
+    {
+      "key": "use-notblank-min-max-notnull",
+      "do": "Use `@NotBlank`, `@Min`, `@Max`, and `@NotNull` on bound fields."
+    },
+    {
+      "key": "name-constraint-package-on-boot",
+      "do": "Name the constraint package on Boot 3 (`jakarta.validation`) vs the exam (`javax.validation`)."
+    },
+    {
+      "key": "explain-why-spring-boot-starter",
+      "do": "Explain why `spring-boot-starter-validation` must be on the classpath."
+    },
+    {
+      "key": "mark-nested-objects-valid",
+      "do": "Mark nested objects `@Valid`."
+    },
+    {
+      "key": "distinguish-missing-property-null-from",
+      "do": "Distinguish a missing property (`null`) from a blank property (`\"\"`)."
+    },
+    {
+      "key": "predict-exception-type-that-prevents",
+      "do": "Predict the exception type that prevents the context from starting."
+    },
+    {
+      "key": "contrast-this-value-which-not",
+      "do": "Contrast this with `@Value`, which is not Bean-Validation-aware."
+    },
+    {
+      "key": "show-valid-binding-tests-failing",
+      "do": "Show a valid binding in tests and a failing `ApplicationContextRunner` for illegal values."
+    },
+    {
+      "key": "constraints-without-validated-are-ignored",
+      "do": "Constraints without `@Validated` are ignored."
+    },
+    {
+      "key": "exam-snippets-use-javax-validation",
+      "do": "Exam snippets use `javax.validation`."
+    },
+    {
+      "key": "configurationproperties-bean-registration",
+      "do": "`@ConfigurationProperties` ≠ bean registration."
+    },
+    {
+      "key": "nested-types-need-valid",
+      "do": "Nested types need `@Valid`."
+    },
+    {
+      "key": "empty-string-not-unset",
+      "do": "Empty string is not \"unset\"."
+    }
+  ]
+}

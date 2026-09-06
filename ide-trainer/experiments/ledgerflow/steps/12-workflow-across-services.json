@@ -1,0 +1,203 @@
+{
+  "id": "12",
+  "title": "A workflow across services",
+  "estimate": "2 weeks",
+  "goal": "Reserve, charge, issue. Three services, three databases, no transaction spanning them. This is the hardest step in the project and the one worth the most.",
+  "startWith": "Step 11 finished: reliable publishing and idempotent consumers. You need both before this is even attemptable.",
+  "newIdeas": [
+    {
+      "term": "Saga",
+      "plain": "A long-running business transaction split into local transactions, one per service. There is no rollback across services, so every step that can fail needs a defined <b>compensation</b> — an action that undoes its effect."
+    },
+    {
+      "term": "Orchestration vs choreography",
+      "plain": "<b>Orchestration</b>: one service holds the workflow and tells the others what to do; the flow is in one readable place. <b>Choreography</b>: each service reacts to events with no central coordinator; less coupling, but the workflow exists only in everyone's heads. This project orchestrates, because a six-step flow you cannot read is unmaintainable."
+    },
+    {
+      "term": "Compensation, not rollback",
+      "plain": "You cannot un-charge a card; you issue a refund. The compensating action is itself a real business event, visible to the customer, and it can fail too."
+    },
+    {
+      "term": "Sealed interface + exhaustive switch",
+      "plain": "Declare the states as a sealed interface of records, and the compiler will refuse to build if your <code>switch</code> misses one. Add a state next month and every transition function that has not been updated fails to compile — which is exactly what you want."
+    },
+    {
+      "term": "Per-step deadline and sweeper",
+      "plain": "Every step gets a time by which it must have finished. A scheduled job looks for expired steps and emits a timeout event. Without it, a saga whose reply never arrives sits in a non-terminal state forever."
+    },
+    {
+      "term": "The late reply",
+      "plain": "You timed out, compensated, and then the reply arrives. The handler must recognise that the saga has moved on and discard it — safely. This case is the most common source of real production bugs in sagas."
+    }
+  ],
+  "tasks": [
+    {
+      "key": "scaffold-issuer-service-settlement-service",
+      "do": "Scaffold issuer-service, settlement-service and payment-service",
+      "why": "Stubs are enough to start. The workflow is the subject here, not the payment integration.",
+      "how": "Same procedure as before, three times. Payment-service is the orchestrator: it owns the <b>workflow</b> and its own saga state, and it does not own wallets, authorizations or captures. Give issuer-service a rule that lets you force a decline — for example any amount of exactly 1 is refused — so you can test the unhappy paths on demand.",
+      "blocks": [
+        {
+          "label": "Scaffold all three",
+          "kind": "shell",
+          "body": "for s in payment issuer settlement; do\n  cp -r services/account-service services/${s}-service\n  ( cd services/${s}-service\n    mv src/main/java/io/ledgerflow/account src/main/java/io/ledgerflow/${s}\n    mv src/test/java/io/ledgerflow/account src/test/java/io/ledgerflow/${s}\n    grep -rl 'account\\|Account' src pom.xml | xargs sed -i \\\n      \"s/io\\\\.ledgerflow\\\\.account/io.ledgerflow.${s}/g; s/account-service/${s}-service/g; s/account/${s}/g\"\n    for f in $(find src -name 'Account*.java'); do mv \"$f\" \"$(echo $f | sed 's/Account/X/')\"; done\n    rm -rf src/main/resources/db/migration/*.sql )\ndone\necho \"now: add all three to <modules> in the root pom, and set ports 8085/8086/8087\""
+        },
+        {
+          "label": "Ports, so the curl commands below work",
+          "kind": "note",
+          "body": "payment-service    8085\nissuer-service  8086\nsettlement-service   8087"
+        }
+      ]
+    },
+    {
+      "key": "model-paymentstate-as-sealed-interface",
+      "do": "Model PaymentState as a sealed interface of records",
+      "why": "The set of states a saga can be in is the most important thing to get right, and the compiler can hold you to it.",
+      "how": "Every state carries exactly the data that state needs — not one wide class with half its fields null. <code>Captured</code> and <code>Failed</code> are terminal: nothing leaves them.",
+      "blocks": [
+        {
+          "label": "payment: domain/model/PaymentState.java",
+          "kind": "file",
+          "body": "package io.ledgerflow.payment.domain.model;\n\nimport io.ledgerflow.events.Money;\nimport io.ledgerflow.events.WalletRef;\n\nimport java.util.List;\nimport java.util.UUID;\n\npublic sealed interface PaymentState {\n\n    UUID paymentId();\n\n    record Requested(UUID paymentId, List<WalletRef> wallets, Money total)          implements PaymentState {}\n    record FundsHeld(UUID paymentId, UUID holdId, Money total)              implements PaymentState {}\n    record AuthorizationPending(UUID paymentId, UUID holdId, UUID authorizationId)          implements PaymentState {}\n    record CapturePending(UUID paymentId, UUID holdId, UUID authorizationId)          implements PaymentState {}\n    record Captured(UUID paymentId, List<UUID> captures)                        implements PaymentState {}\n    record Compensating(UUID paymentId, FailureReason reason, Step failedAt)    implements PaymentState {}\n    record Failed(UUID paymentId, FailureReason reason)                         implements PaymentState {}\n\n    enum Step { RESERVE, AUTHORIZE, ISSUE }\n    enum FailureReason { PAYMENT_DECLINED, ISSUE_FAILED, TIMED_OUT, WALLETS_UNAVAILABLE }\n}"
+        }
+      ]
+    },
+    {
+      "key": "write-transition-function-as-exhaustive",
+      "do": "Write the transition function as an exhaustive switch",
+      "why": "One function, readable top to bottom, that says what happens next for every combination of state and reply.",
+      "how": "Pattern matching over the sealed interface means adding a state breaks the build until you handle it. Keep this function <b>pure</b>: it takes a state and an event and returns the next state plus the commands to send. Nothing in it touches the database or the network, so you can unit test every path in milliseconds.",
+      "blocks": [
+        {
+          "label": "payment: application/PaymentSaga.java — the core of the step",
+          "kind": "file",
+          "body": "package io.ledgerflow.payment.application;\n\nimport io.ledgerflow.payment.domain.model.PaymentState;\nimport io.ledgerflow.payment.domain.model.PaymentState.*;\n\nimport java.util.List;\n\n/** Pure: state + event in, next state + commands out. No IO, no Spring. */\npublic final class PaymentSaga {\n\n    public record Decision(PaymentState next, List<Command> commands) {}\n\n    public static Decision on(PaymentState state, SagaEvent event) {\n        return switch (state) {\n\n            case Requested r -> switch (event) {\n                case FundsHeld e  -> new Decision(\n                        new AuthorizationPending(r.paymentId(), e.holdId(), null),\n                        List.of(new Command.AuthorizePayment(r.paymentId(), r.total())));\n                case Rejected e       -> fail(r, FailureReason.WALLETS_UNAVAILABLE);\n                default               -> ignore(r);\n            };\n\n            case AuthorizationPending p -> switch (event) {\n                case PaymentAuthorized e -> new Decision(\n                        new CapturePending(p.paymentId(), p.holdId(), e.authorizationId()),\n                        List.of(new Command.IssueCaptures(p.paymentId(), p.holdId())));\n                case PaymentDeclined e   -> compensate(p, FailureReason.PAYMENT_DECLINED, Step.AUTHORIZE);\n                case StepTimedOut e      -> compensate(p, FailureReason.TIMED_OUT, Step.AUTHORIZE);\n                default                  -> ignore(p);\n            };\n\n            case CapturePending t -> switch (event) {\n                case Captured e -> new Decision(\n                        new Captured(t.paymentId(), e.captureIds()), List.of());\n                case IssueFailed e   -> compensate(t, FailureReason.ISSUE_FAILED, Step.ISSUE);\n                default              -> ignore(t);\n            };\n\n            // terminal states absorb late replies instead of blowing up\n            case Captured c    -> ignore(c);\n            case Failed f       -> ignore(f);\n            case Compensating c -> onCompensating(c, event);\n        };\n    }\n\n    /** A reply that arrived after we moved on. Discard it, do not fail. */\n    private static Decision ignore(PaymentState s) { return new Decision(s, List.of()); }\n}"
+        }
+      ]
+    },
+    {
+      "key": "build-happy-path-end-end",
+      "do": "Build the happy path end to end, and nothing else",
+      "why": "Compensations are far easier to reason about once the success path is real and you can watch it run.",
+      "how": "hold → authorize → issue → confirm. Stub issuer-service to always approve and settlement to always succeed. Do not write a single compensation until a payment reaches <code>Captured</code> in front of you.",
+      "blocks": [
+        {
+          "label": "Place a payment and watch it reach Captured",
+          "kind": "shell",
+          "body": "PAYMENT=$(curl -s -X POST localhost:8085/api/v1/payments \\\n  -H 'content-type: application/json' \\\n  -d '{\"accountId\":\"11111111-1111-1111-1111-111111111111\",\"wallets\":[\"A-12\"],\"amount\":4500}' \\\n  | jq -r .paymentId)\necho \"payment: $PAYMENT\"\n\nsleep 3\ncurl -s localhost:8085/api/v1/payments/$PAYMENT | jq '{state, captures}'"
+        }
+      ],
+      "check": {
+        "run": "curl -s localhost:8085/api/v1/payments/$PAYMENT | jq -r .state",
+        "expect": "Captured."
+      }
+    },
+    {
+      "key": "add-compensations-releasewallets-refundpayment-r",
+      "do": "Add compensations: ReleaseWallets, RefundPayment, RevokeCaptures",
+      "why": "A failed payment that leaves wallets held is worse than a failed payment.",
+      "how": "Each compensation is a command like any other, and each is idempotent — running it twice must be harmless, because it will be. Compensate in reverse order of what actually succeeded: if payment was never authorized there is nothing to refund.",
+      "blocks": [
+        {
+          "label": "Force a decline with the magic amount",
+          "kind": "shell",
+          "body": "curl -s -X POST localhost:8085/api/v1/payments \\\n  -H 'content-type: application/json' \\\n  -d '{\"accountId\":\"11111111-1111-1111-1111-111111111111\",\"wallets\":[\"A-13\"],\"amount\":1}' | jq"
+        },
+        {
+          "label": "Prove the wallets came back",
+          "kind": "shell",
+          "body": "docker exec -it lf-postgres psql -U ledgerflow -d ledger \\\n  -c \"SELECT wallet_code, status FROM funds_holds ORDER BY created_at DESC LIMIT 5;\""
+        }
+      ],
+      "check": {
+        "run": "# check the payment state and the wallet status",
+        "expect": "Payment is Failed(PAYMENT_DECLINED) and the wallet is RELEASED."
+      }
+    },
+    {
+      "key": "persist-saga-state-per-step",
+      "do": "Persist saga state with a per-step deadline, and add the sweeper",
+      "why": "Without a deadline, a saga whose reply never arrives waits forever and nobody notices.",
+      "how": "Store the current state, the current step, and the time by which that step must finish. A scheduled job finds expired rows and feeds a <code>StepTimedOut</code> event into the same transition function — so a timeout is handled by the same code as every other outcome, not a special case bolted on.",
+      "blocks": [
+        {
+          "label": "payment: db/migration/V1__sagas.sql",
+          "kind": "file",
+          "body": "cat > services/payment-service/src/main/resources/db/migration/V1__sagas.sql << 'EOF'\nCREATE TABLE sagas (\n    order_id     UUID PRIMARY KEY,\n    state        VARCHAR(32)  NOT NULL,\n    payload      JSONB        NOT NULL,\n    current_step VARCHAR(32),\n    deadline_at  TIMESTAMPTZ,\n    updated_at   TIMESTAMPTZ  NOT NULL DEFAULT now()\n);\nCREATE INDEX idx_sagas_deadline ON sagas (deadline_at)\n    WHERE deadline_at IS NOT NULL AND state NOT IN ('Captured','Failed');\nEOF"
+        },
+        {
+          "label": "payment: the sweeper",
+          "kind": "paste",
+          "body": "@Scheduled(fixedDelay = 1000)\n@Transactional\nvoid sweepExpiredSteps() {\n    for (var saga : sagas.claimExpired(Instant.now())) {   // FOR UPDATE SKIP LOCKED\n        apply(saga.paymentId(), new StepTimedOut(saga.currentStep()));\n    }\n}"
+        },
+        {
+          "label": "Inspect saga state directly when a test fails",
+          "kind": "shell",
+          "body": "docker exec -it lf-postgres psql -U ledgerflow -d \"payment\" \\\n  -c \"SELECT order_id, state, current_step, deadline_at FROM sagas ORDER BY updated_at DESC LIMIT 10;\""
+        }
+      ]
+    },
+    {
+      "key": "handle-late-reply",
+      "do": "Handle the late reply",
+      "why": "It is the case that will bite you in production, and it is the one nobody writes a test for.",
+      "how": "Freeze issuer-service, place a payment, wait past the deadline so the saga compensates, then unfreeze it and let the authorization reply arrive. The transition function must absorb it — the <code>ignore</code> branches for terminal states exist exactly for this. If payment did in fact take the money, the compensation must also cover it.",
+      "blocks": [
+        {
+          "label": "Simulate a hung payment service",
+          "kind": "shell",
+          "body": "kill -STOP $(lsof -ti:8086)\n\ncurl -s -X POST localhost:8085/api/v1/payments -H 'content-type: application/json' \\\n  -d '{\"accountId\":\"11111111-1111-1111-1111-111111111111\",\"wallets\":[\"A-14\"],\"amount\":4500}' \\\n  | jq -r .paymentId\n\n# wait past the step deadline, then let it answer\nkill -CONT $(lsof -ti:8086)"
+        }
+      ],
+      "check": {
+        "run": "# check the payment's final state and ledger's wallet status",
+        "expect": "Terminal state, wallets released, no exception thrown when the late reply arrives."
+      }
+    },
+    {
+      "key": "write-three-failure-tests",
+      "do": "Write the three failure tests",
+      "why": "Three named failures, three tests. If all three end with wallets released and a terminal state, the saga is correct enough to trust.",
+      "how": "Payment declined; settlement failed; payment never responds at all. Most of this can be tested against the pure transition function in milliseconds — reserve the slow end-to-end tests for one path each.",
+      "blocks": [
+        {
+          "label": "Run the saga suite",
+          "kind": "shell",
+          "body": "./mvnw -pl services/payment-service -am verify"
+        }
+      ]
+    }
+  ],
+  "proof": {
+    "run": "./mvnw -pl services/payment-service -am verify",
+    "expect": "All three failure modes end with wallets released and the payment in a terminal state.",
+    "note": "Build the happy path end to end before writing a single compensation."
+  },
+  "doneWhen": "Payment declined, issuance failed, and payment never answering all end with wallets released and a terminal payment state.",
+  "services": [
+    "account-service",
+    "ledger-service",
+    "notification-service",
+    "payment-service",
+    "issuer-service",
+    "settlement-service"
+  ],
+  "infra": [
+    "postgres",
+    "redpanda",
+    "schema registry"
+  ],
+  "newThisStep": "payment · issuer · settlement",
+  "lessons": [
+    {
+      "id": "12-bookmarks",
+      "title": "Bookmark the saga path",
+      "teach": "<b>F11</b> bookmarks a line. A saga spans five files; bookmark each hop and the Bookmarks tool window becomes a map of the flow you can walk in either direction.",
+      "trigger": {
+        "type": "action",
+        "id": "ToggleBookmark"
+      },
+      "fallbackTip": "Keep a scratch file listing the file:line of each hop."
+    }
+  ]
+}

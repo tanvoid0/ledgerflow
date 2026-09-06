@@ -1,0 +1,39 @@
+{
+  "id": "17",
+  "title": "interfaces",
+  "goal": "3.6 Interfaces, functional interfaces, default/static/private methods",
+  "tasks": [
+    {
+      "key": "declare-abstract-default-static-private",
+      "do": "Declare abstract, default, static, and private methods on an interface"
+    },
+    {
+      "key": "call-interface-static-method-as",
+      "do": "Call an interface static method as `Iface.name()`, not via an instance"
+    },
+    {
+      "key": "use-private-interface-method-as",
+      "do": "Use a private interface method as a helper for a default method"
+    },
+    {
+      "key": "identify-functional-interface-exactly-one",
+      "do": "Identify a functional interface (exactly one abstract method)"
+    },
+    {
+      "key": "explain-what-functionalinterface-checks-at",
+      "do": "Explain what `@FunctionalInterface` checks at compile time"
+    },
+    {
+      "key": "resolve-diamond-clash-by-overriding",
+      "do": "Resolve a diamond clash by overriding and `Interface.super.method()`"
+    },
+    {
+      "key": "state-that-more-specific-subinterface",
+      "do": "State that a more specific subinterface default beats a superinterface default"
+    },
+    {
+      "key": "recall-that-interface-fields-are",
+      "do": "Recall that interface fields are `public static final`"
+    }
+  ]
+}

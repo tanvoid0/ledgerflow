@@ -1,0 +1,43 @@
+{
+  "id": "11",
+  "title": "backtracking",
+  "goal": "P4.2 Choose / explore / un-choose over subsets and permutations",
+  "tasks": [
+    {
+      "key": "write-choose-explore-un-choose",
+      "do": "Write choose / explore / un-choose as three explicit lines"
+    },
+    {
+      "key": "copy-path-when-collecting-result",
+      "do": "Copy the path when collecting a result"
+    },
+    {
+      "key": "use-start-index-control-reuse",
+      "do": "Use the start index to control reuse and ordering"
+    },
+    {
+      "key": "prune-before-recursing-not-after",
+      "do": "Prune before recursing, not after"
+    },
+    {
+      "key": "sort-before-skipping-duplicate-branches",
+      "do": "Sort before skipping duplicate branches"
+    },
+    {
+      "key": "solve-all-four-exercises-inside",
+      "do": "Solve all four exercises inside their target times"
+    },
+    {
+      "key": "state-size-search-space-before",
+      "do": "State the size of the search space before writing code"
+    },
+    {
+      "key": "name-prune-what-saves",
+      "do": "Name the prune and what it saves"
+    },
+    {
+      "key": "trace-first-two-branches-by",
+      "do": "Trace the first two branches by hand before running anything"
+    }
+  ]
+}

@@ -1,0 +1,195 @@
+{
+  "id": "06",
+  "title": "Break it on purpose",
+  "estimate": "1 day",
+  "goal": "The most instructive twenty minutes in this project. Measure the failure before you fix it — otherwise resilience configuration is guesswork you cannot defend.",
+  "startWith": "Step 05 finished: both services running, holds working.",
+  "newIdeas": [
+    {
+      "term": "p99 latency",
+      "plain": "The response time that 99% of requests beat. Averages hide disasters: a service can average 40ms while one request in a hundred takes thirty seconds."
+    },
+    {
+      "term": "Cascading failure",
+      "plain": "Account stops answering. Ledger's threads all sit waiting on it. Ledger runs out of threads and stops answering anything, including requests that never needed account. One sick service has taken down a healthy one."
+    },
+    {
+      "term": "Hang vs crash",
+      "plain": "A crashed dependency is easy: the connection is refused immediately. A hung one accepts your connection and never replies, so you wait forever. That is why you freeze the process rather than kill it in the test below."
+    },
+    {
+      "term": "Timeout",
+      "plain": "The upper bound on how long you will wait. It is the cheapest and most valuable line of configuration here — everything else in this step is a refinement on top of it."
+    },
+    {
+      "term": "Circuit breaker",
+      "plain": "A counter around the call. Too many recent failures and it stops calling for a while, failing instantly instead. It protects the caller's threads, and gives the sick service room to recover instead of being hammered."
+    },
+    {
+      "term": "Fallback",
+      "plain": "What you return when the call fails or is short-circuited. Degrading — a slightly stale balance view — usually beats an error page."
+    }
+  ],
+  "tasks": [
+    {
+      "key": "install-load-generator-record-baseline",
+      "do": "Install a load generator and record a baseline p99",
+      "why": "Without a number from before the fix, you cannot tell whether the fix worked.",
+      "how": "<code>hey</code> is the simplest option; <code>k6</code> is nicer if you already have it. Run thirty seconds of load against the hold endpoint while both services are healthy, and write the p99 down somewhere you will still have it in ten minutes.",
+      "blocks": [
+        {
+          "label": "Install one of them",
+          "kind": "shell",
+          "body": "go install github.com/rakyll/hey@latest      # anywhere with Go\n# macOS:      brew install hey\n# Windows:    winget install k6 --source winget   (then use k6 below)"
+        },
+        {
+          "label": "Baseline: 30s of load, both services healthy",
+          "kind": "shell",
+          "body": "hey -z 30s -c 50 -m POST \\\n  -H 'content-type: application/json' \\\n  -d '{\"accountId\":\"11111111-1111-1111-1111-111111111111\",\"wallets\":[\"A-12\"]}' \\\n  http://localhost:8081/api/v1/holds"
+        }
+      ],
+      "check": {
+        "run": "# write down the p99 from the latency distribution",
+        "expect": "Single-digit or low double-digit milliseconds."
+      }
+    },
+    {
+      "key": "freeze-account-mid-test-watch",
+      "do": "Freeze account mid-test and watch ledger die with it",
+      "why": "This is the failure every pattern in stages B, C and D is defending against. You should see it once, on your own machine.",
+      "how": "Freeze rather than stop the process: <code>SIGSTOP</code> leaves the port open and answers nothing, which is far nastier than a crash and much more like a real overloaded service. Watch the live thread count climb while it is frozen — that is your thread pool filling with requests that will never complete.",
+      "blocks": [
+        {
+          "label": "Freeze account (Git Bash / macOS / Linux)",
+          "kind": "shell",
+          "body": "kill -STOP $(lsof -ti:8080)"
+        },
+        {
+          "label": "Freeze account (Windows PowerShell, if lsof is unavailable)",
+          "kind": "shell",
+          "body": "# find the PID holding 8080, then suspend it with pssuspend (Sysinternals)\nGet-NetTCPConnection -LocalPort 8080 -State Listen | Select-Object OwningProcess\npssuspend <pid>          # resume later with: pssuspend -r <pid>"
+        },
+        {
+          "label": "Watch ledger's thread count climb while account is frozen",
+          "kind": "shell",
+          "body": "watch -n1 \"curl -s localhost:8081/actuator/metrics/jvm.threads.live | jq -r '.measurements[0].value'\""
+        },
+        {
+          "label": "Re-run the load test in this state and record the p99 again",
+          "kind": "shell",
+          "body": "hey -z 30s -c 50 -m POST \\\n  -H 'content-type: application/json' \\\n  -d '{\"accountId\":\"11111111-1111-1111-1111-111111111111\",\"wallets\":[\"A-12\"]}' \\\n  http://localhost:8081/api/v1/holds"
+        },
+        {
+          "label": "Unfreeze it",
+          "kind": "shell",
+          "body": "kill -CONT $(lsof -ti:8080)"
+        }
+      ],
+      "check": {
+        "run": "curl -s -m 5 localhost:8081/actuator/health",
+        "expect": "While account is frozen, ledger is slow or unresponsive — including on endpoints that have nothing to do with account. That is the cascade."
+      }
+    },
+    {
+      "key": "add-timeout-smallest-change-biggest",
+      "do": "Add a timeout — the smallest change with the biggest effect",
+      "why": "One bounded wait converts an outage into a set of fast failures. Measure it before adding anything cleverer.",
+      "how": "Set the connect and read timeouts on the <code>RestClient</code> behind the generated client. Re-run the frozen-account load test. The p99 should collapse to roughly your read timeout, and ledger should stay responsive throughout. <b>Stop and compare the two numbers before continuing</b> — this comparison is the point of the step.",
+      "blocks": [
+        {
+          "label": "ledger: config/AccountClientConfig.java — replace the bean method",
+          "kind": "paste",
+          "body": "@Bean\nAccountClient accountClient(RestClient.Builder builder) {\n    var settings = ClientHttpRequestFactorySettings.defaults()\n            .withConnectTimeout(Duration.ofMillis(500))\n            .withReadTimeout(Duration.ofMillis(800));\n\n    var rest = builder\n            .baseUrl(\"http://localhost:8080\")\n            .requestFactory(ClientHttpRequestFactoryBuilder.detect().build(settings))\n            .build();\n\n    return HttpServiceProxyFactory\n            .builderFor(RestClientAdapter.create(rest))\n            .build()\n            .createClient(AccountClient.class);\n}"
+        },
+        {
+          "label": "Re-run the frozen test and compare",
+          "kind": "shell",
+          "body": "kill -STOP $(lsof -ti:8080)\nhey -z 30s -c 50 -m POST -H 'content-type: application/json' \\\n  -d '{\"accountId\":\"11111111-1111-1111-1111-111111111111\",\"wallets\":[\"A-12\"]}' \\\n  http://localhost:8081/api/v1/holds\nkill -CONT $(lsof -ti:8080)"
+        }
+      ],
+      "check": {
+        "run": "# compare p99 with and without the timeout",
+        "expect": "From tens of seconds to roughly 800ms, and ledger stays up."
+      }
+    },
+    {
+      "key": "add-retries-spring-framework-7",
+      "do": "Add retries with Spring Framework 7's built-in @Retryable",
+      "why": "Some failures are a blip. Retrying a blip is free; retrying a genuine outage makes it worse, so bound it.",
+      "how": "Spring Framework 7 ships declarative retry in the core framework — no <code>spring-retry</code> dependency. Annotate the method, enable it once with <code>@EnableResilientMethods</code>. Two rules worth internalising: only retry things that are safe to repeat (a read like this one), and always cap the attempts and back off between them.",
+      "blocks": [
+        {
+          "label": "ledger: config/ResilienceConfig.java",
+          "kind": "file",
+          "body": "package io.ledgerflow.ledger.config;\n\nimport org.springframework.context.annotation.Configuration;\nimport org.springframework.resilience.annotation.EnableResilientMethods;\n\n@Configuration\n@EnableResilientMethods\nclass ResilienceConfig { }"
+        },
+        {
+          "label": "ledger: wrap the call in a bean you can annotate",
+          "kind": "file",
+          "body": "package io.ledgerflow.ledger.adapter.out.account;\n\nimport org.springframework.resilience.annotation.Retryable;\nimport org.springframework.stereotype.Component;\nimport org.springframework.web.client.RestClientException;\n\nimport java.time.Duration;\nimport java.util.UUID;\n\n/** Everything the rest of the app uses to reach account goes through here. */\n@Component\npublic class AccountGateway {\n\n    private final AccountClient client;\n\n    AccountGateway(AccountClient client) { this.client = client; }\n\n    @Retryable(maxAttempts = 3, delay = 200, includes = RestClientException.class)\n    public AccountClient.AccountView account(UUID accountId) {\n        return client.account(accountId);\n    }\n}"
+        },
+        {
+          "label": "Point PlaceHold at the gateway instead of the raw client",
+          "kind": "paste",
+          "body": "// application/PlaceHold.java\nprivate final AccountGateway account;   // was AccountClient\n...\nvar account = account.account(accountId);"
+        }
+      ]
+    },
+    {
+      "key": "add-fallback-so-account-outage",
+      "do": "Add a fallback so an account outage degrades instead of failing",
+      "why": "A cached balance view is a much better answer than a 500, and it keeps ledger useful while account recovers.",
+      "how": "Cache the last successful answer per account and serve it when every retry has failed. This is a deliberately simple in-memory cache — it is enough to demonstrate the shape, and step 13 builds the real read model. Decide consciously what is acceptable here: serving a stale balance view risks holding a wallet that was just deleted, which is usually preferable to refusing all business.",
+      "blocks": [
+        {
+          "label": "ledger: AccountGateway — add the cache and the recovery method",
+          "kind": "paste",
+          "body": "private final Map<UUID, AccountClient.AccountView> lastKnownGood = new ConcurrentHashMap<>();\n\n@Retryable(maxAttempts = 3, delay = 200, includes = RestClientException.class)\npublic AccountClient.AccountView account(UUID accountId) {\n    var view = client.account(accountId);\n    lastKnownGood.put(accountId, view);\n    return view;\n}\n\n/** Called when every attempt above has failed. */\npublic AccountClient.AccountView accountOrLastKnown(UUID accountId) {\n    try {\n        return account(accountId);\n    } catch (RestClientException e) {\n        var cached = lastKnownGood.get(accountId);\n        if (cached == null) throw e;             // nothing to fall back to\n        log.warn(\"account unavailable, serving cached balance view for {}\", accountId);\n        return cached;\n    }\n}"
+        },
+        {
+          "label": "Optional: a real circuit breaker",
+          "kind": "note",
+          "body": "Spring Cloud Circuit Breaker (Resilience4j) is the usual next step, but as of\nSpring Cloud 2025.1.x its Resilience4j binding is still catching up with Boot 4,\nso check compatibility before adding it:\n\n  <dependency>\n    <groupId>org.springframework.cloud</groupId>\n    <artifactId>spring-cloud-starter-circuitbreaker-resilience4j</artifactId>\n  </dependency>\n\n  <!-- root pom, dependencyManagement -->\n  <dependency>\n    <groupId>org.springframework.cloud</groupId>\n    <artifactId>spring-cloud-dependencies</artifactId>\n    <version>2025.1.2</version>\n    <type>pom</type><scope>import</scope>\n  </dependency>\n\nIf it is not yet usable, the timeout + bounded retry + fallback above already\ngive you most of the protection. The breaker adds one thing on top: it stops\ncalling a service that is clearly down, instead of paying the timeout every time."
+        }
+      ]
+    },
+    {
+      "key": "repeat-frozen-account-test-write",
+      "do": "Repeat the frozen-account test and write both numbers down",
+      "why": "Two measured numbers are the deliverable of this step. Not the configuration — the evidence.",
+      "how": "Same load, same freeze, same duration. Compare against the baseline you recorded at the start. Keep the numbers in a file in the repo; you will want them again in step 14 when you are building dashboards, and they are the most convincing thing you can show anyone about why these patterns exist.",
+      "blocks": [
+        {
+          "label": "docs/measurements/step-06-cascade.md",
+          "kind": "file",
+          "body": "mkdir -p docs/measurements && cat > docs/measurements/step-06-cascade.md << 'EOF'\n# Step 06 - cascading failure, measured\n\n| scenario                              | p99      | ledger responsive? |\n|---------------------------------------|----------|-----------------------|\n| both healthy                          |    ?? ms | yes                   |\n| account frozen, no timeout            |    ?? s  | no                    |\n| account frozen, 800ms timeout         |    ?? ms | yes                   |\n| account frozen, timeout + fallback    |    ?? ms | yes, serving cached   |\n\nWhat I learned:\nEOF"
+        }
+      ]
+    }
+  ],
+  "proof": {
+    "run": "kill -STOP $(lsof -ti:8080)\n# load test, then\nkill -CONT $(lsof -ti:8080)",
+    "expect": "Ledger keeps answering throughout, with a p99 near the timeout rather than near infinity.",
+    "note": "Without a timeout, threads pile up until ledger dies too. That cascade is the thing every later pattern is defending against."
+  },
+  "doneWhen": "Freezing account degrades ledger instead of taking it down, and you have written down the before and after numbers.",
+  "services": [
+    "account-service",
+    "ledger-service"
+  ],
+  "infra": [
+    "postgres"
+  ],
+  "lessons": [
+    {
+      "id": "06-breakpoint",
+      "title": "Debug instead of printing",
+      "teach": "Click the gutter to set a breakpoint, then start with <b>Debug</b>. Right-click the breakpoint for a <i>condition</i> — that is how you stop on the one request out of a hundred that fails.",
+      "trigger": {
+        "type": "breakpoint",
+        "id": "*"
+      },
+      "fallbackTip": "Add logging and read the second exception, not the first."
+    }
+  ]
+}

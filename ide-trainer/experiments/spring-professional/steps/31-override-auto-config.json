@@ -1,0 +1,75 @@
+{
+  "id": "31",
+  "title": "override auto config",
+  "goal": "6.2.3a Override default configuration",
+  "tasks": [
+    {
+      "key": "recite-override-ladder-property-bean",
+      "do": "Recite the override ladder: property, bean, customiser, exclusion."
+    },
+    {
+      "key": "override-common-defaults-properties-alone",
+      "do": "Override common defaults with properties alone."
+    },
+    {
+      "key": "replace-auto-configured-bean-explain",
+      "do": "Replace an auto-configured bean and explain what you take on by doing so."
+    },
+    {
+      "key": "name-four-customiser-interfaces-what",
+      "do": "Name four customiser interfaces and what each adjusts."
+    },
+    {
+      "key": "explain-why-customiser-survives-boot",
+      "do": "Explain why a customiser survives a Boot upgrade better than a replacement bean."
+    },
+    {
+      "key": "distinguish-webmvcconfigurer-from-enablewebmvc",
+      "do": "Distinguish `WebMvcConfigurer` from `@EnableWebMvc`."
+    },
+    {
+      "key": "explain-why-enablewebmvc-disables-boot",
+      "do": "Explain why `@EnableWebMvc` disables Boot's MVC auto-configuration."
+    },
+    {
+      "key": "distinguish-same-type-beans-from",
+      "do": "Distinguish same-*type* beans from same-*name* bean definitions."
+    },
+    {
+      "key": "state-default-spring-main-allow",
+      "do": "State the default of `spring.main.allow-bean-definition-overriding` and why it is off."
+    },
+    {
+      "key": "use-primary-resolve-ambiguity-without",
+      "do": "Use `@Primary` to resolve ambiguity without removing a bean."
+    },
+    {
+      "key": "verify-back-off-happened-using",
+      "do": "Verify a back-off happened using the condition report."
+    },
+    {
+      "key": "choose-between-logging-properties-logback",
+      "do": "Choose between `logging.*` properties and a `logback-spring.xml`."
+    },
+    {
+      "key": "enablewebmvc-replaces-boot-s-mvc",
+      "do": "`@EnableWebMvc` REPLACES Boot's MVC config; `WebMvcConfigurer` EXTENDS it."
+    },
+    {
+      "key": "bean-definition-overriding-off-by",
+      "do": "Bean-definition overriding is off by default — that is about names, not types."
+    },
+    {
+      "key": "back-off-only-occurs-where",
+      "do": "Back-off only occurs where `@ConditionalOnMissingBean` is present."
+    },
+    {
+      "key": "replacing-bean-freezes-today-s",
+      "do": "Replacing a bean freezes today's defaults; customising keeps tomorrow's."
+    },
+    {
+      "key": "primary-resolves-ambiguity-does-not",
+      "do": "`@Primary` resolves ambiguity; it does not remove anything."
+    }
+  ]
+}

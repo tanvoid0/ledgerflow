@@ -1,0 +1,71 @@
+{
+  "id": "09",
+  "title": "spel",
+  "goal": "1.3.3 Use SpEL",
+  "tasks": [
+    {
+      "key": "state-difference-between-name-component",
+      "do": "State the difference between `#{...}` and `${...}` and name the component that resolves each."
+    },
+    {
+      "key": "evaluate-expression-spelexpressionparser-outside",
+      "do": "Evaluate an expression with `SpelExpressionParser` outside the container."
+    },
+    {
+      "key": "explain-role-evaluationcontext-when-prefer",
+      "do": "Explain the role of `EvaluationContext` and when to prefer `SimpleEvaluationContext`."
+    },
+    {
+      "key": "reference-another-bean-one-its",
+      "do": "Reference another bean and one of its properties from a SpEL expression."
+    },
+    {
+      "key": "read-systemproperties-systemenvironment-bracket",
+      "do": "Read `systemProperties` and `systemEnvironment` with bracket syntax."
+    },
+    {
+      "key": "access-static-enum-constant-t",
+      "do": "Access a static or enum constant with the `T()` operator."
+    },
+    {
+      "key": "use-safe-navigation-elvis-operator",
+      "do": "Use safe navigation `?.` and the Elvis operator `?:`."
+    },
+    {
+      "key": "filter-selection-transform-projection",
+      "do": "Filter with selection `.?[]` and transform with projection `.![]`."
+    },
+    {
+      "key": "nest-property-placeholder-inside-spel",
+      "do": "Nest a property placeholder inside a SpEL expression with correct quoting."
+    },
+    {
+      "key": "explain-why-spel-value-singleton",
+      "do": "Explain why a SpEL value in a singleton is computed only once."
+    },
+    {
+      "key": "value-server-port-looks-bean",
+      "do": "`@Value(\"#{server.port}\")` looks for a *bean* named `server`, not a property."
+    },
+    {
+      "key": "app-mode-fast-quotes-are",
+      "do": "`#{'${app.mode}' == 'fast'}` — the quotes are required."
+    },
+    {
+      "key": "elvis-reacts-null-key-default",
+      "do": "Elvis reacts to `null`; `${key:default}` reacts to a missing property."
+    },
+    {
+      "key": "t-requires-fully-qualified-class",
+      "do": "`T()` requires a fully-qualified class name outside `java.lang`."
+    },
+    {
+      "key": "selection-returns-empty-collection-never",
+      "do": "Selection returns an empty collection, never `null`, when nothing matches."
+    },
+    {
+      "key": "never-build-spel-from-user",
+      "do": "Never build SpEL from user input — expressions execute arbitrary code."
+    }
+  ]
+}

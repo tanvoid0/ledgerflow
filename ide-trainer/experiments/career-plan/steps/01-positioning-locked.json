@@ -1,0 +1,31 @@
+{
+  "id": "01",
+  "title": "positioning locked",
+  "goal": "O1 Positioning for FAANG backend + Spring UK backup",
+  "tasks": [
+    {
+      "key": "linkedin-headline-rewritten-civica-brand",
+      "do": "LinkedIn headline rewritten (Civica brand, FAANG + Spring target, sponsorship note)"
+    },
+    {
+      "key": "linkedin-about-rewritten-using-60",
+      "do": "LinkedIn About rewritten using the 60-second story"
+    },
+    {
+      "key": "master-cv-drafted-metrics-truth",
+      "do": "Master CV drafted, metrics truth-edited"
+    },
+    {
+      "key": "faang-spring-shop-uk-sponsor",
+      "do": "FAANG / Spring-shop / UK-sponsor CV variants (summary + top 2 bullets only)"
+    },
+    {
+      "key": "dsa-interview-prep-opened-module",
+      "do": "DSA Interview Prep opened; module 01 sitting scheduled for this week"
+    },
+    {
+      "key": "portfolio-site-fixed-bypassed-redirect",
+      "do": "Portfolio site fixed or bypassed (redirect to GitHub/LinkedIn until fixed)"
+    }
+  ]
+}

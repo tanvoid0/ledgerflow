@@ -1,0 +1,192 @@
+{
+  "id": "10",
+  "title": "The dual-write bug",
+  "estimate": "3 days",
+  "goal": "Reproduce data loss in your own system, twice, in both directions. Then fix it with the outbox pattern — which is unconvincing until you have watched the bug happen on your machine.",
+  "startWith": "Step 09 finished: durable consumers, retries and a DLT.",
+  "newIdeas": [
+    {
+      "term": "Dual write",
+      "plain": "Writing to two systems that cannot commit together — your database and the broker. Whichever you do first, there is a window where one succeeded and the other did not, and no ordering of the two lines removes it."
+    },
+    {
+      "term": "Outbox pattern",
+      "plain": "Instead of publishing, you <b>insert the event into a table in the same transaction</b> as the business change. Either both are committed or neither is. A separate process reads that table and publishes. The clever part is that there is nothing clever about it."
+    },
+    {
+      "term": "FOR UPDATE SKIP LOCKED",
+      "plain": "A Postgres locking clause that lets several publisher instances read from the same table without fighting: each takes rows nobody else has locked, and skips the rest instead of waiting. It is what makes the polling publisher safe to run more than once."
+    },
+    {
+      "term": "Partial index",
+      "plain": "An index with a WHERE clause, e.g. only rows where <code>published_at IS NULL</code>. The outbox is mostly published rows; indexing only the unpublished handful keeps the poll fast however large the table grows."
+    },
+    {
+      "term": "CDC (change data capture)",
+      "plain": "The alternative: a tool such as Debezium reads the database's own write-ahead log and publishes changes, so there is no polling at all. Lower latency, more moving parts to operate."
+    }
+  ],
+  "tasks": [
+    {
+      "key": "reproduce-loss-stop-broker-then",
+      "do": "Reproduce the loss: stop the broker, then place a hold",
+      "why": "You are about to have a hold in Postgres that no other service will ever hear about. Seeing it is the entire justification for the rest of the step.",
+      "how": "Stop Redpanda, place a hold, then bring the broker back. Watch carefully: the API returns success, the row is in the database, and the event never arrives — not late, never. Nothing retries it because nothing knows it should exist.",
+      "blocks": [
+        {
+          "label": "Break it",
+          "kind": "shell",
+          "body": "docker stop lf-redpanda\n\ncurl -s -X POST localhost:8081/api/v1/holds \\\n  -H 'content-type: application/json' \\\n  -d '{\"accountId\":\"11111111-1111-1111-1111-111111111111\",\"wallets\":[\"B-1\"]}' | jq"
+        },
+        {
+          "label": "Confirm the damage",
+          "kind": "shell",
+          "body": "docker exec -it lf-postgres psql -U ledgerflow -d ledger \\\n  -c \"SELECT id, wallet_code, created_at FROM funds_holds ORDER BY created_at DESC LIMIT 3;\""
+        },
+        {
+          "label": "Bring the broker back and watch nothing happen",
+          "kind": "shell",
+          "body": "docker start lf-redpanda\nsleep 10\ndocker exec -it lf-redpanda rpk topic consume ledgerflow.ledger.wallet-hold.events.v1 -n 1 -o end"
+        }
+      ],
+      "check": {
+        "run": "# check the notification-service terminal",
+        "expect": "No log line for wallet B-1, ever. The hold exists and the world does not know."
+      }
+    },
+    {
+      "key": "reproduce-mirror-image-publish-then",
+      "do": "Reproduce the mirror image: publish, then roll back",
+      "why": "Swapping the order does not fix it, and proving that to yourself is what stops you trying.",
+      "how": "Publish first, then throw an exception so the transaction rolls back. Now the opposite is true: notification-service has been told about a hold that does not exist. There is no third ordering. Two systems, no shared transaction, therefore no safe sequence.",
+      "blocks": [
+        {
+          "label": "ledger: temporarily invert the order to see the other failure",
+          "kind": "paste",
+          "body": "@Transactional\npublic List<FundsHold> place(UUID accountId, List<String> wallets) {\n    var holds = repository.saveAll(...);\n    publisher.publish(...);                 // event goes out\n    if (true) throw new IllegalStateException(\"simulated failure after publish\");\n    return holds;                           // transaction rolls back; event does not\n}"
+        },
+        {
+          "label": "Then remove the simulated failure again",
+          "kind": "shell",
+          "body": "# undo the change above before continuing"
+        }
+      ],
+      "check": {
+        "run": "# check notification's log and ledger's funds_holds table",
+        "expect": "A log line about a hold with no row behind it. The mirror image of the first bug."
+      }
+    },
+    {
+      "key": "add-outbox-table",
+      "do": "Add the outbox table",
+      "why": "One table turns two writes into one, which is the only thing that makes them atomic.",
+      "how": "Ledger's migrations are its own, so this is <code>V2__</code> after the <code>V1__holds.sql</code> you wrote in step 04. The partial index is what keeps the publisher's poll cheap forever: it only indexes rows still waiting to go out.",
+      "blocks": [
+        {
+          "label": "services/ledger-service/src/main/resources/db/migration/V2__outbox.sql",
+          "kind": "file",
+          "body": "cat > services/ledger-service/src/main/resources/db/migration/V2__outbox.sql << 'EOF'\nCREATE TABLE outbox (\n    id             UUID PRIMARY KEY,\n    aggregate_type VARCHAR(64)  NOT NULL,\n    aggregate_id   VARCHAR(128) NOT NULL,\n    event_type     VARCHAR(128) NOT NULL,\n    payload        JSONB        NOT NULL,\n    headers        JSONB        NOT NULL,\n    occurred_at    TIMESTAMPTZ  NOT NULL DEFAULT now(),\n    published_at   TIMESTAMPTZ\n);\n\n-- only the unpublished rows are indexed, so the poll stays fast forever\nCREATE INDEX idx_outbox_pending ON outbox (occurred_at) WHERE published_at IS NULL;\nEOF"
+        }
+      ]
+    },
+    {
+      "key": "append-event-outbox-inside-same",
+      "do": "Append the event to the outbox inside the same transaction as the state change",
+      "why": "This is the fix, and it is one line moved.",
+      "how": "The use case no longer publishes. It writes the hold and appends the event, both inside <code>@Transactional</code>. If the transaction rolls back, the event vanishes with it. If it commits, the event is durably queued whether or not the broker is even running. Note the <code>ObjectMapper</code> import: Boot 4 ships Jackson 3, which moved the whole library from <code>com.fasterxml.jackson</code> to <code>tools.jackson</code>. A 2.x import compiles nowhere and every answer written before 2026 has the old one.",
+      "blocks": [
+        {
+          "label": "ledger: application/PlaceHold.java",
+          "kind": "paste",
+          "body": "@Transactional\npublic List<FundsHold> place(UUID accountId, List<String> walletCodes) {\n    var account = account.accountOrLastKnown(accountId);\n    for (var label : walletCodes)\n        if (!account.hasWallet(label)) throw new UnknownWalletException(accountId, label);\n\n    var holds = repository.saveAll(...);\n\n    // same transaction. either both rows exist or neither does.\n    outbox.append(EventEnvelope.of(\"ledger.FundsHeld\",\n            holds.getFirst().id(), 1, MDC.get(\"requestId\"), null,\n            new FundsHeld(...)));\n\n    return holds;\n}"
+        },
+        {
+          "label": "ledger: adapter/out/persistence/OutboxAppender.java",
+          "kind": "file",
+          "body": "package io.ledgerflow.ledger.adapter.out.persistence;\n\nimport tools.jackson.databind.ObjectMapper;\nimport io.ledgerflow.events.EventEnvelope;\nimport org.springframework.jdbc.core.simple.JdbcClient;\nimport org.springframework.stereotype.Component;\n\n@Component\npublic class OutboxAppender {\n\n    private final JdbcClient db;\n    private final ObjectMapper json;\n\n    OutboxAppender(JdbcClient db, ObjectMapper json) { this.db = db; this.json = json; }\n\n    /** Must be called inside the caller's transaction - no @Transactional here. */\n    public void append(EventEnvelope<?> e) {\n        db.sql(\"\"\"\n               INSERT INTO outbox (id, aggregate_type, aggregate_id, event_type,\n                                   payload, headers, occurred_at)\n               VALUES (?, ?, ?, ?, ?::jsonb, ?::jsonb, ?)\n               \"\"\")\n          .params(e.eventId(), \"wallet-hold\", e.aggregateId().toString(), e.eventType(),\n                  write(e.payload()), write(headers(e)), e.occurredAt())\n          .update();\n    }\n}"
+        }
+      ]
+    },
+    {
+      "key": "write-polling-publisher",
+      "do": "Write the polling publisher",
+      "why": "Something has to move rows from the table to the broker, and it must be safe to run more than one of them.",
+      "how": "A scheduled method claims a batch with <code>FOR UPDATE SKIP LOCKED</code>, publishes it, and marks the rows published — all in one transaction. <code>SKIP LOCKED</code> is what lets three replicas poll the same table without duplicating work or blocking each other. Note this gives you <b>at-least-once</b> delivery: if publishing succeeds and the mark fails, you will send again. That is not a defect to fix here; step 11 is the other half of the answer.",
+      "blocks": [
+        {
+          "label": "ledger: adapter/out/messaging/OutboxPublisher.java",
+          "kind": "file",
+          "body": "package io.ledgerflow.ledger.adapter.out.messaging;\n\nimport org.springframework.jdbc.core.simple.JdbcClient;\nimport org.springframework.kafka.core.KafkaTemplate;\nimport org.springframework.scheduling.annotation.Scheduled;\nimport org.springframework.stereotype.Component;\nimport org.springframework.transaction.annotation.Transactional;\n\nimport java.util.UUID;\n\n@Component\nclass OutboxPublisher {\n\n    private static final String CLAIM = \"\"\"\n            SELECT id, aggregate_id, event_type, payload, headers\n              FROM outbox\n             WHERE published_at IS NULL\n             ORDER BY occurred_at\n             LIMIT 100\n             FOR UPDATE SKIP LOCKED\n            \"\"\";\n\n    private final JdbcClient db;\n    private final KafkaTemplate<String, Object> kafka;\n\n    OutboxPublisher(JdbcClient db, KafkaTemplate<String, Object> kafka) {\n        this.db = db; this.kafka = kafka;\n    }\n\n    @Scheduled(fixedDelay = 500)\n    @Transactional\n    void drain() {\n        var batch = db.sql(CLAIM).query(OutboxRow.class).list();\n        for (var row : batch) {\n            kafka.send(\"ledgerflow.ledger.wallet-hold.events.v1\", row.aggregateId(), row.payload());\n            db.sql(\"UPDATE outbox SET published_at = now() WHERE id = ?\")\n              .param(row.id()).update();\n        }\n    }\n\n    record OutboxRow(UUID id, String aggregateId, String eventType, String payload, String headers) {}\n}"
+        },
+        {
+          "label": "Enable scheduling once, on the application class",
+          "kind": "paste",
+          "body": "@EnableScheduling\n@SpringBootApplication\npublic class LedgerServiceApplication { ... }"
+        }
+      ]
+    },
+    {
+      "key": "re-run-both-reproductions-watch",
+      "do": "Re-run both reproductions and watch the backlog drain",
+      "why": "The fix is only real if the original reproduction now behaves.",
+      "how": "Stop the broker, place a hold, and confirm the event is sitting in the outbox rather than lost. Start the broker and watch the pending count fall to zero on its own. This is what \"eventual\" means, made concrete.",
+      "blocks": [
+        {
+          "label": "Reproduce, then recover",
+          "kind": "shell",
+          "body": "docker stop lf-redpanda\n\ncurl -s -X POST localhost:8081/api/v1/holds -H 'content-type: application/json' \\\n  -d '{\"accountId\":\"11111111-1111-1111-1111-111111111111\",\"wallets\":[\"B-2\"]}' > /dev/null\n\ndocker exec -it lf-postgres psql -U ledgerflow -d ledger \\\n  -c \"SELECT count(*) AS pending FROM outbox WHERE published_at IS NULL;\"\n\ndocker start lf-redpanda\nsleep 8\n\ndocker exec -it lf-postgres psql -U ledgerflow -d ledger \\\n  -c \"SELECT count(*) AS pending FROM outbox WHERE published_at IS NULL;\""
+        },
+        {
+          "label": "Watch it drain live",
+          "kind": "shell",
+          "body": "watch -n1 \"docker exec lf-postgres psql -U ledgerflow -d ledger -tAc \\\n  'SELECT count(*) FROM outbox WHERE published_at IS NULL'\""
+        }
+      ],
+      "check": {
+        "run": "# pending count before and after starting the broker",
+        "expect": "1 while the broker is down, 0 a few seconds after it returns — with no intervention."
+      }
+    },
+    {
+      "key": "optional-compare-debezium-cdc",
+      "do": "Optional: compare with Debezium CDC",
+      "why": "Knowing why you chose polling is worth more than the polling.",
+      "how": "Debezium tails Postgres's write-ahead log and publishes changes with no polling and lower latency, at the cost of running Kafka Connect and managing replication slots. Try it if you have time, and write down which you would pick for a team of four and why.",
+      "blocks": [
+        {
+          "label": "docs/adr/0001-outbox-over-cdc.md",
+          "kind": "file",
+          "body": "mkdir -p docs/adr && cat > docs/adr/0001-outbox-over-cdc.md << 'EOF'\n# ADR 0001: polling outbox rather than CDC\n\nStatus: accepted\n\nContext:\n  We need events published atomically with the state change that caused them.\n\nOptions:\n  1. Polling outbox  - one table, one scheduled job, no new infrastructure.\n  2. Debezium CDC    - lower latency, no polling, but Kafka Connect to operate\n                       and replication slots that fill the disk if a consumer stalls.\n\nDecision:\n\nConsequences:\nEOF"
+        }
+      ]
+    }
+  ],
+  "proof": {
+    "run": "docker stop lf-redpanda\n# place a hold, then\ndocker start lf-redpanda",
+    "expect": "The hold's event sits in the outbox and publishes itself when the broker returns.",
+    "note": "Kill the broker mid-write, restart it, and lose nothing. That is the whole deliverable of this step."
+  },
+  "doneWhen": "Both reproductions now behave: nothing is lost when the broker is down, and nothing is published for work that rolled back.",
+  "services": [
+    "account-service",
+    "ledger-service",
+    "notification-service"
+  ],
+  "infra": [
+    "postgres",
+    "redpanda",
+    "schema registry"
+  ],
+  "lessons": [
+    {
+      "id": "10-debug-two",
+      "title": "Debug two services at once",
+      "teach": "Start both services under <b>Debug</b>. Each gets its own tab in the Debug tool window, so you can hold the producer at a breakpoint and watch what the consumer does — which is exactly how a dual-write bug shows itself.",
+      "trigger": {
+        "type": "run",
+        "id": "Debug"
+      },
+      "fallbackTip": "Attach a remote debugger, or log both sides with a correlation id."
+    }
+  ]
+}

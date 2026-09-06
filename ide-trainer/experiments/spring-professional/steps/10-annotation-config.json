@@ -1,0 +1,75 @@
+{
+  "id": "10",
+  "title": "annotation config",
+  "goal": "1.4.1 Annotation-based Configuration",
+  "tasks": [
+    {
+      "key": "configure-componentscan-basepackages-basepackage",
+      "do": "Configure `@ComponentScan` with `basePackages` and with `basePackageClasses`."
+    },
+    {
+      "key": "state-default-scan-root-when",
+      "do": "State the default scan root when `@ComponentScan` has no attributes."
+    },
+    {
+      "key": "predict-default-bean-name-generated",
+      "do": "Predict the default bean name generated for a scanned class."
+    },
+    {
+      "key": "apply-autowired-constructor-setter-field",
+      "do": "Apply `@Autowired` to a constructor, a setter, and a field, and say which is preferred."
+    },
+    {
+      "key": "explain-when-autowired-on-constructor",
+      "do": "Explain when `@Autowired` on a constructor may be omitted."
+    },
+    {
+      "key": "walk-full-autowiring-resolution-order",
+      "do": "Walk the full autowiring resolution order for an ambiguous type."
+    },
+    {
+      "key": "disambiguate-qualifier-custom-qualifier-annotati",
+      "do": "Disambiguate with `@Qualifier`, a custom qualifier annotation, and `@Primary`."
+    },
+    {
+      "key": "handle-optional-dependencies-required-false",
+      "do": "Handle optional dependencies with `required = false`, `Optional<T>`, and `ObjectProvider<T>`."
+    },
+    {
+      "key": "inject-every-implementation-type-into",
+      "do": "Inject every implementation of a type into a `List` or `Map`."
+    },
+    {
+      "key": "compare-autowired-inject-resource-resolution",
+      "do": "Compare `@Autowired`, `@Inject`, and `@Resource` resolution semantics."
+    },
+    {
+      "key": "apply-include-exclude-scan-filters",
+      "do": "Apply include and exclude scan filters."
+    },
+    {
+      "key": "resource-resolves-by-name-first",
+      "do": "`@Resource` resolves by NAME first; `@Autowired` resolves by TYPE first."
+    },
+    {
+      "key": "qualifier-at-injection-point-beats",
+      "do": "`@Qualifier` at the injection point beats `@Primary` on the definition."
+    },
+    {
+      "key": "parameter-field-name-matching-real",
+      "do": "Parameter/field name matching is a real tiebreak for same-type candidates."
+    },
+    {
+      "key": "two-constructors-none-annotated-spring",
+      "do": "Two constructors with none annotated: Spring uses the no-arg one or fails."
+    },
+    {
+      "key": "autowired-list-collects-all-matching",
+      "do": "`@Autowired List<T>` collects ALL matching beans, and fails when empty unless made optional."
+    },
+    {
+      "key": "classes-returned-from-bean-methods",
+      "do": "Classes returned from `@Bean` methods are not component-scanned."
+    }
+  ]
+}

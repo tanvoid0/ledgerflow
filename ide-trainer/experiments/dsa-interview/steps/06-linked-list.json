@@ -1,0 +1,43 @@
+{
+  "id": "06",
+  "title": "linked list",
+  "goal": "P2.3 Pointer surgery, cycle detection, merge and reverse",
+  "tasks": [
+    {
+      "key": "draw-three-nodes-their-pointers",
+      "do": "Draw three nodes and their pointers before writing any pointer assignment"
+    },
+    {
+      "key": "use-dummy-head-whenever-first",
+      "do": "Use a dummy head whenever the first node might change"
+    },
+    {
+      "key": "save-next-before-overwriting",
+      "do": "Save `next` before overwriting it"
+    },
+    {
+      "key": "choose-fast-slow-middle-cycle",
+      "do": "Choose fast/slow for middle, cycle, and one-pass gap problems"
+    },
+    {
+      "key": "guard-loops-fast-null-fast",
+      "do": "Guard loops with `fast != null && fast.next != null` in that order"
+    },
+    {
+      "key": "solve-all-four-exercises-inside",
+      "do": "Solve all four exercises inside their target times"
+    },
+    {
+      "key": "narrate-pointer-moves-as-write",
+      "do": "Narrate the pointer moves as you write them"
+    },
+    {
+      "key": "say-what-list-looks-like",
+      "do": "Say what the list looks like when the loop exits"
+    },
+    {
+      "key": "trace-two-node-input-by",
+      "do": "Trace a two-node input by hand before claiming it works"
+    }
+  ]
+}

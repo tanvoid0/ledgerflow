@@ -1,0 +1,87 @@
+{
+  "id": "21",
+  "title": "aop pointcuts",
+  "goal": "1.6.3 AOP Pointcut Expressions",
+  "tasks": [
+    {
+      "key": "write-out-full-execution-signature",
+      "do": "Write out the full `execution` signature pattern and say which parts are optional."
+    },
+    {
+      "key": "explain-every-position-they-can",
+      "do": "Explain `*`, `..`, and `+` in every position they can appear."
+    },
+    {
+      "key": "distinguish-com-acme-from-com",
+      "do": "Distinguish `com.acme.*` from `com.acme..*`."
+    },
+    {
+      "key": "distinguish-from-parameter-position",
+      "do": "Distinguish `(..)` from `()` in a parameter position."
+    },
+    {
+      "key": "write-expression-matching-all-methods",
+      "do": "Write an expression matching all methods of a package and its subpackages."
+    },
+    {
+      "key": "write-expression-matching-by-return",
+      "do": "Write an expression matching by return type and by parameter type."
+    },
+    {
+      "key": "use-within-say-when-beats",
+      "do": "Use `within`, and say when it beats an equivalent `execution`."
+    },
+    {
+      "key": "distinguish-annotation-within-target-args",
+      "do": "Distinguish `@annotation`, `@within`, `@target`, and `@args`."
+    },
+    {
+      "key": "distinguish-args-from-execution-parameter",
+      "do": "Distinguish `args` from `execution` parameter matching."
+    },
+    {
+      "key": "distinguish-this-from-target-including",
+      "do": "Distinguish `this` from `target`, including how proxy type changes the answer."
+    },
+    {
+      "key": "use-spring-only-bean-designator",
+      "do": "Use the Spring-only `bean()` designator."
+    },
+    {
+      "key": "combine-expressions-named-pointcuts",
+      "do": "Combine expressions with `&&`, `||`, `!` and named pointcuts."
+    },
+    {
+      "key": "bind-annotation-instance-read-its",
+      "do": "Bind an annotation instance and read its attributes inside advice."
+    },
+    {
+      "key": "exactly-one-element-zero-more",
+      "do": "`*` = exactly one element; `..` = zero or more."
+    },
+    {
+      "key": "annotation-method-level-within-type",
+      "do": "`@annotation` is method-level; `@within` is type-level."
+    },
+    {
+      "key": "args-matches-runtime-types-execution",
+      "do": "`args` matches RUNTIME types; `execution` parameters match DECLARED types."
+    },
+    {
+      "key": "this-proxy-target-target-they",
+      "do": "`this` = the proxy, `target` = the target — they diverge under JDK proxying."
+    },
+    {
+      "key": "bean-spring-only-not-aspectj",
+      "do": "`bean()` is Spring-only, not AspectJ."
+    },
+    {
+      "key": "typo-pointcut-matches-nothing-reports",
+      "do": "A typo in a pointcut matches nothing and reports nothing."
+    },
+    {
+      "key": "pointcut-method-must-be-void",
+      "do": "A `@Pointcut` method must be `void` with an empty body."
+    }
+  ]
+}

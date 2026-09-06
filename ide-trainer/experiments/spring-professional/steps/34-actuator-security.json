@@ -1,0 +1,83 @@
+{
+  "id": "34",
+  "title": "actuator security",
+  "goal": "6.3.2 Secure Actuator HTTP endpoints",
+  "tasks": [
+    {
+      "key": "explain-why-exposure-authorisation-are",
+      "do": "Explain why exposure and authorisation are separate decisions."
+    },
+    {
+      "key": "name-six-actuator-endpoints-that",
+      "do": "Name six Actuator endpoints that leak sensitive information, and what each leaks."
+    },
+    {
+      "key": "secure-actuator-dedicated-securityfilterchain-en",
+      "do": "Secure Actuator with a dedicated `SecurityFilterChain` and `EndpointRequest`."
+    },
+    {
+      "key": "explain-why-endpointrequest-preferred-over",
+      "do": "Explain why `EndpointRequest` is preferred over a hardcoded `/actuator/**` matcher."
+    },
+    {
+      "key": "explain-what-happens-boot-s",
+      "do": "Explain what happens to Boot's default management chain when you define your own."
+    },
+    {
+      "key": "order-two-filter-chains-so",
+      "do": "Order two filter chains so management rules apply before application rules."
+    },
+    {
+      "key": "permit-health-info-probes-while",
+      "do": "Permit health and info for probes while requiring a role for everything else."
+    },
+    {
+      "key": "configure-show-details-when-authorized",
+      "do": "Configure `show-details=when-authorized` together with `health.roles`."
+    },
+    {
+      "key": "explain-how-value-sanitisation-works",
+      "do": "Explain how value sanitisation works and precisely what it cannot protect."
+    },
+    {
+      "key": "write-custom-sanitizingfunction",
+      "do": "Write a custom `SanitizingFunction`."
+    },
+    {
+      "key": "justify-separate-management-port-as",
+      "do": "Justify a separate management port as a network control."
+    },
+    {
+      "key": "explain-csrf-cors-considerations-management",
+      "do": "Explain the CSRF and CORS considerations for management endpoints."
+    },
+    {
+      "key": "exposing-endpoint-does-not-protect",
+      "do": "Exposing an endpoint does NOT protect it."
+    },
+    {
+      "key": "own-securityfilterchain-disables-boot-s",
+      "do": "Your own `SecurityFilterChain` disables Boot's management chain."
+    },
+    {
+      "key": "anyrequest-permitall-single-chain-opens",
+      "do": "`anyRequest().permitAll()` in a single chain opens Actuator too."
+    },
+    {
+      "key": "hardcoded-actuator-breaks-silently-when",
+      "do": "Hardcoded `/actuator/**` breaks silently when the base path changes."
+    },
+    {
+      "key": "sanitisation-key-pattern-based-unusual",
+      "do": "Sanitisation is key-pattern based — unusual key names are not masked."
+    },
+    {
+      "key": "heapdump-leaks-everything-no-masking",
+      "do": "`heapdump` leaks everything; no masking applies."
+    },
+    {
+      "key": "loggers-accepts-writes-so-not",
+      "do": "`loggers` accepts writes, so it is not merely an information leak."
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "id": "06",
+  "title": "object lifecycle gc",
+  "goal": "3.1 Object lifecycle, nested classes, garbage collection",
+  "tasks": [
+    {
+      "key": "distinguish-reference-variable-from-heap",
+      "do": "Distinguish a reference variable from the heap object it points to"
+    },
+    {
+      "key": "count-remaining-references-after-reassignment",
+      "do": "Count remaining references after reassignment and `null`"
+    },
+    {
+      "key": "place-locals-on-stack-objects",
+      "do": "Place locals on the stack and objects/arrays on the heap"
+    },
+    {
+      "key": "explain-islands-isolation-cycles-without",
+      "do": "Explain islands of isolation (cycles without roots)"
+    },
+    {
+      "key": "state-that-method-parameters-cannot",
+      "do": "State that method parameters cannot rebind the caller's variable"
+    },
+    {
+      "key": "describe-why-non-static-inner",
+      "do": "Describe why a non-static inner instance keeps the outer instance live"
+    },
+    {
+      "key": "treat-system-gc-as-hint",
+      "do": "Treat `System.gc()` as a hint, not an eligibility cause"
+    },
+    {
+      "key": "trace-short-object-graph-fields",
+      "do": "Trace a short object graph (fields pointing at other objects)"
+    }
+  ]
+}

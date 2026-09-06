@@ -1,0 +1,39 @@
+{
+  "id": "35",
+  "title": "nio files path",
+  "goal": "9.3 NIO.2 Path API — traverse, read, write, attributes",
+  "tasks": [
+    {
+      "key": "create-paths-path-paths-get",
+      "do": "Create paths with `Path.of` / `Paths.get` and state that `Path` is immutable"
+    },
+    {
+      "key": "use-resolve-relativize-normalize-toabsolutepath",
+      "do": "Use `resolve`, `relativize`, `normalize`, `toAbsolutePath`"
+    },
+    {
+      "key": "read-write-text-files-readstring",
+      "do": "Read and write text with `Files.readString` / `writeString`"
+    },
+    {
+      "key": "copy-move-delete-files-api",
+      "do": "Copy, move, and delete with the `Files` API and `REPLACE_EXISTING` when needed"
+    },
+    {
+      "key": "walk-list-directory-close-stream",
+      "do": "Walk or list a directory and close the `Stream<Path>`"
+    },
+    {
+      "key": "contrast-exists-notexists-unknown-symlinks",
+      "do": "Contrast `exists` with `notExists` (unknown / symlinks)"
+    },
+    {
+      "key": "read-basic-attributes-size-isdirectory",
+      "do": "Read basic attributes (`size`, `isDirectory`, last modified)"
+    },
+    {
+      "key": "explain-that-absolute-path-passed",
+      "do": "Explain that an absolute path passed to `resolve` replaces the base"
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "id": "11",
+  "title": "encapsulation immutability",
+  "goal": "3.4 Scopes, encapsulation, immutability, local var",
+  "tasks": [
+    {
+      "key": "apply-private-package-private-protected",
+      "do": "Apply `private` / package-private / `protected` / `public` to fields and methods"
+    },
+    {
+      "key": "list-var-restrictions-locals-initializer",
+      "do": "List `var` restrictions (locals + initializer; not fields, params, or `var x;`)"
+    },
+    {
+      "key": "explain-final-on-reference-vs",
+      "do": "Explain `final` on a reference vs immutability of the object"
+    },
+    {
+      "key": "use-defensive-copies-mutable-constructor",
+      "do": "Use defensive copies for mutable constructor arguments and getters"
+    },
+    {
+      "key": "design-immutable-api-that-returns",
+      "do": "Design an immutable API that returns new instances instead of setters"
+    },
+    {
+      "key": "state-that-var-infers-initializer",
+      "do": "State that `var` infers the initializer's concrete type"
+    },
+    {
+      "key": "avoid-publishing-internal-mutable-collections",
+      "do": "Avoid publishing internal mutable collections/arrays"
+    },
+    {
+      "key": "contrast-field-scope-local-variable",
+      "do": "Contrast field scope with local-variable scope"
+    }
+  ]
+}

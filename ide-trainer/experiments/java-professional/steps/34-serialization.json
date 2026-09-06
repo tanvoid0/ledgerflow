@@ -1,0 +1,39 @@
+{
+  "id": "34",
+  "title": "serialization",
+  "goal": "9.2 Serialize and deserialize Java objects",
+  "tasks": [
+    {
+      "key": "mark-class-serializable-write-read",
+      "do": "Mark a class `Serializable` and write/read it with object streams"
+    },
+    {
+      "key": "declare-explicit-serialversionuid",
+      "do": "Declare an explicit `serialVersionUID`"
+    },
+    {
+      "key": "skip-secrets-transient-predict-default",
+      "do": "Skip secrets with `transient` and predict default restored values"
+    },
+    {
+      "key": "explain-notserializableexception-when-field-type",
+      "do": "Explain `NotSerializableException` when a field type is not serializable"
+    },
+    {
+      "key": "state-that-static-fields-are",
+      "do": "State that `static` fields are not serialized"
+    },
+    {
+      "key": "use-try-resources-on-objectoutputstream",
+      "do": "Use try-with-resources on `ObjectOutputStream` / `ObjectInputStream`"
+    },
+    {
+      "key": "treat-deserialization-untrusted-bytes-as",
+      "do": "Treat deserialization of untrusted bytes as a security risk"
+    },
+    {
+      "key": "recall-invalidclassexception-on-uid-mismatch",
+      "do": "Recall `InvalidClassException` on UID mismatch"
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "id": "24",
+  "title": "lambda expressions",
+  "goal": "6.1 Lambda syntax and variable capture",
+  "tasks": [
+    {
+      "key": "write-expression-body-block-body",
+      "do": "Write expression-body and block-body lambdas"
+    },
+    {
+      "key": "omit-include-parameter-types-use",
+      "do": "Omit or include parameter types; use `()` for zero parameters"
+    },
+    {
+      "key": "explain-target-typing-functional-interface",
+      "do": "Explain target typing (the functional interface in context)"
+    },
+    {
+      "key": "capture-only-effectively-final-locals",
+      "do": "Capture only effectively final locals"
+    },
+    {
+      "key": "contrast-this-lambda-vs-anonymous",
+      "do": "Contrast `this` in a lambda vs an anonymous class"
+    },
+    {
+      "key": "handle-checked-exceptions-inside-lambda",
+      "do": "Handle checked exceptions inside a lambda whose SAM does not declare them"
+    },
+    {
+      "key": "disambiguate-overloaded-methods-that-take",
+      "do": "Disambiguate overloaded methods that take different functional interfaces"
+    },
+    {
+      "key": "recognize-void-compatible-vs-value",
+      "do": "Recognize void-compatible vs value-returning lambda bodies"
+    }
+  ]
+}

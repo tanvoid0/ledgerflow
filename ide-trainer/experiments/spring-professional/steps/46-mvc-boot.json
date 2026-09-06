@@ -1,0 +1,47 @@
+{
+  "id": "46",
+  "title": "mvc with boot",
+  "goal": "3.1.1 Create MVC app with Boot",
+  "tasks": [
+    {
+      "key": "name-starter-that-brings-spring",
+      "do": "Name the starter that brings Spring MVC, Jackson, and embedded Tomcat."
+    },
+    {
+      "key": "state-default-dispatcherservlet-bean-name",
+      "do": "State the default `DispatcherServlet` bean name Boot registers."
+    },
+    {
+      "key": "state-default-servlet-mapping-boot",
+      "do": "State the default servlet mapping (`/`) Boot uses."
+    },
+    {
+      "key": "explain-front-controller-role-dispatcherservlet",
+      "do": "Explain the Front Controller role of `DispatcherServlet`."
+    },
+    {
+      "key": "contrast-restcontroller-controller-string-return",
+      "do": "Contrast `@RestController` with `@Controller` for a `String` return value."
+    },
+    {
+      "key": "explain-why-enablewebmvc-usually-wrong",
+      "do": "Explain why `@EnableWebMvc` is usually the wrong \"fix\" in a Boot app."
+    },
+    {
+      "key": "list-main-transitive-pieces-spring",
+      "do": "List the main transitive pieces of `spring-boot-starter-web`."
+    },
+    {
+      "key": "describe-how-component-scanning-finds",
+      "do": "Describe how component scanning finds controllers under `@SpringBootApplication`."
+    },
+    {
+      "key": "use-mockmvc-mock-web-environment",
+      "do": "Use `MockMvc` (or a mock web environment) to hit a JSON GET endpoint."
+    },
+    {
+      "key": "look-up-dispatcherservlet-bean-from",
+      "do": "Look up the `DispatcherServlet` bean from the `ApplicationContext`."
+    }
+  ]
+}

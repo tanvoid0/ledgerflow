@@ -1,0 +1,39 @@
+{
+  "id": "36",
+  "title": "modules basics",
+  "goal": "7.1 Define modules, exports, requires, opens",
+  "tasks": [
+    {
+      "key": "write-module-info-java-requires",
+      "do": "Write a `module-info.java` with `requires`, `exports`, and `opens`"
+    },
+    {
+      "key": "state-that-java-base-implicit",
+      "do": "State that `java.base` is an implicit requirement"
+    },
+    {
+      "key": "explain-readability-requires-vs-accessibility",
+      "do": "Explain readability (`requires`) vs accessibility (`exports`)"
+    },
+    {
+      "key": "state-that-exporting-package-does",
+      "do": "State that exporting a package does not export subpackages"
+    },
+    {
+      "key": "contrast-opens-reflection-exports-api",
+      "do": "Contrast `opens` (reflection) with `exports` (API)"
+    },
+    {
+      "key": "describe-requires-transitive-requires-static",
+      "do": "Describe `requires transitive` and `requires static`"
+    },
+    {
+      "key": "describe-unnamed-module-classpath-vs",
+      "do": "Describe the unnamed module (classpath) vs named modules"
+    },
+    {
+      "key": "build-inspect-moduledescriptor-those-directives",
+      "do": "Build or inspect a `ModuleDescriptor` for those directives"
+    }
+  ]
+}

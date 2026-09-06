@@ -1,0 +1,39 @@
+{
+  "id": "37",
+  "title": "module services jlink",
+  "goal": "7.1–7.2 Services, modular JARs, jlink, migration",
+  "tasks": [
+    {
+      "key": "write-uses-provides-module-info",
+      "do": "Write `uses` and `provides … with` in `module-info`"
+    },
+    {
+      "key": "load-implementations-serviceloader",
+      "do": "Load implementations with `ServiceLoader`"
+    },
+    {
+      "key": "explain-classpath-meta-inf-services",
+      "do": "Explain classpath `META-INF/services` as the non-modular equivalent"
+    },
+    {
+      "key": "derive-automatic-module-name-from",
+      "do": "Derive an automatic module name from a JAR filename (strip version, hyphens to dots)"
+    },
+    {
+      "key": "prefer-automatic-module-name-manifest",
+      "do": "Prefer `Automatic-Module-Name` in the manifest when present"
+    },
+    {
+      "key": "assemble-jlink-command-module-path",
+      "do": "Assemble a `jlink` command with `--module-path`, `--add-modules`, `--output`"
+    },
+    {
+      "key": "contrast-classpath-unnamed-vs-module",
+      "do": "Contrast classpath (unnamed) vs module path (automatic or explicit)"
+    },
+    {
+      "key": "state-that-jlink-images-are",
+      "do": "State that jlink images are built from explicit modules"
+    }
+  ]
+}

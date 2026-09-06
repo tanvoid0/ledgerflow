@@ -1,0 +1,43 @@
+{
+  "id": "12",
+  "title": "greedy",
+  "goal": "P4.3 When a local choice is provably safe",
+  "tasks": [
+    {
+      "key": "give-exchange-argument-before-claiming",
+      "do": "Give an exchange argument before claiming a greedy solution is correct"
+    },
+    {
+      "key": "recognise-running-best-patterns-extend",
+      "do": "Recognise running-best patterns (extend or restart) as one-pass decisions"
+    },
+    {
+      "key": "track-reachability-single-furthest-index",
+      "do": "Track reachability with a single furthest-index variable"
+    },
+    {
+      "key": "count-ranges-not-indices-when",
+      "do": "Count in ranges, not indices, when counting jumps"
+    },
+    {
+      "key": "fall-back-dynamic-programming-when",
+      "do": "Fall back to dynamic programming when the exchange argument fails"
+    },
+    {
+      "key": "solve-all-four-exercises-inside",
+      "do": "Solve all four exercises inside their target times"
+    },
+    {
+      "key": "say-greedy-rule-one-sentence",
+      "do": "Say the greedy rule in one sentence before coding"
+    },
+    {
+      "key": "justify-say-explicitly-that-are",
+      "do": "Justify it, or say explicitly that you are assuming it and would verify"
+    },
+    {
+      "key": "name-input-that-would-break",
+      "do": "Name the input that would break a naive version"
+    }
+  ]
+}

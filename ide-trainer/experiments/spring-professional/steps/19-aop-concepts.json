@@ -1,0 +1,71 @@
+{
+  "id": "19",
+  "title": "aop concepts",
+  "goal": "1.6.1 AOP concepts",
+  "tasks": [
+    {
+      "key": "define-cross-cutting-concern-give",
+      "do": "Define a cross-cutting concern and give three real examples."
+    },
+    {
+      "key": "define-aspect-join-point-pointcut",
+      "do": "Define aspect, join point, pointcut, advice, advisor, target, proxy, and weaving — precisely."
+    },
+    {
+      "key": "state-what-join-point-can",
+      "do": "State what a join point can be in Spring AOP, and what it can additionally be in AspectJ."
+    },
+    {
+      "key": "explain-when-weaving-happens-spring",
+      "do": "Explain when weaving happens in Spring AOP versus AspectJ."
+    },
+    {
+      "key": "name-beanpostprocessor-that-creates-aop",
+      "do": "Name the `BeanPostProcessor` that creates AOP proxies."
+    },
+    {
+      "key": "explain-relationship-between-spring-aop",
+      "do": "Explain the relationship between Spring AOP and AspectJ annotations."
+    },
+    {
+      "key": "list-situations-that-require-real",
+      "do": "List the situations that require real AspectJ weaving instead."
+    },
+    {
+      "key": "enable-aop-plain-spring-describe",
+      "do": "Enable AOP in plain Spring and describe what Spring Boot does automatically."
+    },
+    {
+      "key": "map-every-vocabulary-term-onto",
+      "do": "Map every vocabulary term onto a concrete piece of a working aspect."
+    },
+    {
+      "key": "explain-what-introduction",
+      "do": "Explain what an introduction is."
+    },
+    {
+      "key": "spring-aop-join-point-always",
+      "do": "In Spring AOP, a join point is ALWAYS a method execution."
+    },
+    {
+      "key": "pointcut-selects-advice-acts-do",
+      "do": "Pointcut selects; advice acts. Do not swap them."
+    },
+    {
+      "key": "spring-weaves-at-runtime-by",
+      "do": "Spring weaves at runtime by creating proxies, not at compile time."
+    },
+    {
+      "key": "aspect-alone-does-nothing-class",
+      "do": "`@Aspect` alone does nothing — the class must also be a Spring bean."
+    },
+    {
+      "key": "advisor-pointcut-advice-not-synonym",
+      "do": "An advisor is pointcut + advice, not a synonym for aspect."
+    },
+    {
+      "key": "private-final-self-invoked-methods",
+      "do": "`private`, `final`, and self-invoked methods are unadvisable — a proxy limitation."
+    }
+  ]
+}

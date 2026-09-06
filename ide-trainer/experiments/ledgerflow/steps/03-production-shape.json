@@ -1,0 +1,207 @@
+{
+  "id": "03",
+  "title": "Production shape",
+  "estimate": "2 days",
+  "goal": "Set the quality bar once, on one service, while it is small. Errors, configuration, tests and logs. Everything you do here you will repeat in eight more services, so it is worth doing slowly.",
+  "startWith": "Step 02 finished: the service reads accounts from Postgres and one Testcontainers test passes.",
+  "newIdeas": [
+    {
+      "term": "RFC 9457 problem details",
+      "plain": "A small agreed JSON shape for API errors — <code>type</code>, <code>title</code>, <code>status</code>, <code>detail</code> — served as <code>application/problem+json</code>. Spring builds it for you via <code>ProblemDetail</code>. It means callers can handle your errors without parsing prose."
+    },
+    {
+      "term": "@RestControllerAdvice",
+      "plain": "A class where you put exception handlers that apply to every controller, so error mapping lives in one place instead of in try/catch blocks."
+    },
+    {
+      "term": "@ConfigurationProperties",
+      "plain": "Binds a whole block of configuration onto a typed record and validates it at startup. Compare with <code>@Value(\"${...}\")</code> scattered over ten classes, where a typo is found at 3am rather than at boot."
+    },
+    {
+      "term": "Test slice (@WebMvcTest)",
+      "plain": "Starts only the web layer — controllers, JSON mapping, error handling — with the database and everything else absent. Fast, and it fails for exactly one reason."
+    },
+    {
+      "term": "Structured logging",
+      "plain": "Log lines as JSON objects rather than sentences, so a log system can filter on fields. Add a request id to every line and one user request becomes greppable across services — which matters enormously from step 04 onward."
+    }
+  ],
+  "tasks": [
+    {
+      "key": "return-rfc-9457-problem-details",
+      "do": "Return RFC 9457 problem details instead of stack traces",
+      "why": "An unhandled exception currently leaks your class names to the caller and gives them nothing to act on.",
+      "how": "Add one advice class. <code>ProblemDetail</code> is built into Spring, so there is no library to add. Throw a domain exception from the application layer and map it here; the controller stays free of error plumbing.",
+      "blocks": [
+        {
+          "label": "domain/model/AccountNotFoundException.java",
+          "kind": "file",
+          "body": "package io.ledgerflow.account.domain.model;\n\nimport java.util.UUID;\n\npublic class AccountNotFoundException extends RuntimeException {\n    public AccountNotFoundException(UUID id) {\n        super(\"No account with id \" + id);\n    }\n}"
+        },
+        {
+          "label": "adapter/in/web/ApiExceptionHandler.java",
+          "kind": "file",
+          "body": "package io.ledgerflow.account.adapter.in.web;\n\nimport io.ledgerflow.account.domain.model.AccountNotFoundException;\nimport org.springframework.http.HttpStatus;\nimport org.springframework.http.ProblemDetail;\nimport org.springframework.web.bind.MethodArgumentNotValidException;\nimport org.springframework.web.bind.annotation.ExceptionHandler;\nimport org.springframework.web.bind.annotation.RestControllerAdvice;\n\nimport java.net.URI;\n\n@RestControllerAdvice\nclass ApiExceptionHandler {\n\n    @ExceptionHandler(AccountNotFoundException.class)\n    ProblemDetail onNotFound(AccountNotFoundException e) {\n        var p = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, e.getMessage());\n        p.setTitle(\"Account not found\");\n        p.setType(URI.create(\"https://ledgerflow.io/problems/account-not-found\"));\n        return p;\n    }\n\n    @ExceptionHandler(MethodArgumentNotValidException.class)\n    ProblemDetail onInvalid(MethodArgumentNotValidException e) {\n        var p = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, \"Request body is invalid\");\n        p.setTitle(\"Validation failed\");\n        p.setType(URI.create(\"https://ledgerflow.io/problems/validation\"));\n        p.setProperty(\"errors\", e.getBindingResult().getFieldErrors().stream()\n                .map(f -> f.getField() + \": \" + f.getDefaultMessage()).toList());\n        return p;\n    }\n}"
+        },
+        {
+          "label": "Make the controller throw instead of returning 404 by hand",
+          "kind": "paste",
+          "body": "@GetMapping(\"/{id}\")\npublic Account byId(@PathVariable UUID id) {\n    return accounts.findById(id).orElseThrow(() -> new AccountNotFoundException(id));\n}"
+        }
+      ],
+      "check": {
+        "run": "curl -i localhost:8080/api/v1/accounts/00000000-0000-0000-0000-000000000000",
+        "expect": "404 with Content-Type: application/problem+json and a type URI — not a stack trace."
+      }
+    },
+    {
+      "key": "move-configuration-onto-validated-configurationp",
+      "do": "Move configuration onto a validated @ConfigurationProperties record",
+      "why": "Configuration mistakes should stop the application at startup, not surface as a null three hours later.",
+      "how": "Add <code>spring-boot-starter-validation</code>, then bind a record. <code>@Validated</code> plus the Jakarta constraints mean a missing or nonsensical value fails the boot with a readable message naming the property.",
+      "blocks": [
+        {
+          "label": "pom.xml — paste inside &lt;dependencies&gt;",
+          "kind": "paste",
+          "body": "<dependency>\n  <groupId>org.springframework.boot</groupId>\n  <artifactId>spring-boot-starter-validation</artifactId>\n</dependency>"
+        },
+        {
+          "label": "config/AccountProperties.java",
+          "kind": "file",
+          "body": "package io.ledgerflow.account.config;\n\nimport jakarta.validation.constraints.Max;\nimport jakarta.validation.constraints.Min;\nimport jakarta.validation.constraints.NotBlank;\nimport org.springframework.boot.context.properties.ConfigurationProperties;\nimport org.springframework.validation.annotation.Validated;\n\n@Validated\n@ConfigurationProperties(prefix = \"ledgerflow.account\")\npublic record AccountProperties(\n        @NotBlank String displayName,\n        @Min(1) @Max(500) int maxWalletsPerAccount) { }"
+        },
+        {
+          "label": "Enable scanning — add to AccountServiceApplication",
+          "kind": "paste",
+          "body": "@ConfigurationPropertiesScan\n@SpringBootApplication\npublic class AccountServiceApplication { ... }"
+        },
+        {
+          "label": "application.yml — add the block",
+          "kind": "paste",
+          "body": "ledgerflow:\n  account:\n    display-name: LedgerFlow Account\n    max-wallets-per-account: 500"
+        }
+      ],
+      "check": {
+        "run": "# temporarily blank display-name in application.yml and start the app",
+        "expect": "Startup fails with a message naming ledgerflow.account.display-name. Put the value back."
+      }
+    },
+    {
+      "key": "write-domain-unit-test-no",
+      "do": "Write a domain unit test with no Spring and no database",
+      "why": "The rules that matter should be testable in milliseconds. If testing a business rule needs a container, the rule is in the wrong place.",
+      "how": "This test imports nothing from Spring. It runs in the time it takes to read this sentence. Aim for most of your tests to look like this and only a few to need containers.",
+      "blocks": [
+        {
+          "label": "src/test/java/io/ledgerflow/account/domain/model/AccountTest.java",
+          "kind": "file",
+          "body": "package io.ledgerflow.account.domain.model;\n\nimport org.junit.jupiter.api.Test;\n\nimport java.util.List;\nimport java.util.UUID;\n\nimport static org.assertj.core.api.Assertions.assertThat;\n\nclass AccountTest {\n\n    @Test\n    void knowsWhichWalletsItHas() {\n        var account = new Account(UUID.randomUUID(), \"Demo Arena\",\n                List.of(new Wallet(UUID.randomUUID(), \"A-1\")));\n\n        assertThat(account.hasWallet(\"A-1\")).isTrue();\n        assertThat(account.hasWallet(\"ZZ-99\")).isFalse();\n    }\n}"
+        }
+      ],
+      "check": {
+        "run": "./mvnw test -Dtest=AccountTest",
+        "expect": "Green, in well under a second, with no Docker involved."
+      }
+    },
+    {
+      "key": "add-webmvctest-slice-test-controller",
+      "do": "Add a @WebMvcTest slice test for the controller",
+      "why": "It checks the HTTP layer — routing, JSON, error mapping — without paying for a database.",
+      "how": "The repository is replaced with a Mockito stub via <code>@MockitoBean</code> (Boot 3.4+ name; the old <code>@MockBean</code> is deprecated). Mind the import: Boot 4 moved <code>@WebMvcTest</code> out of <code>boot.test.autoconfigure.web.servlet</code> into <code>boot.webmvc.test.autoconfigure</code>, so a 3.x snippet fails with <code>Cannot resolve symbol 'web'</code> - the package, not the annotation, is what is missing. You now have three test layers: domain unit tests, this web slice, and the Testcontainers integration test from step 02.",
+      "blocks": [
+        {
+          "label": "src/test/java/io/ledgerflow/account/adapter/in/web/AccountControllerTest.java",
+          "kind": "file",
+          "body": "package io.ledgerflow.account.adapter.in.web;\n\nimport io.ledgerflow.account.application.AccountRepository;\nimport org.junit.jupiter.api.Test;\nimport org.springframework.beans.factory.annotation.Autowired;\nimport org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;\nimport org.springframework.test.context.bean.override.mockito.MockitoBean;\nimport org.springframework.test.web.servlet.MockMvc;\n\nimport java.util.Optional;\nimport java.util.UUID;\n\nimport static org.mockito.ArgumentMatchers.any;\nimport static org.mockito.Mockito.when;\nimport static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;\nimport static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;\n\n@WebMvcTest(AccountController.class)\nclass AccountControllerTest {\n\n    @Autowired MockMvc mvc;\n    @MockitoBean AccountRepository accounts;\n\n    @Test\n    void unknownAccountGivesProblemJson() throws Exception {\n        when(accounts.findById(any())).thenReturn(Optional.empty());\n\n        mvc.perform(get(\"/api/v1/accounts/{id}\", UUID.randomUUID()))\n           .andExpect(status().isNotFound())\n           .andExpect(content().contentTypeCompatibleWith(\"application/problem+json\"))\n           .andExpect(jsonPath(\"$.title\").value(\"Account not found\"));\n    }\n}"
+        }
+      ],
+      "check": {
+        "run": "./mvnw test -Dtest=AccountControllerTest",
+        "expect": "Green, no container started."
+      }
+    },
+    {
+      "key": "expose-health-serve-openapi-document",
+      "do": "Expose health and serve an OpenAPI document",
+      "why": "Health endpoints are what Kubernetes will call in step 16, and an OpenAPI document is how the next service will learn your API in step 05.",
+      "how": "Actuator is already a dependency. Add springdoc for the OpenAPI document — Spring Boot does not generate one on its own. Keep the exposed endpoint list explicit: exposing everything by accident is a common way to publish your environment variables.",
+      "blocks": [
+        {
+          "label": "pom.xml — paste inside &lt;dependencies&gt;",
+          "kind": "paste",
+          "body": "<dependency>\n  <groupId>org.springdoc</groupId>\n  <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>\n  <version>3.0.3</version>   <!-- the 3.x line is the Boot 4 one -->\n</dependency>"
+        },
+        {
+          "label": "application.yml — add the block",
+          "kind": "paste",
+          "body": "management:\n  endpoints:\n    web:\n      exposure:\n        include: health,info,metrics\n  endpoint:\n    health:\n      show-details: always"
+        },
+        {
+          "label": "Check both",
+          "kind": "shell",
+          "body": "curl -s localhost:8080/actuator/health | jq\ncurl -s localhost:8080/v3/api-docs | jq '.paths | keys'"
+        }
+      ],
+      "check": {
+        "run": "curl -s localhost:8080/v3/api-docs | jq '.paths | keys'",
+        "expect": "Your two account paths are listed."
+      }
+    },
+    {
+      "key": "log-as-json-request-id",
+      "do": "Log as JSON with a request id on every line",
+      "why": "From step 04 there are two services. Following one user request through two log files is impossible unless every line carries the same id.",
+      "how": "Boot 3.4+ ships a structured logging format, so no Logback XML is needed for the JSON part. The filter puts a request id into the MDC — a per-thread map that the logging framework copies onto every line — and returns it in a response header so you can search for it later. Step 14 replaces this id with a real trace id from OpenTelemetry; the shape stays the same.",
+      "blocks": [
+        {
+          "label": "application.yml — add the block",
+          "kind": "paste",
+          "body": "logging:\n  structured:\n    format:\n      console: ecs        # ecs | logstash | gelf\n  level:\n    io.ledgerflow: DEBUG"
+        },
+        {
+          "label": "adapter/in/web/RequestIdFilter.java",
+          "kind": "file",
+          "body": "package io.ledgerflow.account.adapter.in.web;\n\nimport jakarta.servlet.FilterChain;\nimport jakarta.servlet.ServletException;\nimport jakarta.servlet.http.HttpServletRequest;\nimport jakarta.servlet.http.HttpServletResponse;\nimport org.slf4j.MDC;\nimport org.springframework.stereotype.Component;\nimport org.springframework.web.filter.OncePerRequestFilter;\n\nimport java.io.IOException;\nimport java.util.UUID;\n\n@Component\nclass RequestIdFilter extends OncePerRequestFilter {\n\n    static final String HEADER = \"X-Request-Id\";\n\n    @Override\n    protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain chain)\n            throws ServletException, IOException {\n        var id = req.getHeader(HEADER);\n        if (id == null || id.isBlank()) id = UUID.randomUUID().toString();\n        MDC.put(\"requestId\", id);\n        res.setHeader(HEADER, id);\n        try {\n            chain.doFilter(req, res);\n        } finally {\n            MDC.remove(\"requestId\");   // threads are pooled; always clean up\n        }\n    }\n}"
+        }
+      ],
+      "check": {
+        "run": "curl -si localhost:8080/api/v1/accounts | grep -i x-request-id",
+        "expect": "A request id in the response header, and the same id on the app's log lines for that request."
+      }
+    }
+  ],
+  "proof": {
+    "run": "curl -i localhost:8080/api/v1/accounts/00000000-0000-0000-0000-000000000000\n./mvnw verify",
+    "expect": "problem+json for the bad id, and all three test layers green.",
+    "note": "This service is now finished. You could ship it. Everything from here on is about what happens when there is more than one of them."
+  },
+  "doneWhen": "Three test layers are green, health and OpenAPI are served, errors come back as problem+json, and every log line carries a request id.",
+  "services": [
+    "account-service"
+  ],
+  "infra": [
+    "postgres"
+  ],
+  "lessons": [
+    {
+      "id": "03-services-tool",
+      "title": "Services tool window",
+      "teach": "<b>Services</b> shows your Docker containers and running Spring Boot apps in one tree — start, stop, and read logs there rather than juggling terminal tabs.",
+      "trigger": {
+        "type": "toolWindow",
+        "id": "Services"
+      },
+      "fallbackTip": "docker compose ps / docker compose logs -f"
+    },
+    {
+      "id": "03-http-client",
+      "title": "HTTP client scratch",
+      "teach": "Make a <code>.http</code> file and put your curl calls in it. They become runnable, version-controlled requests with environment variables for ports.",
+      "trigger": {
+        "type": "fileOpen",
+        "id": "*.http"
+      },
+      "fallbackTip": "Ultimate only. Community: keep using curl."
+    }
+  ]
+}

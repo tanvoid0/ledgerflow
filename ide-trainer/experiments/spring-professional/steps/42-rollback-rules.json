@@ -1,0 +1,55 @@
+{
+  "id": "42",
+  "title": "rollback rules",
+  "goal": "2.2.3 Rollback rules",
+  "tasks": [
+    {
+      "key": "state-default-runtime-error-roll",
+      "do": "State the default: runtime/`Error` roll back; checked commit."
+    },
+    {
+      "key": "apply-rollbackfor-so-checked-exception",
+      "do": "Apply `rollbackFor` so a checked exception rolls back."
+    },
+    {
+      "key": "apply-norollbackfor-so-runtime-exception",
+      "do": "Apply `noRollbackFor` so a runtime exception commits."
+    },
+    {
+      "key": "use-rollbackforclassname-norollbackforclassname",
+      "do": "Use `rollbackForClassName` / `noRollbackForClassName` when needed."
+    },
+    {
+      "key": "explain-subclass-matching-rollback-rules",
+      "do": "Explain subclass matching of rollback rules."
+    },
+    {
+      "key": "predict-commit-when-exception-caught",
+      "do": "Predict commit when an exception is caught and not rethrown."
+    },
+    {
+      "key": "use-setrollbackonly-as-alternative-rethrowing",
+      "do": "Use `setRollbackOnly()` as the alternative to rethrowing."
+    },
+    {
+      "key": "distinguish-spring-rollbackfor-from-jta",
+      "do": "Distinguish Spring `rollbackFor` from JTA `rollbackOn`."
+    },
+    {
+      "key": "checked-exception-rollback-default",
+      "do": "Checked exception ≠ rollback (default)."
+    },
+    {
+      "key": "catch-swallow-commits",
+      "do": "Catch-and-swallow commits."
+    },
+    {
+      "key": "norollbackfor-how-runtime-exception-can",
+      "do": "`noRollbackFor` is how a runtime exception can still commit."
+    },
+    {
+      "key": "wrong-transactional-type-jta-vs",
+      "do": "Wrong `@Transactional` type (JTA vs Spring) means the attributes you think you set are not there."
+    }
+  ]
+}

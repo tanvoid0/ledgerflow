@@ -1,0 +1,39 @@
+{
+  "id": "39",
+  "title": "localization formatting",
+  "goal": "10.1 Locale, ResourceBundle, message/number/date formatting",
+  "tasks": [
+    {
+      "key": "construct-locale-language-optional-country",
+      "do": "Construct a `Locale` with language and optional country"
+    },
+    {
+      "key": "load-resourcebundle-from-classpath-base",
+      "do": "Load a `ResourceBundle` from a classpath base name"
+    },
+    {
+      "key": "explain-fallback-messages-fr-fr",
+      "do": "Explain fallback `messages_fr_FR` → `messages_fr` → `messages`"
+    },
+    {
+      "key": "name-property-files-language-language",
+      "do": "Name property files with `_language` and `_language_COUNTRY`"
+    },
+    {
+      "key": "format-messageformat-placeholders",
+      "do": "Format with `MessageFormat` placeholders"
+    },
+    {
+      "key": "format-numbers-numberformat-explicit-locale",
+      "do": "Format numbers with `NumberFormat` and an explicit locale"
+    },
+    {
+      "key": "format-dates-datetimeformatter-locale",
+      "do": "Format dates with `DateTimeFormatter` and a locale"
+    },
+    {
+      "key": "predict-missingresourceexception-unknown-keys",
+      "do": "Predict `MissingResourceException` for unknown keys"
+    }
+  ]
+}

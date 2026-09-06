@@ -1,0 +1,63 @@
+{
+  "id": "08",
+  "title": "profiles",
+  "goal": "1.3.2 Demonstrate the purpose of Profiles",
+  "tasks": [
+    {
+      "key": "state-what-profile-how-differs",
+      "do": "State what a profile is and how it differs from an external property."
+    },
+    {
+      "key": "apply-profile-component-configuration-class",
+      "do": "Apply `@Profile` to a `@Component`, a `@Configuration` class, and a single `@Bean` method."
+    },
+    {
+      "key": "list-at-least-four-ways",
+      "do": "List at least four ways to activate a profile."
+    },
+    {
+      "key": "explain-when-default-profile-applies",
+      "do": "Explain when the `default` profile applies and when it stops applying."
+    },
+    {
+      "key": "activate-two-profiles-at-once",
+      "do": "Activate two profiles at once and predict which beans register."
+    },
+    {
+      "key": "write-profile-expressions-using-correct",
+      "do": "Write profile expressions using `!`, `&`, and `|`, with correct parentheses."
+    },
+    {
+      "key": "describe-how-application-profile-properties",
+      "do": "Describe how `application-{profile}.properties` layers over `application.properties`."
+    },
+    {
+      "key": "use-activeprofiles-integration-test",
+      "do": "Use `@ActiveProfiles` in an integration test."
+    },
+    {
+      "key": "explain-why-profile-decisions-cannot",
+      "do": "Explain why `@Profile` decisions cannot change while the context is running."
+    },
+    {
+      "key": "profile-on-configuration-class-covers",
+      "do": "`@Profile` on a `@Configuration` class covers every `@Bean` it declares."
+    },
+    {
+      "key": "no-profile-set-default-active",
+      "do": "With no profile set, `default` is active — `@Profile(\"default\")` beans DO register."
+    },
+    {
+      "key": "mixing-without-parentheses-parse-error",
+      "do": "Mixing `&` and `|` without parentheses is a parse error."
+    },
+    {
+      "key": "inactive-profiled-bean-produces-nosuchbeandefini",
+      "do": "An inactive profiled bean produces `NoSuchBeanDefinitionException` at the injection point."
+    },
+    {
+      "key": "profile-names-are-case-sensitive",
+      "do": "Profile names are case-sensitive."
+    }
+  ]
+}

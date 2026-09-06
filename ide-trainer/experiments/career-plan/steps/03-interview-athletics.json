@@ -1,0 +1,31 @@
+{
+  "id": "03",
+  "title": "interview athletics",
+  "goal": "O3 DSA in this app + design + STAR",
+  "tasks": [
+    {
+      "key": "dsa-diagnostic-done-this-app",
+      "do": "DSA diagnostic done in this app: module 01 lab, four timed tasks"
+    },
+    {
+      "key": "know-where-system-design-lives",
+      "do": "Know where system design lives: GCP modules 09–17 (or four owned stories until generated)"
+    },
+    {
+      "key": "8-star-behavioural-stories-prepped",
+      "do": "8 STAR behavioural stories prepped"
+    },
+    {
+      "key": "one-dsa-sitting-this-app",
+      "do": "One DSA sitting in this app, talk-through out loud [daily]"
+    },
+    {
+      "key": "1-system-design-writeup-drill",
+      "do": "1 system-design writeup or drill [weekly]"
+    },
+    {
+      "key": "1-mock-interview-from-week",
+      "do": "1 mock interview (from Week 2) [weekly]"
+    }
+  ]
+}

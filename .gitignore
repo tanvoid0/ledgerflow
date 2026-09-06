@@ -1,0 +1,21 @@
+# build output
+target/
+build/
+out/
+.gradle/
+.kotlin/
+
+# IDE
+.idea/
+*.iml
+
+# IntelliJ Platform Gradle plugin: downloaded IDE + sandbox (~1GB)
+.intellijPlatform/
+
+# trainer state. progress.json is the tracked source of truth for a fresh
+# clone; the SQLite mirrors are derived and machine-local.
+*.db
+
+# os
+Thumbs.db
+.DS_Store

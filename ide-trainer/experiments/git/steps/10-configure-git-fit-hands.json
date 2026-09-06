@@ -1,0 +1,114 @@
+{
+  "id": "10",
+  "title": "configure git to fit your hands",
+  "estimate": "35 min",
+  "goal": "D1 Aliases, hooks, ignore rules and the defaults that pay off daily",
+  "startWith": "Global config — this step follows you to every repository.",
+  "newIdeas": [
+    {
+      "term": "alias",
+      "plain": "A git subcommand you define. <code>git lg</code> is not built in; yours can be."
+    },
+    {
+      "term": "hook",
+      "plain": "A script git runs at a lifecycle point: pre-commit, commit-msg, pre-push."
+    },
+    {
+      "term": "ignore precedence",
+      "plain": "The repo <code>.gitignore</code>, then <code>.git/info/exclude</code> (local, never committed), then the global file."
+    }
+  ],
+  "tasks": [
+    {
+      "key": "add-four-aliases-will-actually",
+      "do": "Add the four aliases you will actually use",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git config --global alias.lg \"log --oneline --graph --decorate --all -20\"\ngit config --global alias.st \"status -sb\"\ngit config --global alias.last \"log -1 --stat\"\ngit config --global alias.undo \"reset --soft HEAD~1\"\ngit lg"
+        }
+      ],
+      "check": {
+        "run": "git config --get alias.lg",
+        "expect": "the log format string"
+      }
+    },
+    {
+      "key": "turn-on-settings-that-prevent",
+      "do": "Turn on the settings that prevent the common accidents",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git config --global fetch.prune true\ngit config --global diff.colorMoved zebra\ngit config --global merge.conflictstyle zdiff3    # shows the common ancestor too\ngit config --global push.default current\ngit config --global core.autocrlf input           # 'false' on Windows-only repos"
+        }
+      ],
+      "check": {
+        "run": "git config --get merge.conflictstyle",
+        "expect": "zdiff3"
+      }
+    },
+    {
+      "key": "ignore-files-three-ways-untrack",
+      "do": "Ignore files three ways, and untrack one you already committed",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "echo 'target/' >> .gitignore\necho 'scratch.local' >> .git/info/exclude       # local only, never committed\ngit config --global core.excludesfile ~/.gitignore_global\ngit rm --cached secrets.env                     # stop tracking, keep the file\ngit check-ignore -v target/x.class               # why is this ignored?"
+        }
+      ]
+    },
+    {
+      "key": "add-pre-commit-hook-that",
+      "do": "Add a pre-commit hook that blocks the mistake you actually make",
+      "why": "A hook that runs the whole test suite gets bypassed within a week. One that takes 200ms survives.",
+      "blocks": [
+        {
+          "label": ".git/hooks/pre-commit",
+          "kind": "file",
+          "body": "#!/bin/sh\n# Refuse commits that stage a conflict marker or a debug print.\nif git diff --cached -U0 | grep -nE '^\\+.*(<<<<<<<|System\\.out\\.println\\(\"DEBUG)'; then\n  echo \"pre-commit: debug or conflict marker staged\" >&2\n  exit 1\nfi\n"
+        },
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "chmod +x .git/hooks/pre-commit\ngit commit --no-verify -m \"how to skip it when you must\""
+        }
+      ]
+    },
+    {
+      "key": "read-repository-s-config-layers",
+      "do": "Read a repository's config layers",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git config --list --show-origin --show-scope"
+        }
+      ],
+      "check": {
+        "run": "git config --list --show-scope",
+        "expect": "config entries with their scope"
+      }
+    }
+  ],
+  "proof": {
+    "run": "git config --get alias.lg",
+    "expect": "your alias",
+    "note": "Git behaves the way you configured it, on every repo."
+  },
+  "doneWhen": "Your muscle memory is aliases, and your hooks catch what you keep doing wrong.",
+  "lessons": [
+    {
+      "id": "10-find-action",
+      "title": "Find Action for every git command",
+      "teach": "<b>Ctrl+Shift+A</b> and type \"rebase\", \"stash\", \"tag\", \"reset\". Every git operation the IDE has is here with its shortcut shown next to it — the fastest way to stop hunting through the VCS menu.",
+      "trigger": {
+        "type": "action",
+        "id": "GotoAction"
+      },
+      "fallbackTip": "git help -a lists every subcommand."
+    }
+  ]
+}

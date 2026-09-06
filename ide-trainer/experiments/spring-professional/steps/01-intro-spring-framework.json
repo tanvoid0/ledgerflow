@@ -1,0 +1,39 @@
+{
+  "id": "01",
+  "title": "intro spring framework",
+  "goal": "1.1 Introduction to Spring Framework",
+  "tasks": [
+    {
+      "key": "define-inversion-control-ioc-own",
+      "do": "Define Inversion of Control (IoC) in your own words"
+    },
+    {
+      "key": "define-dependency-injection-name-three",
+      "do": "Define Dependency Injection and name three injection styles (constructor, setter, field)"
+    },
+    {
+      "key": "explain-why-constructor-injection-preferred",
+      "do": "Explain why constructor injection is preferred on the exam and in practice"
+    },
+    {
+      "key": "distinguish-beanfactory-from-applicationcontext",
+      "do": "Distinguish `BeanFactory` from `ApplicationContext` — what extra does ApplicationContext provide?"
+    },
+    {
+      "key": "name-at-least-four-spring",
+      "do": "Name at least four Spring modules (Core, AOP, Data, Web, Test)"
+    },
+    {
+      "key": "explain-what-spring-bean",
+      "do": "Explain what a Spring \"bean\" is"
+    },
+    {
+      "key": "describe-basic-startup-flow-definitions",
+      "do": "Describe the basic startup flow: definitions → container → instantiation → injection"
+    },
+    {
+      "key": "explain-that-spring-boot-builds",
+      "do": "Explain that Spring Boot builds on the Spring Framework IoC container (not a replacement)"
+    }
+  ]
+}

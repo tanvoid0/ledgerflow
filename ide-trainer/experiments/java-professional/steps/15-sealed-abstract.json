@@ -1,0 +1,39 @@
+{
+  "id": "15",
+  "title": "sealed abstract",
+  "goal": "3.5 Abstract and sealed types",
+  "tasks": [
+    {
+      "key": "state-why-abstract-class-cannot",
+      "do": "State why an abstract class cannot be instantiated even if it has only concrete methods"
+    },
+    {
+      "key": "declare-abstract-method-implement-concrete",
+      "do": "Declare an abstract method and implement it in a concrete subclass"
+    },
+    {
+      "key": "explain-that-abstract-classes-may",
+      "do": "Explain that abstract classes may have fields, constructors, and concrete methods"
+    },
+    {
+      "key": "write-sealed-class-interface-permits",
+      "do": "Write a `sealed` class or interface with a `permits` clause"
+    },
+    {
+      "key": "mark-each-permitted-subclass-final",
+      "do": "Mark each permitted subclass `final`, `sealed`, or `non-sealed`"
+    },
+    {
+      "key": "describe-difference-between-final-non",
+      "do": "Describe the difference between `final` and `non-sealed` permitted types"
+    },
+    {
+      "key": "use-exhaustive-switch-on-sealed",
+      "do": "Use an exhaustive switch on a sealed type without `default`"
+    },
+    {
+      "key": "combine-abstract-sealed-so-subclasses",
+      "do": "Combine `abstract sealed` so subclasses both implement methods and stay in the closed set"
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "id": "47",
+  "title": "rest lifecycle",
+  "goal": "3.1.2 REST request lifecycle",
+  "tasks": [
+    {
+      "key": "recite-happy-path-order-filter",
+      "do": "Recite the happy-path order: Filter → DispatcherServlet → HandlerMapping → interceptor → controller → converters."
+    },
+    {
+      "key": "explain-what-happens-if-filter",
+      "do": "Explain what happens if a filter does not call `chain.doFilter`."
+    },
+    {
+      "key": "contrast-filter-servlet-api-handlerinterceptor",
+      "do": "Contrast `Filter` (Servlet API) with `HandlerInterceptor` (Spring MVC)."
+    },
+    {
+      "key": "register-filter-as-spring-bean",
+      "do": "Register a `Filter` as a Spring bean and set a request attribute the controller can read."
+    },
+    {
+      "key": "set-response-header-filter-so",
+      "do": "Set a response header in a filter so it is visible on the way out."
+    },
+    {
+      "key": "state-that-dispatcherservlet-servlet-not",
+      "do": "State that `DispatcherServlet` is a servlet, not a filter."
+    },
+    {
+      "key": "name-requestmappinghandlermapping-as-usual-mappi",
+      "do": "Name `RequestMappingHandlerMapping` as the usual mapping strategy for annotated controllers."
+    },
+    {
+      "key": "explain-onceperrequestfilter-versus-raw-filter",
+      "do": "Explain `OncePerRequestFilter` versus a raw `Filter` on forward."
+    },
+    {
+      "key": "describe-how-security-filters-can",
+      "do": "Describe how Security filters can prevent the dispatcher from running."
+    },
+    {
+      "key": "use-filterregistrationbean-conceptually-set-orde",
+      "do": "Use `FilterRegistrationBean` (conceptually) to set order and URL patterns."
+    }
+  ]
+}

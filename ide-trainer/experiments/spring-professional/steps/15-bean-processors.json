@@ -1,0 +1,71 @@
+{
+  "id": "15",
+  "title": "bean processors",
+  "goal": "1.5.2 BeanFactoryPostProcessor & BeanPostProcessor",
+  "tasks": [
+    {
+      "key": "state-one-sentence-what-each",
+      "do": "State in one sentence what each of the two interfaces operates on."
+    },
+    {
+      "key": "name-method-s-on-beanfactorypostprocessor",
+      "do": "Name the method(s) on `BeanFactoryPostProcessor` and `BeanPostProcessor`."
+    },
+    {
+      "key": "explain-what-beandefinitionregistrypostprocessor",
+      "do": "Explain what `BeanDefinitionRegistryPostProcessor` adds and when to use it."
+    },
+    {
+      "key": "give-full-container-refresh-order",
+      "do": "Give the full container-refresh order for the three processor types."
+    },
+    {
+      "key": "explain-how-returning-different-object",
+      "do": "Explain how returning a different object from `postProcessAfterInitialization` implements AOP."
+    },
+    {
+      "key": "name-four-framework-features-implemented",
+      "do": "Name four framework features implemented as post-processors."
+    },
+    {
+      "key": "explain-why-bean-beanfactorypostprocessor-must",
+      "do": "Explain why a `@Bean` `BeanFactoryPostProcessor` must be `static`."
+    },
+    {
+      "key": "order-multiple-post-processors-ordered",
+      "do": "Order multiple post-processors with `Ordered`, `PriorityOrdered`, and `@Order`."
+    },
+    {
+      "key": "diagnose-not-eligible-getting-processed",
+      "do": "Diagnose the \"not eligible for getting processed by all BeanPostProcessors\" warning."
+    },
+    {
+      "key": "say-whether-post-processors-apply",
+      "do": "Say whether post-processors apply to prototype beans."
+    },
+    {
+      "key": "beanfactorypostprocessor-never-sees-bean-instanc",
+      "do": "`BeanFactoryPostProcessor` never sees a bean instance."
+    },
+    {
+      "key": "register-new-definitions-beandefinitionregistryp",
+      "do": "Register NEW definitions in `BeanDefinitionRegistryPostProcessor`, not `postProcessBeanFactory`."
+    },
+    {
+      "key": "returning-null-from-beanpostprocessor-skips",
+      "do": "Returning `null` from a `BeanPostProcessor` skips the remaining processors — return the bean instead."
+    },
+    {
+      "key": "priorityordered-beats-ordered-regardless-numeric",
+      "do": "`PriorityOrdered` beats `Ordered` regardless of the numeric order value."
+    },
+    {
+      "key": "beanpostprocessor-sees-every-bean-infrastructure",
+      "do": "A `BeanPostProcessor` sees EVERY bean, infrastructure included."
+    },
+    {
+      "key": "beans-pulled-into-existence-by",
+      "do": "Beans pulled into existence by a post-processor miss later post-processors."
+    }
+  ]
+}

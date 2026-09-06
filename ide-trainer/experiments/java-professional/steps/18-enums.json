@@ -1,0 +1,39 @@
+{
+  "id": "18",
+  "title": "enums",
+  "goal": "3.7 Enums with fields, methods, constructors",
+  "tasks": [
+    {
+      "key": "declare-enum-constants-constructor-that",
+      "do": "Declare enum constants and a constructor that initializes fields"
+    },
+    {
+      "key": "explain-why-enum-constructors-cannot",
+      "do": "Explain why enum constructors cannot be `public` or `protected`"
+    },
+    {
+      "key": "use-values-declaration-order-valueof",
+      "do": "Use `values()` (declaration order) and `valueOf` (exact name)"
+    },
+    {
+      "key": "predict-illegalargumentexception-vs-nullpointere",
+      "do": "Predict `IllegalArgumentException` vs `NullPointerException` from `valueOf`"
+    },
+    {
+      "key": "write-exhaustive-switch-expression-on",
+      "do": "Write an exhaustive switch expression on an enum without `default`"
+    },
+    {
+      "key": "state-that-ordinal-declaration-order",
+      "do": "State that `ordinal()` is declaration order, not a business key"
+    },
+    {
+      "key": "compare-enum-constants",
+      "do": "Compare enum constants with `==`"
+    },
+    {
+      "key": "describe-constant-specific-class-bodies",
+      "do": "Describe constant-specific class bodies and abstract methods on enums"
+    }
+  ]
+}

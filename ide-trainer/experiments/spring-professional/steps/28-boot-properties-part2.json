@@ -1,0 +1,87 @@
+{
+  "id": "28",
+  "title": "boot properties part2",
+  "goal": "6.2.1b Property loading options",
+  "tasks": [
+    {
+      "key": "recite-top-eight-entries-precedence",
+      "do": "Recite the top eight entries of the precedence list, strongest first."
+    },
+    {
+      "key": "place-propertysource-correctly-that-list",
+      "do": "Place `@PropertySource` correctly in that list."
+    },
+    {
+      "key": "name-four-default-config-search",
+      "do": "Name the four default config search locations and their order."
+    },
+    {
+      "key": "distinguish-spring-config-location-from",
+      "do": "Distinguish `spring.config.location` from `spring.config.additional-location`."
+    },
+    {
+      "key": "explain-trailing-slash-rule-config",
+      "do": "Explain the trailing-slash rule for config locations."
+    },
+    {
+      "key": "explain-why-outside-jar-beats",
+      "do": "Explain why outside-the-jar beats inside-the-jar."
+    },
+    {
+      "key": "layer-profile-specific-file-over",
+      "do": "Layer a profile-specific file over a base file."
+    },
+    {
+      "key": "write-multi-document-yaml-spring",
+      "do": "Write a multi-document YAML with `spring.config.activate.on-profile`."
+    },
+    {
+      "key": "use-spring-profiles-group-expand",
+      "do": "Use `spring.profiles.group` to expand one name into several profiles."
+    },
+    {
+      "key": "import-external-configuration-spring-config",
+      "do": "Import external configuration with `spring.config.import`, including `configtree:` and `optional:`."
+    },
+    {
+      "key": "use-spring-application-json-supply",
+      "do": "Use `SPRING_APPLICATION_JSON` to supply a whole tree."
+    },
+    {
+      "key": "generate-values-random",
+      "do": "Generate values with `random.*`."
+    },
+    {
+      "key": "determine-value-s-origin-using",
+      "do": "Determine a value's origin using `/actuator/env`."
+    },
+    {
+      "key": "command-line-environment-variables-system",
+      "do": "Command line > environment variables > system properties order matters — learn it exactly."
+    },
+    {
+      "key": "location-replaces-search-path-additional",
+      "do": "`location` REPLACES the search path; `additional-location` EXTENDS it."
+    },
+    {
+      "key": "trailing-directory-no-trailing-specific",
+      "do": "Trailing `/` = directory, no trailing `/` = specific file."
+    },
+    {
+      "key": "propertysource-ranks-below-application-propertie",
+      "do": "`@PropertySource` ranks BELOW `application.properties`."
+    },
+    {
+      "key": "later-yaml-documents-win-over",
+      "do": "Later YAML documents win over earlier ones."
+    },
+    {
+      "key": "spring-profiles-active-cannot-be",
+      "do": "`spring.profiles.active` cannot be set inside a profile-specific document."
+    },
+    {
+      "key": "random-generated-once-at-startup",
+      "do": "`random.*` is generated once at startup."
+    }
+  ]
+}

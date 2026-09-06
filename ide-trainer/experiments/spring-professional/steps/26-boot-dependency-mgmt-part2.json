@@ -1,0 +1,83 @@
+{
+  "id": "26",
+  "title": "boot dependency mgmt part2",
+  "goal": "6.1.2b Dependency management (part 2)",
+  "tasks": [
+    {
+      "key": "import-spring-boot-dependencies-as",
+      "do": "Import `spring-boot-dependencies` as a BOM without inheriting the parent."
+    },
+    {
+      "key": "state-two-attributes-import-scoped",
+      "do": "State the two attributes an import-scoped BOM dependency requires."
+    },
+    {
+      "key": "override-managed-version-version-property",
+      "do": "Override a managed version with a version property, and say when that is possible."
+    },
+    {
+      "key": "override-managed-version-without-parent",
+      "do": "Override a managed version without the parent, using BOM ordering."
+    },
+    {
+      "key": "explain-why-version-property-beats",
+      "do": "Explain why a version property beats an explicit `<version>` for a library family."
+    },
+    {
+      "key": "list-what-must-configure-yourself",
+      "do": "List what you must configure yourself when not using the parent."
+    },
+    {
+      "key": "exclude-transitive-dependency-supply-replacement",
+      "do": "Exclude a transitive dependency and supply a replacement."
+    },
+    {
+      "key": "choose-right-scope-jdbc-driver",
+      "do": "Choose the right scope for a JDBC driver, a war's server, and an annotation processor."
+    },
+    {
+      "key": "package-boot-application-as-deployable",
+      "do": "Package a Boot application as a deployable war."
+    },
+    {
+      "key": "split-custom-starter-into-starter",
+      "do": "Split a custom starter into starter and autoconfigure modules, and say why."
+    },
+    {
+      "key": "register-auto-configuration-class-correct",
+      "do": "Register an auto-configuration class with the correct metadata file."
+    },
+    {
+      "key": "detect-version-conflicts-dependency-tree",
+      "do": "Detect version conflicts with `dependency:tree -Dverbose`."
+    },
+    {
+      "key": "bom-import-needs-both-pom",
+      "do": "BOM import needs BOTH `<type>pom</type>` and `<scope>import</scope>`, in `<dependencyManagement>`."
+    },
+    {
+      "key": "among-imported-boms-first-declaration",
+      "do": "Among imported BOMs, the FIRST declaration wins."
+    },
+    {
+      "key": "version-properties-require-parent",
+      "do": "Version properties require the parent."
+    },
+    {
+      "key": "without-parent-also-lose-java",
+      "do": "Without the parent you also lose Java level, encoding, plugin config, and filtering."
+    },
+    {
+      "key": "war-deployment-sets-server-starter",
+      "do": "War deployment sets the server starter to `provided` — it does not exclude it."
+    },
+    {
+      "key": "registration-file-autoconfiguration-imports-not",
+      "do": "Registration file is `AutoConfiguration.imports`, not `spring.factories` (Boot 2.7+)."
+    },
+    {
+      "key": "custom-starters-must-not-use",
+      "do": "Custom starters must NOT use the `spring-boot-starter-` prefix."
+    }
+  ]
+}

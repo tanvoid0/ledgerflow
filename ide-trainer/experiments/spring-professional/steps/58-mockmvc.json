@@ -1,0 +1,43 @@
+{
+  "id": "58",
+  "title": "mockmvc",
+  "goal": "4.2.3 MockMvc testing",
+  "tasks": [
+    {
+      "key": "obtain-mockmvc-from-autoconfiguremockmvc-webmvct",
+      "do": "Obtain `MockMvc` from `@AutoConfigureMockMvc` or `@WebMvcTest`."
+    },
+    {
+      "key": "build-get-post-requests-mockmvcrequestbuilders",
+      "do": "Build GET/POST requests with `MockMvcRequestBuilders`."
+    },
+    {
+      "key": "assert-statuses-status-isok-isnotfound",
+      "do": "Assert statuses with `status().isOk()`, `isNotFound()`, `isCreated()`."
+    },
+    {
+      "key": "assert-json-fields-jsonpath",
+      "do": "Assert JSON fields with `jsonPath`."
+    },
+    {
+      "key": "set-accept-content-type-correctly",
+      "do": "Set `Accept` and `Content-Type` correctly."
+    },
+    {
+      "key": "map-missing-resource-404-explicitly",
+      "do": "Map a missing resource to 404 explicitly."
+    },
+    {
+      "key": "contrast-mockmvc-testresttemplate",
+      "do": "Contrast `MockMvc` with `TestRestTemplate`."
+    },
+    {
+      "key": "use-anddo-print-when-diagnosing",
+      "do": "Use `andDo(print())` when diagnosing a failure."
+    },
+    {
+      "key": "state-that-filters-run-under",
+      "do": "State that filters run under `@AutoConfigureMockMvc`."
+    }
+  ]
+}

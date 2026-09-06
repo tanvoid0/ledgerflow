@@ -1,0 +1,39 @@
+{
+  "id": "27",
+  "title": "streams collect reduce",
+  "goal": "6.2 collect, reduce, Optional",
+  "tasks": [
+    {
+      "key": "collect-collectors-tolist-toset-joining",
+      "do": "Collect with `Collectors.toList`, `toSet`, `joining`, `toMap`"
+    },
+    {
+      "key": "contrast-stream-tolist-unmodifiable-mutable",
+      "do": "Contrast `Stream.toList()` (unmodifiable) with a mutable collector"
+    },
+    {
+      "key": "use-two-arg-reduce-identity",
+      "do": "Use two-arg `reduce(identity, op)` vs one-arg `reduce(op)` → `Optional`"
+    },
+    {
+      "key": "call-count-min-max-interpret",
+      "do": "Call `count`, `min`, `max` and interpret empty-stream results"
+    },
+    {
+      "key": "use-optional-orelse-orelseget-orelsethrow",
+      "do": "Use `Optional.orElse` / `orElseGet` / `orElseThrow` instead of raw `get`"
+    },
+    {
+      "key": "supply-merge-function-when-tomap",
+      "do": "Supply a merge function when `toMap` keys can collide"
+    },
+    {
+      "key": "choose-true-identity-value-reduce",
+      "do": "Choose a true identity value for `reduce`"
+    },
+    {
+      "key": "explain-orelse-eager-evaluation-vs",
+      "do": "Explain `orElse` eager evaluation vs `orElseGet`"
+    }
+  ]
+}

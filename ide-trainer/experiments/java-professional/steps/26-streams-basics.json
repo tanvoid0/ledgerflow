@@ -1,0 +1,39 @@
+{
+  "id": "26",
+  "title": "streams basics",
+  "goal": "6.1 Stream creation, filter, map, sorted",
+  "tasks": [
+    {
+      "key": "create-streams-from-collections-arrays",
+      "do": "Create streams from collections, arrays, and `Stream.of`"
+    },
+    {
+      "key": "identify-intermediate-vs-terminal-operations",
+      "do": "Identify intermediate vs terminal operations"
+    },
+    {
+      "key": "explain-laziness-nothing-runs-without",
+      "do": "Explain laziness: nothing runs without a terminal op"
+    },
+    {
+      "key": "state-that-stream-can-be",
+      "do": "State that a stream can be consumed only once"
+    },
+    {
+      "key": "use-filter-map-sorted-distinct",
+      "do": "Use `filter`, `map`, `sorted`, `distinct`, `limit`"
+    },
+    {
+      "key": "contrast-map-vs-flatmap",
+      "do": "Contrast `map` vs `flatMap`"
+    },
+    {
+      "key": "use-sorted-comparator-vs-natural",
+      "do": "Use `sorted(Comparator)` vs natural `sorted()`"
+    },
+    {
+      "key": "know-intstream-map-stays-primitive",
+      "do": "Know `IntStream.map` stays primitive"
+    }
+  ]
+}

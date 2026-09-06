@@ -1,0 +1,47 @@
+{
+  "id": "49",
+  "title": "deployment config",
+  "goal": "3.1.4 Configure for deployment",
+  "tasks": [
+    {
+      "key": "contrast-executable-jar-embedded-tomcat",
+      "do": "Contrast executable JAR + embedded Tomcat with WAR + external container."
+    },
+    {
+      "key": "extend-springbootservletinitializer-implement-co",
+      "do": "Extend `SpringBootServletInitializer` and implement `configure`."
+    },
+    {
+      "key": "pass-springbootapplication-class-builder-sources",
+      "do": "Pass the `@SpringBootApplication` class to `builder.sources(...)`."
+    },
+    {
+      "key": "return-same-springapplicationbuilder-instance-fl",
+      "do": "Return the same `SpringApplicationBuilder` instance (fluent API)."
+    },
+    {
+      "key": "mark-spring-boot-starter-tomcat",
+      "do": "Mark `spring-boot-starter-tomcat` as `provided` for a WAR."
+    },
+    {
+      "key": "set-maven-gradle-packaging-war",
+      "do": "Set Maven/Gradle packaging to `war` when deploying to a host Tomcat."
+    },
+    {
+      "key": "explain-that-main-embedded-java",
+      "do": "Explain that `main` is for embedded/`java -jar`, the initializer is for the container."
+    },
+    {
+      "key": "explain-why-server-port-not",
+      "do": "Explain why `server.port` is not the external container's HTTP port."
+    },
+    {
+      "key": "state-that-servlet-3-container",
+      "do": "State that a Servlet 3 container does not require `web.xml` when the initializer is present."
+    },
+    {
+      "key": "pick-jar-vs-war-given",
+      "do": "Pick `jar` vs `war` given \"embedded\" vs \"external servlet container\"."
+    }
+  ]
+}

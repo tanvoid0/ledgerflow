@@ -1,0 +1,67 @@
+{
+  "id": "68",
+  "title": "boot m6 devtools",
+  "goal": "BOOT-M6 DevTools & live reload",
+  "tasks": [
+    {
+      "key": "name-two-classloaders-devtools-uses",
+      "do": "Name the two classloaders DevTools uses (restart vs base)."
+    },
+    {
+      "key": "state-which-loader-discarded-on",
+      "do": "State which loader is discarded on a restart."
+    },
+    {
+      "key": "contrast-restart-java-change-livereload",
+      "do": "Contrast restart (Java change) with LiveReload (static web resources)."
+    },
+    {
+      "key": "predict-what-happens-static-fields",
+      "do": "Predict what happens to static fields on an *application* class after restart."
+    },
+    {
+      "key": "predict-what-happens-static-fields-2",
+      "do": "Predict what happens to static fields on a *dependency* class after restart."
+    },
+    {
+      "key": "predict-what-happens-instance-fields",
+      "do": "Predict what happens to instance fields of a Spring singleton after restart vs after LiveReload."
+    },
+    {
+      "key": "list-spring-devtools-restart-enabled",
+      "do": "List `spring.devtools.restart.enabled` and `spring.devtools.livereload.enabled`."
+    },
+    {
+      "key": "explain-why-devtools-disabled-packaged",
+      "do": "Explain why DevTools is disabled in a packaged fat JAR by default."
+    },
+    {
+      "key": "explain-why-this-track-s",
+      "do": "Explain why this track's lab POM must not add `spring-boot-devtools`."
+    },
+    {
+      "key": "simulate-restart-safe-vs-application",
+      "do": "Simulate restart-safe vs application-static state in the lab without the DevTools jar."
+    },
+    {
+      "key": "livereload-will-not-pick-up",
+      "do": "LiveReload will not pick up a Java `@RestController` change."
+    },
+    {
+      "key": "application-static-caches-reset-on",
+      "do": "Application static caches reset on restart; that is not a Spring bug."
+    },
+    {
+      "key": "devtools-not-required-run-boot",
+      "do": "DevTools is not required to run Boot."
+    },
+    {
+      "key": "remote-devtools-production-security-issue",
+      "do": "Remote DevTools in production is a security issue."
+    },
+    {
+      "key": "restart-new-classloader-new-context",
+      "do": "Restart is a new classloader + new context, not JRebel-style method hot-swap."
+    }
+  ]
+}

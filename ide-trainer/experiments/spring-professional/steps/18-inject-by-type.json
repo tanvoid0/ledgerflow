@@ -1,0 +1,75 @@
+{
+  "id": "18",
+  "title": "inject by type",
+  "goal": "1.5.5 Injecting beans by type",
+  "tasks": [
+    {
+      "key": "explain-why-type-based-injection",
+      "do": "Explain why type-based injection is the default and what it buys you."
+    },
+    {
+      "key": "recite-full-resolution-algorithm-from",
+      "do": "Recite the full resolution algorithm from candidate collection to failure."
+    },
+    {
+      "key": "name-exception-thrown-zero-candidates",
+      "do": "Name the exception thrown for zero candidates and for multiple candidates."
+    },
+    {
+      "key": "show-how-generic-type-parameters",
+      "do": "Show how generic type parameters participate in matching."
+    },
+    {
+      "key": "disambiguate-primary-qualifier-priority-state",
+      "do": "Disambiguate with `@Primary`, `@Qualifier`, and `@Priority`, and state their precedence."
+    },
+    {
+      "key": "rely-on-parameter-name-matching",
+      "do": "Rely on parameter-name matching deliberately, and explain its risk."
+    },
+    {
+      "key": "inject-every-implementation-into-list",
+      "do": "Inject every implementation into a `List`, a `Set`, and a `Map`."
+    },
+    {
+      "key": "state-where-map-keys-come",
+      "do": "State where `Map` keys come from in a collection injection."
+    },
+    {
+      "key": "control-collection-ordering-order",
+      "do": "Control collection ordering with `@Order`."
+    },
+    {
+      "key": "handle-zero-more-dependencies-objectprovider",
+      "do": "Handle zero-or-more dependencies with `ObjectProvider`."
+    },
+    {
+      "key": "explain-how-factorybean-participates-type",
+      "do": "Explain how a `FactoryBean` participates in type matching, and what `&name` returns."
+    },
+    {
+      "key": "zero-candidates-nosuchbeandefinitionexception-ma",
+      "do": "Zero candidates → `NoSuchBeanDefinitionException`; many → `NoUniqueBeanDefinitionException`."
+    },
+    {
+      "key": "qualifier-at-injection-point-beats",
+      "do": "`@Qualifier` at the injection point beats `@Primary` on the definition."
+    },
+    {
+      "key": "autowired-list-no-candidates-fails",
+      "do": "`@Autowired List<T>` with NO candidates fails — it does not inject an empty list."
+    },
+    {
+      "key": "map-keys-are-bean-names",
+      "do": "`Map<String, T>` keys are bean names, not qualifier values."
+    },
+    {
+      "key": "resource-name-first-unlike-everything",
+      "do": "`@Resource` is name-first, unlike everything else here."
+    },
+    {
+      "key": "priority-breaks-autowiring-ties-order",
+      "do": "`@Priority` breaks autowiring ties; `@Order` does not."
+    }
+  ]
+}

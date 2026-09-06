@@ -1,0 +1,39 @@
+{
+  "id": "10",
+  "title": "method overloading varargs",
+  "goal": "3.3 Overloaded and var-arg methods",
+  "tasks": [
+    {
+      "key": "recite-overload-resolution-exact-widening",
+      "do": "Recite overload resolution: exact, widening, boxing, varargs"
+    },
+    {
+      "key": "predict-which-overload-wins-int",
+      "do": "Predict which overload wins for `int` vs `long` vs `Integer` vs `int...`"
+    },
+    {
+      "key": "declare-varargs-only-as-last",
+      "do": "Declare varargs only as the last parameter"
+    },
+    {
+      "key": "state-that-missing-varargs-argument",
+      "do": "State that a missing varargs argument yields an empty array"
+    },
+    {
+      "key": "spot-ambiguous-calls-null-two",
+      "do": "Spot ambiguous calls (`null` with two sibling reference types)"
+    },
+    {
+      "key": "distinguish-overloading-compile-time-from",
+      "do": "Distinguish overloading (compile time) from overriding (runtime)"
+    },
+    {
+      "key": "explain-passing-existing-array-varargs",
+      "do": "Explain passing an existing array to a varargs parameter"
+    },
+    {
+      "key": "recognize-that-return-type-alone",
+      "do": "Recognize that return type alone cannot overload"
+    }
+  ]
+}

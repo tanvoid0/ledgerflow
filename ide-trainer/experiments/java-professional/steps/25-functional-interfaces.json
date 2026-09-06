@@ -1,0 +1,39 @@
+{
+  "id": "25",
+  "title": "functional interfaces",
+  "goal": "6.1 Built-in functional interfaces (Predicate, Function, etc.)",
+  "tasks": [
+    {
+      "key": "name-sam-methods-predicate-function",
+      "do": "Name the SAM methods of `Predicate`, `Function`, `Consumer`, `Supplier`"
+    },
+    {
+      "key": "compose-predicates-negate-short-circuit",
+      "do": "Compose predicates with `and` / `or` / `negate` (short-circuit)"
+    },
+    {
+      "key": "use-function-compose-vs-andthen",
+      "do": "Use `Function.compose` vs `andThen` in the correct order"
+    },
+    {
+      "key": "call-function-identity",
+      "do": "Call `Function.identity()`"
+    },
+    {
+      "key": "distinguish-unaryoperator-binaryoperator-from-fu",
+      "do": "Distinguish `UnaryOperator` / `BinaryOperator` from `Function` / `BiFunction`"
+    },
+    {
+      "key": "write-static-bound-instance-unbound",
+      "do": "Write static, bound instance, unbound instance, and constructor method references"
+    },
+    {
+      "key": "pick-primitive-specialization-avoid-boxing",
+      "do": "Pick a primitive specialization to avoid boxing"
+    },
+    {
+      "key": "chain-consumer-andthen",
+      "do": "Chain `Consumer.andThen`"
+    }
+  ]
+}

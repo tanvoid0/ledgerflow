@@ -1,0 +1,43 @@
+{
+  "id": "05",
+  "title": "binary search",
+  "goal": "P2.2 Search a sorted space, and search an answer space",
+  "tasks": [
+    {
+      "key": "state-monotone-predicate-before-writing",
+      "do": "State the monotone predicate before writing the loop"
+    },
+    {
+      "key": "use-low-high-low-2",
+      "do": "Use `low + (high - low) / 2` every time"
+    },
+    {
+      "key": "choose-exact-match-shape-boundary",
+      "do": "Choose the `<=` exact-match shape or the `<` boundary shape deliberately"
+    },
+    {
+      "key": "identify-sorted-half-rotated-array",
+      "do": "Identify the sorted half of a rotated array in one comparison"
+    },
+    {
+      "key": "recognise-answer-space-search-write",
+      "do": "Recognise an answer-space search and write its `feasible(x)` helper first"
+    },
+    {
+      "key": "solve-all-four-exercises-inside",
+      "do": "Solve all four exercises inside their target times"
+    },
+    {
+      "key": "say-what-remains-inside-low",
+      "do": "Say what remains inside `[low, high]` after each branch"
+    },
+    {
+      "key": "give-complexity-as-o-log",
+      "do": "Give the complexity as `O(log range × cost of feasible)` for answer-space problems"
+    },
+    {
+      "key": "dry-run-two-element-input",
+      "do": "Dry-run a two-element input, where off-by-ones surface"
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "id": "03",
+  "title": "access beans context",
+  "goal": "1.2.2 Access Beans in the Application Context",
+  "tasks": [
+    {
+      "key": "retrieve-bean-context-getbean-class",
+      "do": "Retrieve a bean with `context.getBean(Class)` when the type is unique in the container"
+    },
+    {
+      "key": "retrieve-bean-context-getbean-string",
+      "do": "Retrieve a bean with `context.getBean(String name)` and explain why the return type is `Object`"
+    },
+    {
+      "key": "retrieve-bean-context-getbean-string-2",
+      "do": "Retrieve a bean with `context.getBean(String name, Class<T> type)` when multiple beans share a type"
+    },
+    {
+      "key": "explain-when-getbean-class-throws",
+      "do": "Explain when `getBean(Class)` throws `NoUniqueBeanDefinitionException`"
+    },
+    {
+      "key": "state-why-constructor-injection-preferred",
+      "do": "State why constructor injection is preferred over programmatic lookup for normal collaborators"
+    },
+    {
+      "key": "inject-applicationcontext-through-constructor-re",
+      "do": "Inject `ApplicationContext` through a constructor for registry-style components"
+    },
+    {
+      "key": "implement-applicationcontextaware-describe-when",
+      "do": "Implement `ApplicationContextAware` and describe when Spring calls `setApplicationContext`"
+    },
+    {
+      "key": "distinguish-bean-lookup-by-registered",
+      "do": "Distinguish bean lookup by registered name vs by return-type simple class name"
+    }
+  ]
+}

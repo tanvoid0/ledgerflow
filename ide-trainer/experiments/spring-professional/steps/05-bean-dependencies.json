@@ -1,0 +1,39 @@
+{
+  "id": "05",
+  "title": "bean dependencies",
+  "goal": "1.2.4 Handle Dependencies between Beans",
+  "tasks": [
+    {
+      "key": "explain-concept-dependency-injection-di",
+      "do": "Explain the concept of Dependency Injection (DI) in the context of Spring beans."
+    },
+    {
+      "key": "demonstrate-how-inject-bean-into",
+      "do": "Demonstrate how to inject a bean into another @Bean method using parameters."
+    },
+    {
+      "key": "demonstrate-how-inject-bean-into-2",
+      "do": "Demonstrate how to inject a bean into another @Bean method using direct method calls."
+    },
+    {
+      "key": "explain-why-calling-bean-method",
+      "do": "Explain why calling a @Bean method in a @Configuration class does not create multiple instances of a singleton bean."
+    },
+    {
+      "key": "identify-cause-beancurrentlycreationexception-ci",
+      "do": "Identify the cause of a `BeanCurrentlyCreationException` (Circular Dependency)."
+    },
+    {
+      "key": "differentiate-between-bean-creation-dependency",
+      "do": "Differentiate between \"Bean creation\" and \"Dependency injection\"."
+    },
+    {
+      "key": "predict-bean-creation-order-when",
+      "do": "Predict the bean creation order when dependencies are present."
+    },
+    {
+      "key": "understand-that-configuration-classes-are",
+      "do": "Understand that @Configuration classes are proxied to handle inter-bean references."
+    }
+  ]
+}

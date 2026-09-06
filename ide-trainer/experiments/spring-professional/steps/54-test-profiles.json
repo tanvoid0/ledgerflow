@@ -1,0 +1,47 @@
+{
+  "id": "54",
+  "title": "test profiles",
+  "goal": "4.1.3 Tests with Profiles",
+  "tasks": [
+    {
+      "key": "place-activeprofiles-on-test-class",
+      "do": "Place `@ActiveProfiles` on a test class."
+    },
+    {
+      "key": "combine-extendwith-springextension-class-context",
+      "do": "Combine it with `@ExtendWith(SpringExtension.class)` and `@ContextConfiguration`."
+    },
+    {
+      "key": "gate-beans-profile-so-only",
+      "do": "Gate beans with `@Profile` so only one implementation of an interface is registered."
+    },
+    {
+      "key": "predict-nosuchbeandefinitionexception-type-whose",
+      "do": "Predict `NoSuchBeanDefinitionException` for a type whose profile is inactive."
+    },
+    {
+      "key": "predict-nouniquebeandefinitionexception-if-two-i",
+      "do": "Predict `NoUniqueBeanDefinitionException` if two implementations are both eligible."
+    },
+    {
+      "key": "state-that-active-profiles-are",
+      "do": "State that active profiles are part of the TestContext cache key."
+    },
+    {
+      "key": "explain-that-activating-any-profile",
+      "do": "Explain that activating any profile turns off `default`."
+    },
+    {
+      "key": "distinguish-activeprofiles-tests-from-profile",
+      "do": "Distinguish `@ActiveProfiles` (tests) from `@Profile` / `spring.profiles.active` (runtime)."
+    },
+    {
+      "key": "distinguish-profiles-which-beans-from",
+      "do": "Distinguish profiles (which beans) from `@TestPropertySource` (values)."
+    },
+    {
+      "key": "describe-inheritprofiles-on-subclass",
+      "do": "Describe `inheritProfiles` on a subclass."
+    }
+  ]
+}

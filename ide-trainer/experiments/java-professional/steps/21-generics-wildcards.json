@@ -1,0 +1,39 @@
+{
+  "id": "21",
+  "title": "generics wildcards",
+  "goal": "5.1 Generics and wildcard bounds",
+  "tasks": [
+    {
+      "key": "declare-generic-class-generic-method",
+      "do": "Declare a generic class and a generic method"
+    },
+    {
+      "key": "explain-erasure-no-new-t",
+      "do": "Explain erasure: no `new T()`, no `new T[]`, no `instanceof List<String>`"
+    },
+    {
+      "key": "apply-pecs-extends-read-super",
+      "do": "Apply PECS: `? extends` to read, `? super` to write"
+    },
+    {
+      "key": "state-what-can-add-list",
+      "do": "State what you can `add` to `List<?>`, `List<? extends T>`, and `List<? super T>`"
+    },
+    {
+      "key": "explain-why-list-not-list",
+      "do": "Explain why `List<String>` is not a `List<Object>`"
+    },
+    {
+      "key": "copy-from-producer-wildcard-into",
+      "do": "Copy from a producer wildcard into a consumer wildcard"
+    },
+    {
+      "key": "recognize-raw-type-heap-pollution",
+      "do": "Recognize raw-type heap pollution"
+    },
+    {
+      "key": "use-diamond-operator-on-right",
+      "do": "Use the diamond operator on the right-hand side of a typed declaration"
+    }
+  ]
+}

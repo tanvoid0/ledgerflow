@@ -1,0 +1,39 @@
+{
+  "id": "31",
+  "title": "locking thread safety",
+  "goal": "8.2 synchronized, locks, thread-safe code",
+  "tasks": [
+    {
+      "key": "explain-race-on-unsynchronized-count",
+      "do": "Explain a race on unsynchronized `count++`"
+    },
+    {
+      "key": "use-synchronized-methods-blocks-name",
+      "do": "Use `synchronized` methods or blocks and name what object is locked"
+    },
+    {
+      "key": "use-reentrantlock-lock-unlock-finally",
+      "do": "Use `ReentrantLock` with `lock`/`unlock` in `finally`"
+    },
+    {
+      "key": "state-that-volatile-does-not",
+      "do": "State that `volatile` does not make compound updates atomic"
+    },
+    {
+      "key": "use-atomicinteger-simple-counter",
+      "do": "Use `AtomicInteger` for a simple counter"
+    },
+    {
+      "key": "describe-deadlock-from-inconsistent-lock",
+      "do": "Describe deadlock from inconsistent lock ordering"
+    },
+    {
+      "key": "prefer-private-final-lock-object",
+      "do": "Prefer a private final lock object over locking a public mutable API"
+    },
+    {
+      "key": "contrast-trylock-blocking-lock",
+      "do": "Contrast `tryLock` with blocking `lock`"
+    }
+  ]
+}

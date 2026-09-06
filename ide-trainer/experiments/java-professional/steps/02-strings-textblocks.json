@@ -1,0 +1,39 @@
+{
+  "id": "02",
+  "title": "strings textblocks",
+  "goal": "1.2 Manipulate text with String, StringBuilder, and text blocks",
+  "tasks": [
+    {
+      "key": "explain-why-string-immutable-what",
+      "do": "Explain why `String` is immutable and what that implies for `concat`, `replace`, and `+`"
+    },
+    {
+      "key": "choose-stringbuilder-repeated-mutation-name",
+      "do": "Choose `StringBuilder` for repeated mutation; name `append`, `insert`, `reverse`, `toString`"
+    },
+    {
+      "key": "write-legal-text-block-on",
+      "do": "Write a legal text block (`\"\"\"` on its own line) and predict incidental-indent stripping"
+    },
+    {
+      "key": "describe-text-block-line-continuation",
+      "do": "Describe text-block line continuation with a trailing `\\`"
+    },
+    {
+      "key": "contrast-trim-vs-strip-isempty",
+      "do": "Contrast `trim` vs `strip` and `isEmpty` vs `isBlank`"
+    },
+    {
+      "key": "predict-indent-stripindent-effects-on",
+      "do": "Predict `indent` / `stripIndent` effects on newlines and leading spaces"
+    },
+    {
+      "key": "use-equals-not-string-content",
+      "do": "Use `equals` (not `==`) for `String` content unless interned literals are the point of the question"
+    },
+    {
+      "key": "apply-translateescapes-vs-raw-text",
+      "do": "Apply `translateEscapes` vs raw text-block content"
+    }
+  ]
+}

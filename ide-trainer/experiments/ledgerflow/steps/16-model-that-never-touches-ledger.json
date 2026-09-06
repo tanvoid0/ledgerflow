@@ -1,0 +1,155 @@
+{
+  "id": "16",
+  "title": "A model that never touches the ledger",
+  "estimate": "5 days",
+  "goal": "Score every payment for fraud risk in the stream, and build it so the model physically cannot move money. The guardrail is the part a fintech is reading for. Anyone can call an API.",
+  "startWith": "Step 12 finished. You need a reliable event stream before anything downstream of it is worth trusting.",
+  "services": [
+    "+ risk-service"
+  ],
+  "infra": [
+    "postgres",
+    "redpanda",
+    "schema registry",
+    "+ onnx runtime"
+  ],
+  "newThisStep": "risk-service",
+  "newIdeas": [
+    {
+      "term": "Feature store, streaming half",
+      "plain": "The rolling aggregates a model needs at decision time: how many payments this account made in the last minute, how far this amount sits from its usual, whether this beneficiary is new. Computed from the event stream as it arrives, because computing them from the ledger at decision time puts a query on the money path."
+    },
+    {
+      "term": "Training and serving skew",
+      "plain": "When the features you trained on are computed differently from the features you serve. The model looks excellent offline and behaves like a coin toss in production. Computing both from the same event stream is the cheapest defence."
+    },
+    {
+      "term": "Model risk",
+      "plain": "The regulated view that a model is a thing which can be wrong, so it needs a version, a record of what it decided, and a human who can overrule it. It is why the interesting question is never which model, it is what happens when the model is wrong."
+    },
+    {
+      "term": "Decision separation",
+      "plain": "The rules decide, the model ranks. A deterministic rule can be explained to a regulator, reproduced from the audit log and tested. Keeping the model advisory is what lets you ship it at all."
+    }
+  ],
+  "proof": {
+    "run": "./scripts/replay-fraud.sh",
+    "expect": "A burst of payments from one account gets scored, flagged and explained, and the ledger is untouched by anything the model said.",
+    "note": "The test that matters here is the negative one: risk-service has no credential and no route that can write to the ledger."
+  },
+  "doneWhen": "Every payment carries a score and a model version in the audit trail, a flagged payment has a written explanation attached, and a test fails if risk-service is ever given a write path to the ledger.",
+  "tasks": [
+    {
+      "key": "build-features-from-stream-not",
+      "do": "Build the features from the stream, not from the ledger",
+      "why": "A query against the ledger at decision time puts your model on the money path, where its latency becomes the payment latency and its outage becomes your outage. Reading the stream keeps it beside the path instead of inside it.",
+      "how": "Consume the authorisation events and keep windowed aggregates per account: count in the last sixty seconds, mean and standard deviation of amount, and whether this beneficiary has been seen before. Hold them in Redis with a TTL. These same three features are what you will train on, which is what keeps training and serving honest.",
+      "blocks": [
+        {
+          "label": "risk: FeatureWindow.java",
+          "kind": "paste",
+          "body": "record Features(int countLastMinute, double amountZScore, boolean newBeneficiary) {}\n\n@Component\nclass FeatureWindow {\n\n    private final StringRedisTemplate redis;\n\n    Features observe(AuthorizationRequested e) {\n        String key = \"acct:\" + e.accountId();\n        // Rolling minute: a sorted set trimmed by score, so the window moves\n        // with the clock rather than with a scheduled job.\n        long now = e.occurredAt().toEpochMilli();\n        redis.opsForZSet().add(key + \":t\", String.valueOf(now), now);\n        redis.opsForZSet().removeRangeByScore(key + \":t\", 0, now - 60_000);\n        redis.expire(key + \":t\", Duration.ofMinutes(5));\n\n        int count = redis.opsForZSet().zCard(key + \":t\").intValue();\n        return new Features(count, zScoreOf(key, e.amountMinor()), isNew(key, e.beneficiaryId()));\n    }\n}"
+        }
+      ],
+      "check": {
+        "run": "docker exec -it lf-redis redis-cli --scan --pattern \"acct:*\" | head",
+        "expect": "Windows appear as payments flow, and expire when they stop."
+      }
+    },
+    {
+      "key": "score-stream-against-latency-budget",
+      "do": "Score in the stream, against a latency budget you wrote down first",
+      "why": "A scorer with no budget becomes a scorer that is sometimes slow, and downstream of a payment stream that means a backlog rather than a slow response. Deciding the budget before you pick the model is what keeps the choice honest.",
+      "how": "Train offline, export to ONNX, load it once at startup and score in the consumer. Logistic regression is a defensible starting point precisely because it is explainable, and an explainable model is what you can put in front of a compliance function. Time every scoring call and alert on the budget, not on the average.",
+      "blocks": [
+        {
+          "label": "risk: Scorer.java",
+          "kind": "paste",
+          "body": "@Component\nclass Scorer {\n\n    private final OrtSession session;   // loaded once, reused per event\n    private final Timer timer;\n\n    double score(Features f) {\n        return timer.record(() -> {\n            var input = OnnxTensor.createTensor(env, new float[][] {{\n                f.countLastMinute(), (float) f.amountZScore(), f.newBeneficiary() ? 1f : 0f\n            }});\n            try (var result = session.run(Map.of(\"input\", input))) {\n                return ((float[][]) result.get(0).getValue())[0][0];\n            }\n        });\n    }\n}"
+        },
+        {
+          "label": "The budget is an alert, not a comment",
+          "kind": "paste",
+          "body": "# alerting rule\n- alert: RiskScoringSlow\n  expr: histogram_quantile(0.99, rate(risk_score_seconds_bucket[5m])) > 0.010\n  for: 5m\n  annotations:\n    summary: \"risk scoring p99 above the 10ms budget\""
+        }
+      ],
+      "check": {
+        "run": "curl -s localhost:8085/actuator/metrics/risk.score | jq",
+        "expect": "A p99 inside the budget you wrote down, under the load from step 15."
+      }
+    },
+    {
+      "key": "let-rules-decide-model-only",
+      "do": "Let the rules decide and the model only rank",
+      "why": "This is the whole difference between a demonstration and something a regulated business could run. A deterministic rule can be explained, reproduced from the audit log and unit tested. A score cannot, so it advises and never decides alone.",
+      "how": "Hard rules hold the veto: a blocked beneficiary, a sanctions hit, a limit breach. The score only moves a payment into review, never straight to declined. Write the model version and the score into the audit record beside the decision, so any past decision can be reconstructed from the row rather than from the model that happens to be loaded today.",
+      "blocks": [
+        {
+          "label": "risk: Decision.java",
+          "kind": "paste",
+          "body": "sealed interface Decision {\n    record Allow()               implements Decision {}\n    record Review(String reason) implements Decision {}\n    record Block(String rule)    implements Decision {}\n}\n\nDecision decide(Payment p, Features f, double score) {\n    // Rules first, and they are the only thing that can block.\n    for (Rule rule : rules) {\n        var hit = rule.evaluate(p);\n        if (hit.isPresent()) return new Block(hit.get());\n    }\n    // The model can only ask a human to look. It cannot decline a payment.\n    return score >= reviewThreshold\n        ? new Review(\"score %.3f model %s\".formatted(score, modelVersion))\n        : new Allow();\n}"
+        },
+        {
+          "label": "The decision is written down, with its version",
+          "kind": "paste",
+          "body": "CREATE TABLE risk_decision (\n    payment_id     UUID         PRIMARY KEY,\n    decision       TEXT         NOT NULL,\n    rule_fired     TEXT,\n    model_version  TEXT         NOT NULL,\n    score          NUMERIC(6,5) NOT NULL,\n    features       JSONB        NOT NULL,\n    decided_at     TIMESTAMPTZ  NOT NULL DEFAULT now()\n);\n-- Append only. A decision is evidence, and evidence does not get updated."
+        }
+      ],
+      "check": {
+        "run": "psql -c \"SELECT decision, model_version, score FROM risk_decision LIMIT 5;\"",
+        "expect": "Every decision reconstructable without the model that made it."
+      }
+    },
+    {
+      "key": "use-language-model-explanation-nowhere",
+      "do": "Use the language model for the explanation, and nowhere else",
+      "why": "A model that writes the analyst narrative saves real review time and cannot cause a wrong payment. A model in the decision cannot be reproduced, cannot be explained and would not pass a model risk review. Putting it in the right place is the judgement being demonstrated.",
+      "how": "When a payment goes to review, hand the features, the rules that fired and the score to a language model and ask it for the case note a human analyst would otherwise write. Feed it only fields you chose. Store the note beside the decision, marked as generated, and never let it change the decision it is describing.",
+      "blocks": [
+        {
+          "label": "risk: Narrator.java",
+          "kind": "paste",
+          "body": "// The narrative explains a decision that has already been made. It is\n// attached to the case, and nothing downstream reads it back.\nString narrate(Decision.Review review, Features f, Payment p) {\n    var prompt = \"\"\"\n        Write two sentences for a fraud analyst reviewing this payment.\n        State what is unusual and what to check. Do not recommend a decision.\n\n        amount: %d %s\n        payments from this account in the last minute: %d\n        amount z-score against this account history: %.2f\n        beneficiary seen before: %s\n        \"\"\".formatted(p.amountMinor(), p.currency(),\n                      f.countLastMinute(), f.amountZScore(),\n                      f.newBeneficiary() ? \"no\" : \"yes\");\n    return llm.complete(prompt);\n}"
+        }
+      ],
+      "check": {
+        "run": "curl -s localhost:8085/api/v1/cases | jq '.[0].narrative'",
+        "expect": "A readable case note on a flagged payment, marked as generated."
+      }
+    },
+    {
+      "key": "write-test-that-fails-if",
+      "do": "Write the test that fails if the model can ever reach the money",
+      "why": "Stating the guardrail in a README is a claim. A failing build is a control. This one test is what makes the whole step read as fintech work rather than as a demonstration with a disclaimer.",
+      "how": "Give risk-service a read-only database role and no ledger write route at all, then assert both. The architecture test catches the import the day somebody adds it, and the database role catches it even if the test is deleted. Two independent controls, which is the point.",
+      "blocks": [
+        {
+          "label": "The database enforces it",
+          "kind": "paste",
+          "body": "-- risk-service connects as this role and nothing else\nCREATE ROLE risk_reader LOGIN PASSWORD :'risk_pw';\nGRANT CONNECT ON DATABASE ledger TO risk_reader;\nGRANT SELECT ON ALL TABLES IN SCHEMA public TO risk_reader;\nREVOKE INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public FROM risk_reader;"
+        },
+        {
+          "label": "risk: ArchitectureTest.java",
+          "kind": "paste",
+          "body": "@Test\nvoid riskServiceCannotWriteToTheLedger() {\n    noClasses().that().resideInAPackage(\"io.ledgerflow.risk..\")\n        .should().accessClassesThat().resideInAnyPackage(\n            \"io.ledgerflow.ledger.domain..\",\n            \"io.ledgerflow.ledger.adapter.out.persistence..\")\n        .because(\"the model advises; only the ledger moves money\")\n        .check(riskClasses);\n}\n\n@Test\nvoid riskDatabaseRoleIsReadOnly() {\n    assertThatThrownBy(() ->\n        riskJdbc.update(\"INSERT INTO posting (id) VALUES (?)\", UUID.randomUUID()))\n        .hasMessageContaining(\"permission denied\");\n}"
+        }
+      ],
+      "check": {
+        "run": "./mvnw -pl services/risk-service test -Dtest=ArchitectureTest",
+        "expect": "Green now, and red the moment somebody wires the model to the ledger."
+      }
+    }
+  ],
+  "lessons": [
+    {
+      "id": "16-local-history",
+      "title": "Local History",
+      "teach": "Right-click the ledger package → <b>Local History → Show History</b>. The IDE has been recording every change independently of git — the safety net that makes an aggressive refactor cheap to undo.",
+      "trigger": {
+        "type": "action",
+        "id": "LocalHistory.ShowHistory"
+      },
+      "fallbackTip": "Commit before refactoring."
+    }
+  ]
+}

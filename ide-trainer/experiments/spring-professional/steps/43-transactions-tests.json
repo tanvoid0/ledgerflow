@@ -1,0 +1,55 @@
+{
+  "id": "43",
+  "title": "transactions in tests",
+  "goal": "2.2.4 Transactions in Tests",
+  "tasks": [
+    {
+      "key": "put-transactional-on-test-class",
+      "do": "Put `@Transactional` on a test class or method and state the default rollback."
+    },
+    {
+      "key": "use-rollback-rollback-false",
+      "do": "Use `@Rollback` and `@Rollback(false)`."
+    },
+    {
+      "key": "use-commit-as-readable-form",
+      "do": "Use `@Commit` as the readable form of `@Rollback(false)`."
+    },
+    {
+      "key": "explain-that-application-required-methods",
+      "do": "Explain that application `REQUIRED` methods join the test transaction."
+    },
+    {
+      "key": "predict-that-requires-new-sut",
+      "do": "Predict that `REQUIRES_NEW` in the SUT survives test rollback."
+    },
+    {
+      "key": "describe-sql-vs-test-transaction",
+      "do": "Describe `@Sql` vs the test transaction, including `ISOLATED`."
+    },
+    {
+      "key": "name-springrunner-junit-4-exam",
+      "do": "Name `SpringRunner` for JUnit 4 exam snippets and `SpringExtension` / `@SpringBootTest` for JUnit 5."
+    },
+    {
+      "key": "explain-why-another-connection-cannot",
+      "do": "Explain why another connection cannot see uncommitted test data."
+    },
+    {
+      "key": "test-default-rollback-production-default",
+      "do": "Test default is rollback; production default is commit."
+    },
+    {
+      "key": "commit-rollback-false",
+      "do": "`@Commit` ≡ `@Rollback(false)`."
+    },
+    {
+      "key": "requires-new-dirties-database-during",
+      "do": "`REQUIRES_NEW` dirties the database during tests."
+    },
+    {
+      "key": "sql-test-tx-undone-by",
+      "do": "`@Sql` in the test TX is undone by rollback."
+    }
+  ]
+}

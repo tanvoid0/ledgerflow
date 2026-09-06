@@ -1,0 +1,43 @@
+{
+  "id": "03",
+  "title": "sliding window",
+  "goal": "P1.3 Expand/contract a window to keep an invariant",
+  "tasks": [
+    {
+      "key": "spot-longest-shortest-best-contiguous",
+      "do": "Spot \"longest / shortest / best contiguous run\" as the window trigger"
+    },
+    {
+      "key": "state-window-invariant-one-sentence",
+      "do": "State the window invariant in one sentence before writing any code"
+    },
+    {
+      "key": "record-answer-after-shrink-longest",
+      "do": "Record the answer after the shrink for longest, inside the shrink for shortest"
+    },
+    {
+      "key": "keep-window-state-count-map",
+      "do": "Keep window state (count map or `int[26]`) in sync on both entry and exit"
+    },
+    {
+      "key": "justify-amortised-o-n-despite",
+      "do": "Justify amortised O(n) despite the nested loop"
+    },
+    {
+      "key": "solve-all-four-exercises-inside",
+      "do": "Solve all four exercises inside their target times"
+    },
+    {
+      "key": "say-invariant-out-loud-before",
+      "do": "Say the invariant out loud before the first line of code"
+    },
+    {
+      "key": "explain-why-algorithm-o-n",
+      "do": "Explain why the algorithm is O(n), unprompted"
+    },
+    {
+      "key": "trace-input-where-window-shrinks",
+      "do": "Trace an input where the window shrinks more than once in a single step"
+    }
+  ]
+}

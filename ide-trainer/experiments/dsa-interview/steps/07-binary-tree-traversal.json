@@ -1,0 +1,43 @@
+{
+  "id": "07",
+  "title": "binary tree traversal",
+  "goal": "P3.1 DFS recursion, BFS by level, and what each is for",
+  "tasks": [
+    {
+      "key": "choose-pre-post-order-from",
+      "do": "Choose pre-, in-, or post-order from the direction information has to flow"
+    },
+    {
+      "key": "reach-bfs-when-question-about",
+      "do": "Reach for BFS when the question is about levels or distance"
+    },
+    {
+      "key": "write-level-size-snapshot-before",
+      "do": "Write the level-size snapshot before draining the queue"
+    },
+    {
+      "key": "return-correct-identity-value-null",
+      "do": "Return the correct identity value for a null node"
+    },
+    {
+      "key": "state-recursion-space-as-o",
+      "do": "State recursion space as O(height), not O(1)"
+    },
+    {
+      "key": "solve-all-four-exercises-inside",
+      "do": "Solve all four exercises inside their target times"
+    },
+    {
+      "key": "name-traversal-justify-before-writing",
+      "do": "Name the traversal and justify it before writing code"
+    },
+    {
+      "key": "state-base-case-first",
+      "do": "State the base case first"
+    },
+    {
+      "key": "give-complexity-as-o-n",
+      "do": "Give complexity as O(n) time, O(height) space, and say what height is for a skewed tree"
+    }
+  ]
+}

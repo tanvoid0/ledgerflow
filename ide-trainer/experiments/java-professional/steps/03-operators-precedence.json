@@ -1,0 +1,39 @@
+{
+  "id": "03",
+  "title": "operators precedence",
+  "goal": "1.1 Operator precedence, type conversions, and boolean expressions",
+  "tasks": [
+    {
+      "key": "recite-exam-critical-precedence-before",
+      "do": "Recite exam-critical precedence: `*` `/` `%` before `+` `-`; `&&` before `||`; assignment last"
+    },
+    {
+      "key": "evaluate-mixed-chains-once-string",
+      "do": "Evaluate mixed `+` chains once a `String` appears (left-to-right)"
+    },
+    {
+      "key": "explain-why-byte-b-b",
+      "do": "Explain why `byte b = b + 1` fails and `b += 1` succeeds"
+    },
+    {
+      "key": "state-value-yielded-by-prefix",
+      "do": "State the value yielded by prefix vs postfix `++`/`--` and the updated variable"
+    },
+    {
+      "key": "predict-when-skip-right-operand",
+      "do": "Predict when `&&` / `||` skip the right operand"
+    },
+    {
+      "key": "compute-including-negative-dividend",
+      "do": "Compute `%` including a negative dividend"
+    },
+    {
+      "key": "apply-numeric-promotion-binary-arithmetic",
+      "do": "Apply numeric promotion in binary arithmetic"
+    },
+    {
+      "key": "use-correct-operand-types",
+      "do": "Use `?:` with the correct operand types"
+    }
+  ]
+}

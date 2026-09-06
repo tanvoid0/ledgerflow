@@ -1,0 +1,43 @@
+{
+  "id": "01",
+  "title": "arrays hashing",
+  "goal": "P1.1 Trade space for time with hash sets and maps",
+  "tasks": [
+    {
+      "key": "state-brute-force-its-complexity",
+      "do": "State the brute force and its complexity before writing the optimal solution"
+    },
+    {
+      "key": "pick-set-vs-count-map",
+      "do": "Pick set vs count-map vs index-map from what the question actually asks"
+    },
+    {
+      "key": "build-canonical-key-when-grouping",
+      "do": "Build a canonical key when grouping equivalent inputs"
+    },
+    {
+      "key": "use-bounded-int-instead-hashmap",
+      "do": "Use a bounded `int[]` instead of a `HashMap` when the key space is small and fixed"
+    },
+    {
+      "key": "quote-both-time-space-complexity",
+      "do": "Quote both time and space complexity out loud"
+    },
+    {
+      "key": "solve-all-four-exercises-inside",
+      "do": "Solve all four exercises inside their target times"
+    },
+    {
+      "key": "restate-problem-own-words-before",
+      "do": "Restate the problem in your own words before coding"
+    },
+    {
+      "key": "name-one-edge-case-empty",
+      "do": "Name one edge case (empty, single element, all-equal) unprompted"
+    },
+    {
+      "key": "walk-one-small-input-through",
+      "do": "Walk one small input through the finished code out loud"
+    }
+  ]
+}

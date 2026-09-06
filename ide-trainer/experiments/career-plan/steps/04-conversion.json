@@ -1,0 +1,23 @@
+{
+  "id": "04",
+  "title": "conversion",
+  "goal": "O4 Screens to late-stage",
+  "tasks": [
+    {
+      "key": "3-screens-booked-done-by",
+      "do": "≥3 screens booked or done by end of Week 3"
+    },
+    {
+      "key": "post-interview-gap-list-written",
+      "do": "Post-interview gap-list written (10 bullets) for each interview this week [weekly]"
+    },
+    {
+      "key": "gap-list-drilled-next-day",
+      "do": "Gap list drilled the next day in this app (DSA, design, or STAR) [weekly]"
+    },
+    {
+      "key": "1-mock-interview-completed-weekly",
+      "do": "1 mock interview completed [weekly]"
+    }
+  ]
+}

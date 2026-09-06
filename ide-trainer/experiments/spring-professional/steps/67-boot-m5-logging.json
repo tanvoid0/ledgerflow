@@ -1,0 +1,67 @@
+{
+  "id": "67",
+  "title": "boot m5 logging",
+  "goal": "BOOT-M5 Logging in Boot",
+  "tasks": [
+    {
+      "key": "set-logging-level-root-package",
+      "do": "Set `logging.level.root` and a package level in `application.properties`."
+    },
+    {
+      "key": "explain-effective-level-vs-configured",
+      "do": "Explain effective level vs configured level (inheritance)."
+    },
+    {
+      "key": "name-logback-as-boot-s",
+      "do": "Name Logback as Boot's default implementation and SLF4J as the facade."
+    },
+    {
+      "key": "distinguish-logback-xml-from-logback",
+      "do": "Distinguish `logback.xml` from `logback-spring.xml`."
+    },
+    {
+      "key": "use-logging-file-name-vs",
+      "do": "Use `logging.file.name` vs `logging.file.path`."
+    },
+    {
+      "key": "define-logging-group-set-its",
+      "do": "Define a `logging.group` and set its level."
+    },
+    {
+      "key": "change-level-at-runtime-via",
+      "do": "Change a level at runtime via `/actuator/loggers/{name}`."
+    },
+    {
+      "key": "contrast-debug-logging-level-root",
+      "do": "Contrast `--debug` with `logging.level.root=DEBUG`."
+    },
+    {
+      "key": "map-logging-level-com-acme",
+      "do": "Map `LOGGING_LEVEL_COM_ACME=DEBUG` to `logging.level.com.acme`."
+    },
+    {
+      "key": "read-effective-level-from-logback",
+      "do": "Read an effective level from Logback in a small probe bean."
+    },
+    {
+      "key": "debug-condition-report-not-trace",
+      "do": "`--debug` is the condition report, not TRACE logging."
+    },
+    {
+      "key": "logback-xml-too-early-spring",
+      "do": "`logback.xml` is too early for Spring profiles and `logging.*` properties."
+    },
+    {
+      "key": "file-path-directory-file-name",
+      "do": "File *path* is a directory; file *name* is the file."
+    },
+    {
+      "key": "actuator-logger-changes-die-process",
+      "do": "Actuator logger changes die with the process."
+    },
+    {
+      "key": "default-logback-not-log4j-1",
+      "do": "Default is Logback, not Log4j 1.x."
+    }
+  ]
+}

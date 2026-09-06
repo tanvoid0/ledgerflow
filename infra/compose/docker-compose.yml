@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: lf-postgres
+    environment:
+      POSTGRES_USER: ledgerflow
+      POSTGRES_PASSWORD: ledgerflow
+      POSTGRES_DB: account
+    ports: ["5433:5432"]   # 5432 taken by native Windows postgresql-x64-18
+    volumes:
+      - "./init-databases.sh:/docker-entrypoint-initdb.d/init.sh"
+      - "pgdata:/var/lib/postgresql/data"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ledgerflow -d account"]
+      interval: 5s
+      retries: 10
+
+volumes:
+  pgdata:

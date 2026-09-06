@@ -1,0 +1,47 @@
+{
+  "id": "51",
+  "title": "rest template",
+  "goal": "3.2.2 RestTemplate",
+  "tasks": [
+    {
+      "key": "inject-resttemplate-from-resttemplatebuilder-int",
+      "do": "Inject `RestTemplate` (from `RestTemplateBuilder`) into a wrapper, not construct a second client per call."
+    },
+    {
+      "key": "call-get-getforobject-uri-template",
+      "do": "Call GET with `getForObject` and URI template variables."
+    },
+    {
+      "key": "call-post-postforobject",
+      "do": "Call POST with `postForObject`."
+    },
+    {
+      "key": "call-put-put",
+      "do": "Call PUT with `put`."
+    },
+    {
+      "key": "explain-getforentity-vs-getforobject",
+      "do": "Explain `getForEntity` vs `getForObject`."
+    },
+    {
+      "key": "explain-exchange-as-general-method",
+      "do": "Explain `exchange` as the general method."
+    },
+    {
+      "key": "state-that-boot-exposes-resttemplatebuilder",
+      "do": "State that Boot exposes `RestTemplateBuilder`, not a `RestTemplate` bean, by default."
+    },
+    {
+      "key": "predict-that-4xx-5xx-throw",
+      "do": "Predict that 4xx/5xx throw `HttpStatusCodeException` subclasses by default."
+    },
+    {
+      "key": "contrast-resttemplate-exam-restclient-webclient",
+      "do": "Contrast `RestTemplate` (exam) with `RestClient` / `WebClient` (not this objective)."
+    },
+    {
+      "key": "bind-test-resttemplate-mockrestserviceserver-stu",
+      "do": "Bind a test `RestTemplate` with `MockRestServiceServer` or a stub."
+    }
+  ]
+}

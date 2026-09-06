@@ -1,0 +1,47 @@
+{
+  "id": "48",
+  "title": "rest get controller",
+  "goal": "3.1.3 RESTful controller (GET)",
+  "tasks": [
+    {
+      "key": "annotate-class-restcontroller-type-level",
+      "do": "Annotate a class with `@RestController` and a type-level path."
+    },
+    {
+      "key": "map-http-get-getmapping-know",
+      "do": "Map HTTP GET with `@GetMapping` (and know it is composed `@RequestMapping`)."
+    },
+    {
+      "key": "bind-path-segment-pathvariable",
+      "do": "Bind a path segment with `@PathVariable`."
+    },
+    {
+      "key": "bind-query-string-requestparam-including",
+      "do": "Bind a query string with `@RequestParam`, including `required = false`."
+    },
+    {
+      "key": "predict-full-path-from-class",
+      "do": "Predict the full path from class-level + method-level mappings."
+    },
+    {
+      "key": "return-json-object-json-array",
+      "do": "Return a JSON object and a JSON array from GET methods."
+    },
+    {
+      "key": "explain-when-get-should-use",
+      "do": "Explain when GET should use `ResponseEntity` for 404."
+    },
+    {
+      "key": "state-that-get-should-not",
+      "do": "State that GET should not use `@RequestBody`."
+    },
+    {
+      "key": "explain-why-controller-without-responsebody",
+      "do": "Explain why `@Controller` without `@ResponseBody` is not REST."
+    },
+    {
+      "key": "resolve-missing-required-request-parameter",
+      "do": "Resolve a missing required request parameter as 400."
+    }
+  ]
+}

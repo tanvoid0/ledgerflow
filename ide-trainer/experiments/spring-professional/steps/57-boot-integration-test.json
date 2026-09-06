@@ -1,0 +1,39 @@
+{
+  "id": "57",
+  "title": "boot integration test",
+  "goal": "4.2.2 Integration testing",
+  "tasks": [
+    {
+      "key": "define-full-boot-integration-test",
+      "do": "Define a full Boot integration test versus a slice test."
+    },
+    {
+      "key": "state-how-nested-testconfiguration-discovered",
+      "do": "State how nested `@TestConfiguration` is discovered."
+    },
+    {
+      "key": "state-how-top-level-testconfiguration",
+      "do": "State how a top-level `@TestConfiguration` is discovered."
+    },
+    {
+      "key": "use-primary-mockbean-avoid-type",
+      "do": "Use `@Primary` (or `@MockBean`) to avoid type conflicts."
+    },
+    {
+      "key": "list-classes-on-springboottest-without",
+      "do": "List `classes` on `@SpringBootTest` without dropping the Boot application."
+    },
+    {
+      "key": "explain-why-testconfiguration-excluded-from",
+      "do": "Explain why `@TestConfiguration` is excluded from component scan."
+    },
+    {
+      "key": "predict-context-cache-impact-extra",
+      "do": "Predict the context-cache impact of extra test config."
+    },
+    {
+      "key": "keep-inner-springbootapplication-scan-roots",
+      "do": "Keep inner `@SpringBootApplication` scan roots narrow."
+    }
+  ]
+}

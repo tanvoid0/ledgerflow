@@ -1,0 +1,132 @@
+{
+  "id": "14",
+  "title": "Observability",
+  "estimate": "4 days",
+  "goal": "You cannot operate what you cannot see. Do this before the optional deep end — those steps are far harder to debug blind.",
+  "startWith": "Several services exchanging events. The more of them there are, the more this pays.",
+  "newIdeas": [
+    {
+      "term": "Trace and span",
+      "plain": "A <b>trace</b> is one user request's whole journey. A <b>span</b> is one unit of work inside it — an HTTP call, a database query, a message being consumed. Spans nest, so a trace is a tree you can read top to bottom."
+    },
+    {
+      "term": "Context propagation",
+      "plain": "Passing the trace id from one service to the next, so their spans join the same trace. Over HTTP it is a header and Spring does it for you. Over Kafka it is a message header, and it only works if you enable observation on <b>both</b> the template and the listener — miss one and every trace stops at the broker."
+    },
+    {
+      "term": "The three signals",
+      "plain": "<b>Metrics</b>: numbers over time, cheap, tell you something is wrong. <b>Traces</b>: one request in detail, tell you where. <b>Logs</b>: the specifics, tell you what. You want all three sharing a trace id so you can move between them."
+    },
+    {
+      "term": "OTel / Micrometer / LGTM",
+      "plain": "OpenTelemetry is the vendor-neutral standard. Micrometer is Spring's instrumentation API, which exports to it. The <code>grafana/otel-lgtm</code> image bundles Loki, Grafana, Tempo and Prometheus in one container so you can have all three signals locally without operating four services."
+    },
+    {
+      "term": "Sampling",
+      "plain": "Recording every trace is affordable locally and not in production. Sample at 1.0 here, 1-10% there, and always sample errors."
+    }
+  ],
+  "tasks": [
+    {
+      "key": "run-grafana-lgtm-stack-export",
+      "do": "Run the Grafana LGTM stack and export from every service",
+      "why": "One container gives you traces, metrics and logs with somewhere to look at them.",
+      "how": "Add the dependencies to each service and one shared configuration block. The two Kafka observation lines are the ones that matter most in this project — without them your traces stop dead at the broker and the interesting half of the story is missing.",
+      "blocks": [
+        {
+          "label": "Add the LGTM container",
+          "kind": "file",
+          "body": "cat >> infra/compose/docker-compose.yml << 'EOF'\n\n  lgtm:\n    image: grafana/otel-lgtm:latest\n    container_name: lf-lgtm\n    ports: [\"3000:3000\", \"4317:4317\", \"4318:4318\"]\nEOF\ndocker compose -f infra/compose/docker-compose.yml up -d lgtm"
+        },
+        {
+          "label": "Every service pom.xml",
+          "kind": "paste",
+          "body": "<dependency>\n  <groupId>io.micrometer</groupId>\n  <artifactId>micrometer-tracing-bridge-otel</artifactId>\n</dependency>\n<dependency>\n  <groupId>io.opentelemetry</groupId>\n  <artifactId>opentelemetry-exporter-otlp</artifactId>\n</dependency>"
+        },
+        {
+          "label": "Shared config — the Kafka lines carry traces across the hop",
+          "kind": "paste",
+          "body": "management:\n  tracing:\n    sampling:\n      probability: 1.0          # 1.0 locally, 0.01-0.1 in production\n  otlp:\n    tracing:\n      endpoint: http://localhost:4318/v1/traces\nspring:\n  kafka:\n    template:\n      observation-enabled: true   # <- without these two, traces\n    listener:\n      observation-enabled: true   #    stop at the broker"
+        },
+        {
+          "label": "Open Grafana (admin / admin)",
+          "kind": "shell",
+          "body": "start http://localhost:3000      # Windows\n# macOS: open http://localhost:3000"
+        }
+      ],
+      "check": {
+        "run": "curl -s localhost:8085/actuator/metrics | jq '.names[] | select(startswith(\"http\"))'",
+        "expect": "HTTP metrics are registered, and traces appear in Grafana's Tempo view."
+      }
+    },
+    {
+      "key": "verify-one-trace-spans-whole",
+      "do": "Verify one trace spans the whole workflow",
+      "why": "This is the acceptance test for the whole step: one id, six services, one readable tree.",
+      "how": "Place a payment and find its trace in Grafana. You should be able to follow payment → Kafka → ledger → Kafka → payment without losing the thread. If it breaks at a particular hop, that hop is missing observation configuration.",
+      "blocks": [
+        {
+          "label": "Place a payment, then find its trace",
+          "kind": "shell",
+          "body": "curl -s -X POST localhost:8085/api/v1/payments -H 'content-type: application/json' \\\n  -d '{\"accountId\":\"11111111-1111-1111-1111-111111111111\",\"wallets\":[\"A-15\"],\"amount\":4500}' | jq\n# then in Grafana: Explore -> Tempo -> search by service name"
+        }
+      ]
+    },
+    {
+      "key": "add-domain-metrics-put-ids",
+      "do": "Add domain metrics and put ids on every log line",
+      "why": "Framework metrics tell you the system is busy. Domain metrics tell you the business is broken.",
+      "how": "<code>ledgerflow.saga.compensated</code> tagged by step and reason is worth more than any latency histogram: it is the number that tells you customers are being turned away. Put traceId, correlationId and paymentId in the MDC so a log search and a trace lead to each other.",
+      "blocks": [
+        {
+          "label": "payment: count compensations, tagged",
+          "kind": "paste",
+          "body": "meterRegistry.counter(\"ledgerflow.saga.compensated\",\n        \"step\", failedAt.name(),\n        \"reason\", reason.name())\n    .increment();"
+        },
+        {
+          "label": "Confirm it registered",
+          "kind": "shell",
+          "body": "curl -s localhost:8085/actuator/metrics/ledgerflow.saga.compensated | jq"
+        }
+      ]
+    },
+    {
+      "key": "alert-on-consumer-lag-dead",
+      "do": "Alert on consumer lag and dead letter depth",
+      "why": "These two are your earliest warnings, and both are silent by default.",
+      "how": "Rising lag means you cannot keep up. A DLT with anything in it means messages are being abandoned. Treat DLT depth above zero as an incident rather than a metric — a threshold of 'more than a few' is how backlogs go unnoticed for weeks.",
+      "blocks": [
+        {
+          "label": "Alert rules (sketch)",
+          "kind": "note",
+          "body": "kafka_consumer_fetch_manager_records_lag_max > 1000 for 5m   -> page\nsum(dlt_topic_depth) > 0                                     -> page\nledgerflow_saga_compensated_total rate > baseline            -> investigate"
+        }
+      ]
+    }
+  ],
+  "proof": {
+    "run": "start http://localhost:3000",
+    "expect": "Click a failed payment, read the whole story, jump to that request's logs.",
+    "note": "Dead letter depth above zero is an incident, not a metric. Alert on it accordingly."
+  },
+  "doneWhen": "One trace covers a whole payment across every service and both Kafka hops, and you can get from it to the matching logs.",
+  "services": [
+    "all"
+  ],
+  "infra": [
+    "+ grafana / tempo / loki / prometheus"
+  ],
+  "newThisStep": "observability stack",
+  "lessons": [
+    {
+      "id": "14-endpoints",
+      "title": "Endpoints tool window",
+      "teach": "<b>Endpoints</b> lists every mapping in every service, with the ability to call one. It is the fastest audit of \"what does this system actually expose\" when you start instrumenting.",
+      "trigger": {
+        "type": "toolWindow",
+        "id": "Endpoints"
+      },
+      "fallbackTip": "Ultimate only. Community: the actuator mappings endpoint."
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "id": "29",
+  "title": "platform virtual threads",
+  "goal": "8.1 Platform and virtual threads; Runnable and Callable",
+  "tasks": [
+    {
+      "key": "start-virtual-thread-thread-startvirtualthread",
+      "do": "Start a virtual thread with `Thread.startVirtualThread` or `Thread.ofVirtual().start`"
+    },
+    {
+      "key": "start-platform-thread-thread-ofplatform",
+      "do": "Start a platform thread with `Thread.ofPlatform()` or `new Thread`"
+    },
+    {
+      "key": "distinguish-threads-using-thread-isvirtual",
+      "do": "Distinguish threads using `Thread.isVirtual()`"
+    },
+    {
+      "key": "state-that-run-executes-on",
+      "do": "State that `run()` executes on the caller; `start()` schedules a thread"
+    },
+    {
+      "key": "explain-when-virtual-threads-help",
+      "do": "Explain when virtual threads help (many blocking tasks) vs platform threads (CPU-bound / JNI)"
+    },
+    {
+      "key": "explain-pinning-synchronized-native-frames",
+      "do": "Explain pinning: `synchronized` or native frames can pin a carrier"
+    },
+    {
+      "key": "explain-why-virtual-threads-should",
+      "do": "Explain why virtual threads should not be pooled like platform threads"
+    },
+    {
+      "key": "join-thread-handle-interruptedexception",
+      "do": "Join a thread and handle `InterruptedException`"
+    }
+  ]
+}

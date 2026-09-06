@@ -1,0 +1,75 @@
+{
+  "id": "14",
+  "title": "bean lifecycle",
+  "goal": "1.5.1 Spring Bean Lifecycle",
+  "tasks": [
+    {
+      "key": "name-three-phases-container-lifecycle",
+      "do": "Name the three phases of the container lifecycle."
+    },
+    {
+      "key": "recite-eight-steps-bean-creation",
+      "do": "Recite the eight steps of bean creation in order, from memory."
+    },
+    {
+      "key": "state-where-constructor-injection-happens",
+      "do": "State where constructor injection happens versus setter and field injection."
+    },
+    {
+      "key": "list-aware-callbacks-their-fixed",
+      "do": "List the `Aware` callbacks in their fixed order."
+    },
+    {
+      "key": "identify-exact-step-at-which",
+      "do": "Identify the exact step at which `@PostConstruct` runs."
+    },
+    {
+      "key": "identify-exact-step-at-which-2",
+      "do": "Identify the exact step at which AOP proxies are created."
+    },
+    {
+      "key": "explain-why-self-invocation-bypasses",
+      "do": "Explain why self-invocation bypasses advice."
+    },
+    {
+      "key": "contrast-beanfactorypostprocessor-beanpostproces",
+      "do": "Contrast `BeanFactoryPostProcessor` and `BeanPostProcessor` by what each operates on."
+    },
+    {
+      "key": "describe-how-lifecycle-differs-prototype",
+      "do": "Describe how the lifecycle differs for prototype beans."
+    },
+    {
+      "key": "describe-how-lazy-shifts-sequence",
+      "do": "Describe how `@Lazy` shifts the sequence."
+    },
+    {
+      "key": "explain-how-setter-injected-circular",
+      "do": "Explain how a setter-injected circular dependency is resolved and what risk it carries."
+    },
+    {
+      "key": "postconstruct-runs-before-proxy-exists",
+      "do": "`@PostConstruct` runs BEFORE the proxy exists."
+    },
+    {
+      "key": "beanfactorypostprocessor-definitions-beanpostpro",
+      "do": "`BeanFactoryPostProcessor` → definitions. `BeanPostProcessor` → instances."
+    },
+    {
+      "key": "this-inside-bean-always-raw",
+      "do": "`this` inside a bean is always the raw target, never the proxy."
+    },
+    {
+      "key": "prototype-beans-have-no-destruction",
+      "do": "Prototype beans have no destruction phase."
+    },
+    {
+      "key": "container-publishes-proxy-bean-s",
+      "do": "The container publishes the proxy; the bean's own code sees the target."
+    },
+    {
+      "key": "spring-boot-2-6-rejects",
+      "do": "Spring Boot 2.6+ rejects circular references by default."
+    }
+  ]
+}

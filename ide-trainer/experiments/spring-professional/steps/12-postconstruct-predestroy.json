@@ -1,0 +1,75 @@
+{
+  "id": "12",
+  "title": "postconstruct predestroy",
+  "goal": "1.4.3 @PostConstruct and @PreDestroy",
+  "tasks": [
+    {
+      "key": "name-specification-postconstruct-predestroy-come",
+      "do": "Name the specification `@PostConstruct` and `@PreDestroy` come from, and the package in Spring 6."
+    },
+    {
+      "key": "state-required-method-signature-both",
+      "do": "State the required method signature for both annotations."
+    },
+    {
+      "key": "explain-exactly-when-postconstruct-runs",
+      "do": "Explain exactly when `@PostConstruct` runs relative to dependency injection."
+    },
+    {
+      "key": "list-all-three-initialisation-mechanisms",
+      "do": "List all three initialisation mechanisms and their execution order."
+    },
+    {
+      "key": "list-all-three-destruction-mechanisms",
+      "do": "List all three destruction mechanisms and their execution order."
+    },
+    {
+      "key": "hook-third-party-class-bean",
+      "do": "Hook a third-party class with `@Bean(initMethod, destroyMethod)`."
+    },
+    {
+      "key": "explain-inferred-destroymethod-how-suppress",
+      "do": "Explain inferred `destroyMethod` and how to suppress it."
+    },
+    {
+      "key": "explain-why-predestroy-never-fires",
+      "do": "Explain why `@PreDestroy` never fires for prototype beans."
+    },
+    {
+      "key": "describe-order-which-singletons-are",
+      "do": "Describe the order in which singletons are destroyed."
+    },
+    {
+      "key": "explain-why-calling-transactional-method",
+      "do": "Explain why calling a `@Transactional` method from `@PostConstruct` is unadvised."
+    },
+    {
+      "key": "state-what-required-destruction-callbacks",
+      "do": "State what is required for destruction callbacks to run at all."
+    },
+    {
+      "key": "jakarta-annotation-not-javax-annotation",
+      "do": "`jakarta.annotation`, not `javax.annotation` — the wrong import fails silently."
+    },
+    {
+      "key": "prototype-beans-get-no-destruction",
+      "do": "Prototype beans get NO destruction callback of any kind."
+    },
+    {
+      "key": "method-must-be-void-take",
+      "do": "The method must be `void` and take no arguments."
+    },
+    {
+      "key": "postconstruct-runs-before-aop-proxies",
+      "do": "`@PostConstruct` runs BEFORE AOP proxies are created."
+    },
+    {
+      "key": "close-shutdown-on-bean-return",
+      "do": "`close()` / `shutdown()` on a `@Bean` return type is called automatically unless suppressed."
+    },
+    {
+      "key": "kill-9-skips-every-destruction",
+      "do": "`kill -9` skips every destruction callback."
+    }
+  ]
+}

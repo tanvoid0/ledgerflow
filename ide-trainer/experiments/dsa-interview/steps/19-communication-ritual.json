@@ -1,0 +1,59 @@
+{
+  "id": "19",
+  "title": "communication ritual",
+  "goal": "P7.1 Restate → brute force → optimise → code → test → complexity, out loud",
+  "tasks": [
+    {
+      "key": "restate-every-problem-own-words",
+      "do": "Restate every problem in your own words before writing anything"
+    },
+    {
+      "key": "state-brute-force-its-complexity",
+      "do": "State the brute force and its complexity before optimising"
+    },
+    {
+      "key": "narrate-decisions-trade-offs-not",
+      "do": "Narrate decisions and trade-offs, not syntax"
+    },
+    {
+      "key": "keep-silences-under-thirty-seconds",
+      "do": "Keep silences under thirty seconds, or say what you are weighing"
+    },
+    {
+      "key": "ask-about-size-ranges-duplicates",
+      "do": "Ask about size, ranges, duplicates, nulls, and empty input"
+    },
+    {
+      "key": "dry-run-small-input-name",
+      "do": "Dry-run a small input and name the edge cases before being asked"
+    },
+    {
+      "key": "give-both-time-space-complexity",
+      "do": "Give both time and space complexity, with justification"
+    },
+    {
+      "key": "take-hints-as-help-say",
+      "do": "Take hints as help and say what changes because of them"
+    },
+    {
+      "key": "8-star-stories-written-two",
+      "do": "8 STAR stories written, two minutes each, each with a number in the result"
+    },
+    {
+      "key": "4-system-design-stories-drawable",
+      "do": "4 system design stories drawable cold, with one defended trade-off each"
+    },
+    {
+      "key": "one-recorded-solve-reviewed-this",
+      "do": "One recorded solve reviewed this week, silences counted"
+    },
+    {
+      "key": "one-mock-interview-completed-this",
+      "do": "One mock interview completed this week"
+    },
+    {
+      "key": "gap-list-written-within-hour",
+      "do": "Gap list written within an hour of the last real interview, top item drilled the next day"
+    }
+  ]
+}

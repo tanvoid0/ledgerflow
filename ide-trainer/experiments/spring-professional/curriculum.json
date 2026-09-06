@@ -1,0 +1,120 @@
+{
+  "project": "Spring Professional",
+  "stack": "",
+  "stages": [
+    {
+      "letter": "A",
+      "name": "Spring Core",
+      "steps": [
+        "01-intro-spring-framework.json",
+        "02-define-beans-java-config.json",
+        "03-access-beans-context.json",
+        "04-multiple-config-files.json",
+        "05-bean-dependencies.json",
+        "06-bean-scopes.json",
+        "07-external-properties.json",
+        "08-profiles.json",
+        "09-spel.json",
+        "10-annotation-config.json",
+        "11-config-best-practices.json",
+        "12-postconstruct-predestroy.json",
+        "13-stereotype-annotations.json",
+        "14-bean-lifecycle.json",
+        "15-bean-processors.json",
+        "16-spring-proxies.json",
+        "17-bean-creation-order.json",
+        "18-inject-by-type.json",
+        "19-aop-concepts.json",
+        "20-aop-advices.json",
+        "21-aop-pointcuts.json",
+        "22-aop-advice-types.json"
+      ]
+    },
+    {
+      "letter": "B",
+      "name": "Spring Boot exam objectives",
+      "steps": [
+        "23-boot-features-part1.json",
+        "24-boot-features-part2.json",
+        "25-boot-dependency-mgmt-part1.json",
+        "26-boot-dependency-mgmt-part2.json",
+        "27-boot-properties-part1.json",
+        "28-boot-properties-part2.json",
+        "29-auto-configuration.json",
+        "30-conditional-annotations.json",
+        "31-override-auto-config.json",
+        "32-exclude-auto-config.json",
+        "33-actuator-endpoints.json",
+        "34-actuator-security.json",
+        "35-custom-metrics.json",
+        "36-custom-health-indicators.json"
+      ]
+    },
+    {
+      "letter": "C",
+      "name": "Data Management",
+      "steps": [
+        "37-jdbc-template.json",
+        "38-jdbc-callbacks.json",
+        "39-data-access-exceptions.json",
+        "40-transaction-management.json",
+        "41-transaction-propagation.json",
+        "42-rollback-rules.json",
+        "43-transactions-tests.json",
+        "44-boot-jpa.json",
+        "45-spring-data-jpa.json"
+      ]
+    },
+    {
+      "letter": "D",
+      "name": "Spring MVC",
+      "steps": [
+        "46-mvc-boot.json",
+        "47-rest-lifecycle.json",
+        "48-rest-get-controller.json",
+        "49-deployment-config.json",
+        "50-rest-all-verbs.json",
+        "51-rest-template.json"
+      ]
+    },
+    {
+      "letter": "E",
+      "name": "Testing",
+      "steps": [
+        "52-junit5.json",
+        "53-spring-integration-tests.json",
+        "54-test-profiles.json",
+        "55-test-databases.json",
+        "56-spring-boot-test.json",
+        "57-boot-integration-test.json",
+        "58-mockmvc.json",
+        "59-slice-testing.json"
+      ]
+    },
+    {
+      "letter": "F",
+      "name": "Security",
+      "steps": [
+        "60-security-concepts.json",
+        "61-auth-authz.json",
+        "62-method-security.json"
+      ]
+    },
+    {
+      "letter": "G",
+      "name": "Spring Boot mastery extras",
+      "steps": [
+        "63-boot-m1-property-precedence.json",
+        "64-boot-m2-debug-autoconfig.json",
+        "65-boot-m3-custom-autoconfig.json",
+        "66-boot-m4-config-validation.json",
+        "67-boot-m5-logging.json",
+        "68-boot-m6-devtools.json",
+        "69-boot-m7-error-handling.json",
+        "70-boot-m8-actuator-info-env.json",
+        "71-boot-m9-multiple-datasources.json",
+        "72-boot-m10-capstone.json"
+      ]
+    }
+  ]
+}

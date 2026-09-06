@@ -1,0 +1,39 @@
+{
+  "id": "30",
+  "title": "executor callable",
+  "goal": "8.1 Executor services and thread lifecycle",
+  "tasks": [
+    {
+      "key": "obtain-executorservice-from-executors-factories",
+      "do": "Obtain an `ExecutorService` from `Executors` factories"
+    },
+    {
+      "key": "contrast-execute-runnable-submit-future",
+      "do": "Contrast `execute(Runnable)` with `submit` (Future vs void)"
+    },
+    {
+      "key": "implement-callable-that-returns-value",
+      "do": "Implement `Callable` that returns a value and may throw"
+    },
+    {
+      "key": "block-on-future-get-name",
+      "do": "Block on `Future.get()` and name the checked exceptions"
+    },
+    {
+      "key": "call-shutdown-so-workers-do",
+      "do": "Call `shutdown()` so workers do not pin the JVM"
+    },
+    {
+      "key": "contrast-shutdown-shutdownnow-awaittermination",
+      "do": "Contrast `shutdown` with `shutdownNow` and `awaitTermination`"
+    },
+    {
+      "key": "retrieve-original-failure-via-executionexception",
+      "do": "Retrieve the original failure via `ExecutionException.getCause()`"
+    },
+    {
+      "key": "avoid-deadlock-do-not-get",
+      "do": "Avoid deadlock: do not `get()` a task that needs the same single thread you occupy"
+    }
+  ]
+}

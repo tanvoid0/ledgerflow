@@ -1,0 +1,151 @@
+{
+  "id": "11",
+  "title": "At-least-once means duplicates",
+  "estimate": "2 days",
+  "goal": "The outbox guarantees delivery at least once — never exactly once. So every consumer has to be idempotent. That is a contract, not an optimisation.",
+  "startWith": "Step 10 finished: the outbox publishes reliably.",
+  "newIdeas": [
+    {
+      "term": "At-least-once",
+      "plain": "Every message arrives, and some arrive more than once. It is what you get from any system that retries, which is every real system. Exactly-once across two systems is not available, however it is marketed."
+    },
+    {
+      "term": "Idempotent",
+      "plain": "Processing the same message twice has the same effect as processing it once. Sending one email, not two. Charging one card, not two."
+    },
+    {
+      "term": "Dedupe table",
+      "plain": "A table keyed on <code>(event_id, consumer_group)</code>. Inserting is the check: the primary key makes a second insert fail, and that failure is your signal to skip. Keyed by group because each consumer group must process the message independently."
+    },
+    {
+      "term": "The dedupe write and the business write must share a transaction",
+      "plain": "If they are separate, you can mark a message processed and then fail the work — or do the work and fail to mark it. You have moved the dual-write bug down one layer instead of fixing it."
+    },
+    {
+      "term": "Rebalance",
+      "plain": "When a consumer joins or leaves, partitions are reassigned. Anything in flight may be reprocessed by the new owner. This is the ordinary, everyday reason duplicates happen — no failure required."
+    }
+  ],
+  "tasks": [
+    {
+      "key": "reproduce-duplicates-by-replaying-topic",
+      "do": "Reproduce duplicates by replaying the topic",
+      "why": "Rewinding a consumer group takes one command and shows you exactly what a rebalance would do.",
+      "how": "Notification-service needs somewhere to record what it did, so give it a table first — remove the DataSource exclusion you added in step 07. Count the rows, rewind the group to the start, count again. The count doubles. Nothing failed; the system worked exactly as designed.",
+      "blocks": [
+        {
+          "label": "notification: give it a database",
+          "kind": "file",
+          "body": "mkdir -p services/notification-service/src/main/resources/db/migration\ncat > services/notification-service/src/main/resources/db/migration/V1__sent.sql << 'EOF'\nCREATE TABLE sent_notifications (\n    id          UUID PRIMARY KEY,\n    hold_id     UUID        NOT NULL,\n    sent_at     TIMESTAMPTZ NOT NULL DEFAULT now()\n);\nEOF\n# and remove the DataSourceAutoConfiguration exclusion from application.yml,\n# adding:  spring.datasource.url: jdbc:postgresql://localhost:5432/notification"
+        },
+        {
+          "label": "Count, rewind, count again",
+          "kind": "shell",
+          "body": "docker exec -it lf-postgres psql -U ledgerflow -d notification \\\n  -c \"SELECT count(*) FROM sent_notifications;\"\n\nkill $(lsof -ti:8082)                       # a group can only be rewound while idle\ndocker exec -it lf-redpanda rpk group seek notification-service --to start\n./mvnw -pl services/notification-service spring-boot:run\n\nsleep 15\ndocker exec -it lf-postgres psql -U ledgerflow -d notification \\\n  -c \"SELECT count(*) FROM sent_notifications;\""
+        }
+      ],
+      "check": {
+        "run": "# compare the two counts",
+        "expect": "The count doubled. Every customer just got a second email."
+      }
+    },
+    {
+      "key": "add-processed-events-table",
+      "do": "Add the processed_events table",
+      "why": "The consumer needs a memory, and the database's primary key is the cheapest reliable one there is.",
+      "how": "Composite primary key on <code>(event_id, consumer_group)</code>. You are not writing dedupe logic — you are letting the database enforce uniqueness and treating the constraint violation as the answer.",
+      "blocks": [
+        {
+          "label": "services/notification-service/src/main/resources/db/migration/V2__processed_events.sql",
+          "kind": "file",
+          "body": "cat > services/notification-service/src/main/resources/db/migration/V2__processed_events.sql << 'EOF'\nCREATE TABLE processed_events (\n    event_id       UUID        NOT NULL,\n    consumer_group VARCHAR(64) NOT NULL,\n    processed_at   TIMESTAMPTZ NOT NULL DEFAULT now(),\n    PRIMARY KEY (event_id, consumer_group)\n);\nEOF"
+        }
+      ]
+    },
+    {
+      "key": "wrap-consumer-dedupe-check-business",
+      "do": "Wrap the consumer: dedupe check and business write in one transaction",
+      "why": "One transaction is the difference between fixing the bug and relocating it.",
+      "how": "<code>ON CONFLICT DO NOTHING</code> makes the insert both the check and the claim: if it changed no rows, someone already processed this event and you return. Everything after it runs in the same transaction, so the mark and the work commit or roll back together.",
+      "blocks": [
+        {
+          "label": "notification: adapter/in/messaging/FundsHoldListener.java",
+          "kind": "paste",
+          "body": "@RetryableTopic(attempts = \"4\", backoff = @Backoff(delay = 1000, multiplier = 3.0),\n                dltTopicSuffix = \".dlt.v1\", exclude = InvalidPayloadException.class)\n@KafkaListener(topics = \"ledgerflow.ledger.wallet-hold.events.v1\")\n@Transactional                                   // one transaction for both writes\nvoid onFundsHeld(EventEnvelope<FundsHeld> event, Acknowledgment ack) {\n\n    if (!processed.markProcessed(event.eventId(), GROUP)) {\n        ack.acknowledge();                       // already done: skip, do not redo\n        return;\n    }\n\n    notifier.send(event.payload());              // same transaction as the mark\n    ack.acknowledge();\n}"
+        },
+        {
+          "label": "notification: ProcessedEvents.java",
+          "kind": "file",
+          "body": "package io.ledgerflow.notification.application;\n\nimport org.springframework.jdbc.core.simple.JdbcClient;\nimport org.springframework.stereotype.Component;\n\nimport java.util.UUID;\n\n@Component\npublic class ProcessedEvents {\n\n    private final JdbcClient db;\n\n    ProcessedEvents(JdbcClient db) { this.db = db; }\n\n    /** true = this is the first time we have seen it. false = already handled. */\n    public boolean markProcessed(UUID eventId, String consumerGroup) {\n        return db.sql(\"\"\"\n                      INSERT INTO processed_events (event_id, consumer_group)\n                      VALUES (?, ?)\n                      ON CONFLICT DO NOTHING\n                      \"\"\")\n                 .params(eventId, consumerGroup)\n                 .update() == 1;\n    }\n}"
+        }
+      ]
+    },
+    {
+      "key": "split-transaction-on-purpose-watch",
+      "do": "Split the transaction on purpose and watch the bug come back",
+      "why": "It is the only way to be sure you understand which line is doing the work.",
+      "how": "Move <code>markProcessed</code> into its own <code>REQUIRES_NEW</code> transaction, then make the business write throw. The event is now marked processed but the work never happened, and the retry will skip it. Put it back afterwards, and remember the shape — it is the same bug as step 10 wearing different clothes.",
+      "blocks": [
+        {
+          "label": "Temporarily break it",
+          "kind": "paste",
+          "body": "@Transactional(propagation = Propagation.REQUIRES_NEW)   // <- the bug\npublic boolean markProcessed(UUID eventId, String group) { ... }"
+        }
+      ],
+      "check": {
+        "run": "# make the business write throw, then inspect processed_events vs sent_notifications",
+        "expect": "A row in processed_events with no matching notification. Restore the single transaction."
+      }
+    },
+    {
+      "key": "replay-everything-verify-exactly-one",
+      "do": "Replay everything and verify exactly one effect each",
+      "why": "This is the acceptance test for the whole step, and it is cheap to run whenever you touch a consumer.",
+      "how": "Rewind the group again, let it catch up, and confirm the count has not moved. Then write the same thing as an automated test so it stays true.",
+      "blocks": [
+        {
+          "label": "Replay and confirm nothing moves",
+          "kind": "shell",
+          "body": "docker exec -it lf-postgres psql -U ledgerflow -d notification \\\n  -c \"SELECT count(*) FROM sent_notifications;\"\n\nkill $(lsof -ti:8082)\ndocker exec -it lf-redpanda rpk group seek notification-service --to start\n./mvnw -pl services/notification-service spring-boot:run\nsleep 15\n\ndocker exec -it lf-postgres psql -U ledgerflow -d notification \\\n  -c \"SELECT count(*) FROM sent_notifications;\""
+        },
+        {
+          "label": "Run it as a test",
+          "kind": "shell",
+          "body": "./mvnw -pl services/notification-service test -Dtest=ReplayIdempotencyTest"
+        }
+      ],
+      "check": {
+        "run": "# compare the counts",
+        "expect": "Identical. One hundred replayed events, zero extra effects."
+      }
+    }
+  ],
+  "proof": {
+    "run": "docker exec -it lf-redpanda rpk group seek notification-service --to start\n# wait, then count sent_notifications",
+    "expect": "The count does not move.",
+    "note": "If the dedupe write and the business write are in separate transactions, you have moved the dual-write bug down a layer rather than fixed it."
+  },
+  "doneWhen": "Replaying the whole topic produces no duplicate side effects, and you have seen the bug return when you split the transaction.",
+  "services": [
+    "account-service",
+    "ledger-service",
+    "notification-service"
+  ],
+  "infra": [
+    "postgres",
+    "redpanda",
+    "schema registry"
+  ],
+  "lessons": [
+    {
+      "id": "11-compound-run",
+      "title": "Compound run configuration",
+      "teach": "Run → Edit Configurations → + → <b>Compound</b>. One button starts every service you need. Stop re-launching four terminals to reproduce a duplicate.",
+      "trigger": {
+        "type": "run",
+        "id": "Run"
+      },
+      "fallbackTip": "A shell script that backgrounds each service."
+    }
+  ]
+}

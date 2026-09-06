@@ -1,0 +1,113 @@
+{
+  "id": "05",
+  "title": "undo, at every level",
+  "estimate": "45 min",
+  "goal": "B3 Take back an edit, a staging, a commit or a push — each with the right tool",
+  "startWith": "In <code>git-lab</code>. Make a mess deliberately at each level, then undo it.",
+  "newIdeas": [
+    {
+      "term": "restore",
+      "plain": "Undo in the working tree or the index. Touches no history."
+    },
+    {
+      "term": "reset",
+      "plain": "Move the branch pointer. <code>--soft</code> keeps changes staged, <code>--mixed</code> unstages them, <code>--hard</code> throws them away."
+    },
+    {
+      "term": "revert",
+      "plain": "A new commit that undoes an old one. The only safe undo for pushed history."
+    }
+  ],
+  "tasks": [
+    {
+      "key": "throw-away-uncommitted-edit-one",
+      "do": "Throw away an uncommitted edit to one file",
+      "how": "In IntelliJ this one is safer: <b>Local History</b> still has the edit after a rollback, git does not.",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "echo 'oops' >> README.md\ngit restore README.md                    # gone, git cannot get it back\ngit restore --source=HEAD~1 README.md    # or take an older version"
+        }
+      ]
+    },
+    {
+      "key": "unstage-without-unmodifying",
+      "do": "Unstage without unmodifying",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git add -A\ngit restore --staged .      # index cleared, edits intact"
+        }
+      ],
+      "check": {
+        "run": "git diff --cached --name-only",
+        "expect": "empty — nothing staged"
+      }
+    },
+    {
+      "key": "undo-last-commit-three-ways",
+      "do": "Undo the last commit three ways, and say which one you want",
+      "why": "Same starting point, three very different results. Picking wrong is how work disappears.",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git reset --soft HEAD~1     # commit undone, changes still staged\ngit reset HEAD~1            # commit undone, changes unstaged (--mixed, the default)\ngit reset --hard HEAD~1     # commit and changes gone (the reflog can still save you)"
+        }
+      ]
+    },
+    {
+      "key": "revert-pushed-commit-instead-resetting",
+      "do": "Revert a pushed commit instead of resetting it",
+      "why": "Reset rewrites history. On a branch other people have, that is their problem, not yours — revert instead.",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git revert <hash>\ngit revert --no-commit <hash1> <hash2>    # stack several into one commit"
+        },
+        {
+          "label": "IntelliJ",
+          "kind": "note",
+          "body": "Right-click a commit in the Log → <b>Revert Commit</b>. Same command, and it opens the commit dialog for the message."
+        }
+      ]
+    },
+    {
+      "key": "recover-commit-destroyed",
+      "do": "Recover a commit you destroyed",
+      "why": "The reflog records every position HEAD held for about 90 days. Almost nothing is truly lost.",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git reflog -20\ngit reset --hard HEAD@{2}        # back to where you were\ngit switch -c rescue <hash>      # or give the lost commit a branch"
+        }
+      ],
+      "check": {
+        "run": "git reflog -5",
+        "expect": "recent HEAD positions listed"
+      }
+    }
+  ],
+  "proof": {
+    "run": "git reflog -10",
+    "expect": "a list of recent HEAD moves",
+    "note": "You destroyed a commit and got it back."
+  },
+  "doneWhen": "“I think I lost work” is a two-minute reflog lookup, not a panic.",
+  "lessons": [
+    {
+      "id": "05-rollback",
+      "title": "Rollback, and the net under it",
+      "teach": "<b>Ctrl+Alt+Z</b> reverts a file to HEAD. Unlike <code>git restore</code>, the IDE still has the edit: right-click the file → <b>Local History → Show History</b> and take it back. Git never saw those versions at all.",
+      "trigger": {
+        "type": "action",
+        "id": "ChangesView.Revert"
+      },
+      "fallbackTip": "git restore <file> — and there is no undo for that one."
+    }
+  ]
+}

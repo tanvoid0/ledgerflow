@@ -1,0 +1,79 @@
+{
+  "id": "20",
+  "title": "aop advices",
+  "goal": "1.6.2 Implement Advices with Spring AOP",
+  "tasks": [
+    {
+      "key": "list-three-conditions-required-aspect",
+      "do": "List the three conditions required for an aspect to take effect."
+    },
+    {
+      "key": "enable-aop-plain-spring-say",
+      "do": "Enable AOP in plain Spring, and say what Spring Boot does instead."
+    },
+    {
+      "key": "declare-named-pointcut-reuse-across",
+      "do": "Declare a named `@Pointcut` and reuse it across several advice methods."
+    },
+    {
+      "key": "write-all-five-advice-types",
+      "do": "Write all five advice types against the same pointcut."
+    },
+    {
+      "key": "use-joinpoint-read-signature-arguments",
+      "do": "Use `JoinPoint` to read the signature, arguments, and target."
+    },
+    {
+      "key": "use-proceedingjoinpoint-proceed-proceed-object",
+      "do": "Use `ProceedingJoinPoint.proceed()` and `proceed(Object[])`."
+    },
+    {
+      "key": "bind-return-value-returning-exception",
+      "do": "Bind a return value with `returning` and an exception with `throwing`."
+    },
+    {
+      "key": "bind-method-arguments-args-annotation",
+      "do": "Bind method arguments with `args(...)` and an annotation with `@annotation(...)`."
+    },
+    {
+      "key": "order-multiple-aspects-predict-resulting",
+      "do": "Order multiple aspects and predict the resulting nesting."
+    },
+    {
+      "key": "suppress-target-method-substitute-its",
+      "do": "Suppress a target method, substitute its arguments, and replace its return value."
+    },
+    {
+      "key": "recover-from-exception-around-explain",
+      "do": "Recover from an exception in `@Around` and explain why no other advice can."
+    },
+    {
+      "key": "aspect-without-component-bean-does",
+      "do": "`@Aspect` without `@Component` (or a `@Bean`) does nothing, silently."
+    },
+    {
+      "key": "around-must-return-proceed-s",
+      "do": "`@Around` MUST return `proceed()`'s value or callers get `null`."
+    },
+    {
+      "key": "proceedingjoinpoint-valid-only-around",
+      "do": "`ProceedingJoinPoint` is valid only in `@Around`."
+    },
+    {
+      "key": "joinpoint-when-declared-must-be",
+      "do": "`JoinPoint`, when declared, must be the first parameter."
+    },
+    {
+      "key": "lower-order-outermost",
+      "do": "Lower `@Order` = outermost."
+    },
+    {
+      "key": "advice-order-within-one-aspect",
+      "do": "Advice order WITHIN one aspect class is undefined — split the class."
+    },
+    {
+      "key": "afterthrowing-observes-cannot-swallow-exception",
+      "do": "`@AfterThrowing` observes; it cannot swallow the exception."
+    }
+  ]
+}

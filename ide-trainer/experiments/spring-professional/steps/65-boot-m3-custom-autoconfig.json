@@ -1,0 +1,67 @@
+{
+  "id": "65",
+  "title": "boot m3 custom autoconfig",
+  "goal": "BOOT-M3 Custom auto-configuration",
+  "tasks": [
+    {
+      "key": "state-exam-registration-file-key",
+      "do": "State the exam registration file and key: `META-INF/spring.factories` / `EnableAutoConfiguration`."
+    },
+    {
+      "key": "state-boot-3-registration-file",
+      "do": "State the Boot 3 registration file: `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`."
+    },
+    {
+      "key": "explain-why-boot-3-will",
+      "do": "Explain why Boot 3 will ignore an `EnableAutoConfiguration` `spring.factories` entry."
+    },
+    {
+      "key": "annotate-class-autoconfiguration-describe-proxyb",
+      "do": "Annotate a class with `@AutoConfiguration` and describe `proxyBeanMethods = false`."
+    },
+    {
+      "key": "guard-class-conditionalonclass-conditionalonprop",
+      "do": "Guard the class with `@ConditionalOnClass` and `@ConditionalOnProperty`."
+    },
+    {
+      "key": "guard-bean-method-conditionalonmissingbean-so",
+      "do": "Guard the `@Bean` method with `@ConditionalOnMissingBean` so a user bean wins."
+    },
+    {
+      "key": "bind-settings-enableconfigurationproperties",
+      "do": "Bind settings with `@EnableConfigurationProperties`."
+    },
+    {
+      "key": "keep-auto-configuration-class-out",
+      "do": "Keep the auto-configuration class out of the application's component-scan base package."
+    },
+    {
+      "key": "describe-starter-as-dependency-aggregator",
+      "do": "Describe a starter as a dependency aggregator, not as the class that holds `@Bean` methods."
+    },
+    {
+      "key": "verify-class-appears-condition-evaluation",
+      "do": "Verify the class appears in the condition evaluation report (module 64)."
+    },
+    {
+      "key": "exam-spring-factories-lab-boot",
+      "do": "Exam: `spring.factories`. Lab (Boot 3): `AutoConfiguration.imports`."
+    },
+    {
+      "key": "two-files-have-different-formats",
+      "do": "The two files have different formats — do not paste properties syntax into the imports file."
+    },
+    {
+      "key": "component-scanning-not-how-auto",
+      "do": "Component scanning is not how auto-configuration is discovered."
+    },
+    {
+      "key": "conditionalonmissingbean-uses-bean-method-s",
+      "do": "`@ConditionalOnMissingBean` uses the `@Bean` method's return type."
+    },
+    {
+      "key": "inter-bean-calls-inside-autoconfiguration",
+      "do": "Inter-`@Bean` calls inside `@AutoConfiguration` are not intercepted."
+    }
+  ]
+}

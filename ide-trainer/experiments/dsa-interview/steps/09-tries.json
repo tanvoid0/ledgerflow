@@ -1,0 +1,43 @@
+{
+  "id": "09",
+  "title": "tries",
+  "goal": "P3.3 Prefix trees for word lookup and autocomplete",
+  "tasks": [
+    {
+      "key": "reach-trie-when-problem-says",
+      "do": "Reach for a trie when the problem says prefix, autocomplete, or starts-with"
+    },
+    {
+      "key": "mark-isword-on-final-node",
+      "do": "Mark `isWord` on the final node only"
+    },
+    {
+      "key": "state-one-line-difference-between",
+      "do": "State the one-line difference between `search` and `startsWith`"
+    },
+    {
+      "key": "carry-counters-on-nodes-when",
+      "do": "Carry counters on nodes when the problem counts words under a prefix"
+    },
+    {
+      "key": "turn-walk-into-dfs-wildcard",
+      "do": "Turn the walk into a DFS for wildcard matching"
+    },
+    {
+      "key": "solve-all-four-exercises-inside",
+      "do": "Solve all four exercises inside their target times"
+    },
+    {
+      "key": "give-complexity-terms-query-length",
+      "do": "Give complexity in terms of query length, not dictionary size"
+    },
+    {
+      "key": "say-why-trie-beats-hash",
+      "do": "Say why a trie beats a hash set for this specific question"
+    },
+    {
+      "key": "name-base-case-wildcard-recursion",
+      "do": "Name the base case of the wildcard recursion before writing it"
+    }
+  ]
+}

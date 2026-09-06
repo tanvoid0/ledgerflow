@@ -1,0 +1,47 @@
+{
+  "id": "52",
+  "title": "junit5",
+  "goal": "4.1.1 JUnit 5 tests",
+  "tasks": [
+    {
+      "key": "import-test-from-org-junit",
+      "do": "Import `@Test` from `org.junit.jupiter.api`."
+    },
+    {
+      "key": "map-junit-4-lifecycle-annotations",
+      "do": "Map JUnit 4 lifecycle annotations to Jupiter (`@BeforeEach`, `@BeforeAll`)."
+    },
+    {
+      "key": "use-beforeeach-create-system-under",
+      "do": "Use `@BeforeEach` to create the system under test."
+    },
+    {
+      "key": "write-parameterizedtest-csvsource-valuesource",
+      "do": "Write a `@ParameterizedTest` with `@CsvSource` or `@ValueSource`."
+    },
+    {
+      "key": "use-assertthrows-instead-junit-4",
+      "do": "Use `assertThrows` instead of JUnit 4 `expected`."
+    },
+    {
+      "key": "use-assertall-grouped-assertions",
+      "do": "Use `assertAll` for grouped assertions."
+    },
+    {
+      "key": "group-tests-nested",
+      "do": "Group tests with `@Nested`."
+    },
+    {
+      "key": "skip-disabled-name-tests-displayname",
+      "do": "Skip with `@Disabled` and name tests with `@DisplayName`."
+    },
+    {
+      "key": "state-when-beforeall-must-be",
+      "do": "State when `@BeforeAll` must be static."
+    },
+    {
+      "key": "contrast-extendwith-junit-4-runwith",
+      "do": "Contrast `@ExtendWith` with JUnit 4 `@RunWith`."
+    }
+  ]
+}

@@ -1,0 +1,75 @@
+{
+  "id": "17",
+  "title": "bean creation order",
+  "goal": "1.5.4 Bean creation order",
+  "tasks": [
+    {
+      "key": "explain-how-dependency-resolution-determines",
+      "do": "Explain how dependency resolution determines creation order without any annotation."
+    },
+    {
+      "key": "state-what-decides-order-among",
+      "do": "State what decides the order among mutually independent beans, and why not to rely on it."
+    },
+    {
+      "key": "use-dependson-say-precisely-what",
+      "do": "Use `@DependsOn` and say precisely what it does and does not give you."
+    },
+    {
+      "key": "state-what-order-actually-controls",
+      "do": "State what `@Order` actually controls, with three concrete examples."
+    },
+    {
+      "key": "contrast-order-priority-autowiring-tiebreaks",
+      "do": "Contrast `@Order` with `@Priority` for autowiring tiebreaks."
+    },
+    {
+      "key": "predict-outcome-constructor-injection-cycle",
+      "do": "Predict the outcome of a constructor-injection cycle."
+    },
+    {
+      "key": "predict-outcome-setter-injection-cycle",
+      "do": "Predict the outcome of a setter-injection cycle on Spring Boot 2.6+."
+    },
+    {
+      "key": "break-cycle-lazy-explain-what",
+      "do": "Break a cycle with `@Lazy` and explain what is injected."
+    },
+    {
+      "key": "choose-between-postconstruct-applicationrunner-a",
+      "do": "Choose between `@PostConstruct`, `ApplicationRunner`, and `ApplicationReadyEvent` for startup work."
+    },
+    {
+      "key": "order-multiple-commandlinerunner-beans",
+      "do": "Order multiple `CommandLineRunner` beans."
+    },
+    {
+      "key": "describe-what-smartlifecycle-getphase-controls",
+      "do": "Describe what `SmartLifecycle.getPhase()` controls."
+    },
+    {
+      "key": "order-does-not-affect-bean",
+      "do": "`@Order` does NOT affect bean creation order — `@DependsOn` does."
+    },
+    {
+      "key": "dependson-takes-bean-name-strings",
+      "do": "`@DependsOn` takes bean-name strings; a typo fails at startup."
+    },
+    {
+      "key": "dependson-gives-ordering-not-reference",
+      "do": "`@DependsOn` gives ordering, not a reference."
+    },
+    {
+      "key": "constructor-cycles-are-always-fatal",
+      "do": "Constructor cycles are always fatal."
+    },
+    {
+      "key": "setter-field-cycles-are-rejected",
+      "do": "Setter/field cycles are rejected by default since Spring Boot 2.6."
+    },
+    {
+      "key": "lazy-at-injection-point-injects",
+      "do": "`@Lazy` at an injection point injects a proxy, deferring real creation."
+    }
+  ]
+}

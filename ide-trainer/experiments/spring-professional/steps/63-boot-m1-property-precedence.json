@@ -1,0 +1,43 @@
+{
+  "id": "63",
+  "title": "boot m1 property precedence",
+  "goal": "BOOT-M1 Property precedence deep dive",
+  "tasks": [
+    {
+      "key": "recite-boot-2-7-source",
+      "do": "Recite the Boot 2.7 source list from lowest to highest (or highest to lowest, consistently)."
+    },
+    {
+      "key": "place-command-line-env-vars",
+      "do": "Place command line, env vars, and system properties relative to each other."
+    },
+    {
+      "key": "place-propertysource-below-application-propertie",
+      "do": "Place `@PropertySource` below `application.properties`."
+    },
+    {
+      "key": "place-testpropertysource-above-springboottest-pr",
+      "do": "Place `@TestPropertySource` above `@SpringBootTest(properties=…)`."
+    },
+    {
+      "key": "state-four-step-config-data",
+      "do": "State the four-step config-data file order (in/out of jar × profile)."
+    },
+    {
+      "key": "contrast-spring-config-location-vs",
+      "do": "Contrast `spring.config.location` vs `additional-location`."
+    },
+    {
+      "key": "explain-why-propertysource-cannot-configure",
+      "do": "Explain why `@PropertySource` cannot configure `logging.*`."
+    },
+    {
+      "key": "use-actuator-env-conceptually-see",
+      "do": "Use `/actuator/env` (conceptually) to see which source won."
+    },
+    {
+      "key": "know-that-boot-2-7",
+      "do": "Know that Boot 2.7 moved test properties above command line."
+    }
+  ]
+}

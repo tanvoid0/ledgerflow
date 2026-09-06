@@ -1,0 +1,157 @@
+{
+  "id": "09",
+  "title": "Consumers that survive",
+  "estimate": "2 days",
+  "goal": "The default Kafka settings quietly lose messages. Change them, then prove the change by killing the consumer mid-stream.",
+  "startWith": "Step 08 finished: enveloped events on a properly named topic.",
+  "newIdeas": [
+    {
+      "term": "Auto-commit",
+      "plain": "On by default: the client commits offsets on a timer, regardless of whether your code finished. Crash after the commit but before the work is done and that message is gone forever. Turn it off and commit yourself, after the work."
+    },
+    {
+      "term": "manual_immediate",
+      "plain": "The acknowledgement mode where your listener calls <code>ack.acknowledge()</code> and the offset is committed there and then. The order that matters: do the work, then acknowledge."
+    },
+    {
+      "term": "acks=all and idempotent producer",
+      "plain": "<code>acks=all</code> means the broker only confirms a write once the replicas have it. <code>enable.idempotence=true</code> means a producer retry cannot silently create a duplicate. Together they are the durability guarantee on the write side."
+    },
+    {
+      "term": "read_committed",
+      "plain": "Consume only messages from transactions that committed. Without it a consumer can see writes that were later rolled back."
+    },
+    {
+      "term": "Dead letter topic (DLT)",
+      "plain": "Where a message goes after retries are exhausted, so one bad message stops blocking the partition behind it. A DLT with anything in it is an incident, not a metric."
+    },
+    {
+      "term": "Poison pill",
+      "plain": "A message that will fail every single time — malformed JSON, a field that will never parse. Retrying it is pure waste. Detect these and send them straight to the DLT."
+    },
+    {
+      "term": "Consumer lag",
+      "plain": "How far behind the end of the log a consumer is. Steadily rising lag means you are consuming slower than you produce, and it is the earliest warning you get."
+    }
+  ],
+  "tasks": [
+    {
+      "key": "fix-consumer-producer-settings",
+      "do": "Fix the consumer and producer settings",
+      "why": "These are the defaults that lose data. They are three lines each and almost nobody changes them until after their first incident.",
+      "how": "Consumer: stop auto-committing, acknowledge manually after the work, read only committed messages, and keep listener concurrency at or below the partition count — extra consumers in a group just sit idle. Producer: full acknowledgement and idempotence.",
+      "blocks": [
+        {
+          "label": "notification: application.yml — consumer side",
+          "kind": "paste",
+          "body": "spring:\n  kafka:\n    consumer:\n      enable-auto-commit: false        # never true\n      auto-offset-reset: earliest\n      isolation-level: read_committed\n    listener:\n      ack-mode: manual_immediate\n      concurrency: 3                   # <= partition count"
+        },
+        {
+          "label": "ledger: application.yml — producer side",
+          "kind": "paste",
+          "body": "spring:\n  kafka:\n    producer:\n      acks: all\n      properties:\n        enable.idempotence: true"
+        },
+        {
+          "label": "notification: acknowledge after the work, never before",
+          "kind": "paste",
+          "body": "@KafkaListener(topics = \"ledgerflow.ledger.wallet-hold.events.v1\")\nvoid onFundsHeld(EventEnvelope<FundsHeld> event, Acknowledgment ack) {\n    notifier.send(event.payload());   // 1. do the work\n    ack.acknowledge();                // 2. only then record that we did it\n}"
+        }
+      ]
+    },
+    {
+      "key": "add-retries-backoff-dead-letter",
+      "do": "Add retries with backoff and a dead letter topic",
+      "why": "Transient failures deserve another go. Permanent ones must get out of the way of everything queued behind them.",
+      "how": "<code>@RetryableTopic</code> gives you non-blocking retries: failed messages go to separate retry topics with increasing delays, so the main partition keeps moving. <code>exclude</code> lists the exceptions that skip retrying entirely — the poison pills. Choosing what belongs in that list is the real work here: bad data is permanent, a refused connection is not.",
+      "blocks": [
+        {
+          "label": "notification: the listener with retry and DLT",
+          "kind": "paste",
+          "body": "@RetryableTopic(\n        attempts = \"4\",\n        backoff = @Backoff(delay = 1000, multiplier = 3.0),   // 1s, 3s, 9s\n        dltTopicSuffix = \".dlt.v1\",\n        exclude = { InvalidPayloadException.class })          // poison pills skip retry\n@KafkaListener(topics = \"ledgerflow.ledger.wallet-hold.events.v1\")\nvoid onFundsHeld(EventEnvelope<FundsHeld> event, Acknowledgment ack) { ... }\n\n@DltHandler\nvoid onDead(EventEnvelope<FundsHeld> event) {\n    log.error(\"gave up on event {} for hold {}\", event.eventId(), event.aggregateId());\n}"
+        }
+      ],
+      "check": {
+        "run": "docker exec -it lf-redpanda rpk topic list",
+        "expect": "Retry topics and a .dlt.v1 topic appear automatically after the first failure."
+      }
+    },
+    {
+      "key": "kill-consumer-mid-stream-prove",
+      "do": "Kill the consumer mid-stream and prove nothing is lost",
+      "why": "This is the test that tells you whether your configuration is real. Ten in, ten out, across a restart.",
+      "how": "Stop notification-service, produce ten holds while it is down, start it again. It should resume from its last committed offset and process all ten. If any are missing, auto-commit is still on somewhere, or you are acknowledging before doing the work.",
+      "blocks": [
+        {
+          "label": "Stop the consumer",
+          "kind": "shell",
+          "body": "kill $(lsof -ti:8082)      # or just Ctrl-C in its terminal"
+        },
+        {
+          "label": "Produce ten events while it is down",
+          "kind": "shell",
+          "body": "for i in $(seq 1 10); do\n  curl -s -X POST localhost:8081/api/v1/holds \\\n    -H 'content-type: application/json' \\\n    -d \"{\\\"accountId\\\":\\\"11111111-1111-1111-1111-111111111111\\\",\\\"wallets\\\":[\\\"A-$i\\\"]}\" > /dev/null\ndone\necho \"10 holds placed\""
+        },
+        {
+          "label": "Check the lag before restarting — it should be 10",
+          "kind": "shell",
+          "body": "docker exec -it lf-redpanda rpk group describe notification-service"
+        },
+        {
+          "label": "Restart and count the log lines",
+          "kind": "shell",
+          "body": "./mvnw -pl services/notification-service spring-boot:run"
+        }
+      ],
+      "check": {
+        "run": "docker exec -it lf-redpanda rpk group describe notification-service",
+        "expect": "Lag returns to 0 and ten 'would email' lines appeared after the restart."
+      }
+    },
+    {
+      "key": "put-dlt-depth-check-somewhere",
+      "do": "Put a DLT depth check somewhere you will actually see it",
+      "why": "Dead letter topics fill up silently. Weeks later someone asks why a payment never settled.",
+      "how": "For now, a script you run. In step 14 it becomes a Grafana alert. Also write the replay tool now, while you still remember the message shapes — the moment you need it is the worst moment to be designing it.",
+      "blocks": [
+        {
+          "label": "scripts/dlt-depth.sh",
+          "kind": "file",
+          "body": "mkdir -p scripts && cat > scripts/dlt-depth.sh << 'EOF'\n#!/usr/bin/env bash\n# Anything above zero is an incident, not a metric.\nset -euo pipefail\nfor t in $(docker exec lf-redpanda rpk topic list | grep '\\.dlt\\.' | awk '{print $1}'); do\n  echo \"== $t\"\n  docker exec lf-redpanda rpk topic describe \"$t\" -p\ndone\nEOF\nchmod +x scripts/dlt-depth.sh"
+        },
+        {
+          "label": "Read what actually landed in the DLT",
+          "kind": "shell",
+          "body": "docker exec -it lf-redpanda rpk topic consume \\\n  ledgerflow.ledger.wallet-hold.events.dlt.v1 -n 5"
+        }
+      ]
+    }
+  ],
+  "proof": {
+    "run": "kill $(lsof -ti:8082)\n# place 10 holds, then restart:\n./mvnw -pl services/notification-service spring-boot:run",
+    "expect": "All ten are processed on restart.",
+    "note": "If any are missing, auto-commit is still on somewhere, or you acknowledge before the work rather than after it."
+  },
+  "doneWhen": "Kill the consumer, place ten holds, restart — all ten get processed, and a poison pill lands in the DLT instead of blocking the partition.",
+  "services": [
+    "account-service",
+    "ledger-service",
+    "notification-service"
+  ],
+  "infra": [
+    "postgres",
+    "redpanda",
+    "schema registry"
+  ],
+  "lessons": [
+    {
+      "id": "09-rerun",
+      "title": "The Run tool window is a console you can filter",
+      "teach": "Ctrl+F inside the run console, and the ⚙ menu folds stack frames. Poison-message debugging is reading one consumer's log carefully, not scrolling all of them.",
+      "trigger": {
+        "type": "run",
+        "id": "Run"
+      },
+      "fallbackTip": "docker compose logs -f <service> | grep"
+    }
+  ]
+}

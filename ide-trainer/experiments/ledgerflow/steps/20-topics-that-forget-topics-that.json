@@ -1,0 +1,120 @@
+{
+  "id": "20",
+  "title": "Topics that forget, topics that remember",
+  "estimate": "1 day",
+  "goal": "The log is storage with a policy, and right now every policy is a default. Decide how long payment events live, then give the balance read model a compacted topic — latest value per key — so step 13's rebuild starts from a snapshot instead of replaying history.",
+  "startWith": "Step 13 finished: balance-service projecting events into a read model it can rebuild.",
+  "newIdeas": [
+    {
+      "term": "retention.ms",
+      "plain": "How long a topic keeps events before deleting them — a week, by default, chosen by nobody. Your replay window and your audit trail end exactly here, so it is a business decision wearing a config key."
+    },
+    {
+      "term": "Log compaction",
+      "plain": "<code>cleanup.policy=compact</code> keeps the newest record per key instead of deleting by age. The topic becomes a table shaped like a log: consume it from the start and you hold the latest state of every key."
+    },
+    {
+      "term": "Tombstone",
+      "plain": "A record with a key and a null value. On a compacted topic it means <em>delete this key</em> — how a closed wallet eventually disappears from the snapshot."
+    },
+    {
+      "term": "Compaction is not deduplication",
+      "plain": "The cleaner runs when it runs — recent duplicates survive until it does. Consumers of a compacted topic still see repeats, so step 11's rule still applies: every consumer is idempotent, always."
+    }
+  ],
+  "tasks": [
+    {
+      "key": "choose-retention-on-purpose",
+      "do": "Choose retention on purpose",
+      "why": "The first time retention matters is the day you need an event that expired. That day is a bad day to learn the default was seven days.",
+      "how": "Read what the events topic has now, then set it to what the ledger actually needs — 30 days here, and write down why in the runbook. The outbox table from step 10 remains the system of record; the topic is transport, not archive.",
+      "blocks": [
+        {
+          "label": "Read, then set",
+          "kind": "shell",
+          "body": "docker exec -it lf-redpanda rpk topic describe ledgerflow.ledger.wallet-hold.events.v1\ndocker exec -it lf-redpanda rpk topic alter-config \\\n  ledgerflow.ledger.wallet-hold.events.v1 --set retention.ms=2592000000   # 30 days"
+        }
+      ],
+      "check": {
+        "run": "docker exec -it lf-redpanda rpk topic describe ledgerflow.ledger.wallet-hold.events.v1",
+        "expect": "retention.ms shows 2592000000, and you can say out loud why it is 30 days."
+      }
+    },
+    {
+      "key": "create-compacted-snapshot-topic",
+      "do": "Create the compacted snapshot topic",
+      "why": "Rebuilding balance-service by replaying every event ever gets slower every week, forever. A compacted topic of latest balances is a rebuild that costs the same next year as today.",
+      "how": "One topic, keyed by wallet id, compacted. In dev, force small segments so the cleaner actually runs while you watch — production would never set segment.ms this low.",
+      "blocks": [
+        {
+          "label": "Create it",
+          "kind": "shell",
+          "body": "docker exec -it lf-redpanda rpk topic create ledgerflow.balance.snapshots.v1 \\\n  -p 6 \\\n  -c cleanup.policy=compact \\\n  -c segment.ms=10000            # dev only: make the cleaner visible"
+        },
+        {
+          "label": "balance: publish the snapshot after each apply",
+          "kind": "paste",
+          "body": "// after the projection applies an event to the read model:\nkafkaTemplate.send(\"ledgerflow.balance.snapshots.v1\",\n        walletId, new BalanceSnapshot(walletId, available, version));\n// key = wallet id, so compaction keeps exactly one latest\n// balance per wallet."
+        }
+      ]
+    },
+    {
+      "key": "watch-compaction-actually-compact",
+      "do": "Watch compaction actually compact",
+      "why": "Compaction is invisible until you catch it in the act, and an invisible mechanism is one you will not trust when it matters.",
+      "how": "Move one wallet's balance a dozen times, wait out the segment roll, then consume the snapshot topic from the start. You should get the latest value per key plus a short uncompacted tail — not twelve records.",
+      "blocks": [
+        {
+          "label": "Consume from the beginning",
+          "kind": "shell",
+          "body": "docker exec -it lf-redpanda rpk topic consume \\\n  ledgerflow.balance.snapshots.v1 -o start -f 'key=%k  %v\\n'"
+        }
+      ],
+      "check": {
+        "run": "docker exec -it lf-redpanda rpk topic consume ledgerflow.balance.snapshots.v1 -o start -f '%k\\n' | sort | uniq -c",
+        "expect": "Each wallet appears once or twice, not once per update."
+      }
+    },
+    {
+      "key": "rebuild-read-model-from-snapshot",
+      "do": "Rebuild the read model from the snapshot",
+      "why": "This is the payoff: delete the read model, restore it from the compacted topic plus the recent event tail, and the rebuild time no longer grows with history.",
+      "how": "Wipe balance-service's store, consume snapshots from the start to seed it, then resume the normal event subscription from the projection's last recorded position. Time it, and note the number next to the full-replay time from step 13.",
+      "blocks": [
+        {
+          "label": "The order matters",
+          "kind": "note",
+          "body": "Seed from snapshots first, then apply the event tail. The snapshot carries a version per wallet, so tail events at or below it are skipped by the same idempotency check step 11 forced on you — the two mechanisms compose instead of fighting."
+        }
+      ]
+    }
+  ],
+  "proof": {
+    "run": "docker exec -it lf-redpanda rpk topic consume ledgerflow.balance.snapshots.v1 -o start -f '%k\\n' | sort | uniq -c",
+    "expect": "One latest record per wallet (plus a short tail), and a rebuilt balance-service that agrees with the ledger.",
+    "note": "If every update is still there, the cleaner has not run — check segment.ms and give it a minute."
+  },
+  "doneWhen": "You can state, for every topic, how long it keeps data and why — and the balance model rebuilds from a compacted snapshot instead of replaying all of history.",
+  "services": [
+    "ledger-service",
+    "balance-service"
+  ],
+  "infra": [
+    "postgres",
+    "redpanda",
+    "schema registry",
+    "redis"
+  ],
+  "lessons": [
+    {
+      "id": "20-terminal",
+      "title": "The Terminal tool window splits",
+      "teach": "This step is one long rpk conversation. Open the IDE terminal (<b>Alt+F12</b>) and split it: producer loop on one side, <code>rpk topic consume</code> watching compaction on the other, code above both. Watching the cleaner work while you publish is the whole lesson.",
+      "trigger": {
+        "type": "toolWindow",
+        "id": "Terminal"
+      },
+      "fallbackTip": "tmux, or two terminal windows side by side."
+    }
+  ]
+}

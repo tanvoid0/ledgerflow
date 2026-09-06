@@ -1,0 +1,43 @@
+{
+  "id": "16",
+  "title": "dp 1d",
+  "goal": "P6.1 State, recurrence, base cases on a line",
+  "tasks": [
+    {
+      "key": "say-what-dp-i-means",
+      "do": "Say what `dp[i]` means in one sentence before writing the recurrence"
+    },
+    {
+      "key": "distinguish-considering-first-i-from",
+      "do": "Distinguish \"considering the first i\" from \"ending exactly at i\""
+    },
+    {
+      "key": "write-recurrence-then-base-cases",
+      "do": "Write the recurrence, then the base cases, then the loop"
+    },
+    {
+      "key": "guard-sentinel-values-before-adding",
+      "do": "Guard sentinel values before adding to them"
+    },
+    {
+      "key": "mention-space-reduced-version-when",
+      "do": "Mention the space-reduced version when only the last two states matter"
+    },
+    {
+      "key": "solve-all-four-exercises-inside",
+      "do": "Solve all four exercises inside their target times"
+    },
+    {
+      "key": "derive-top-down-first-then",
+      "do": "Derive top-down first, then convert to bottom-up if asked"
+    },
+    {
+      "key": "state-number-states-work-per",
+      "do": "State the number of states and the work per state as the complexity"
+    },
+    {
+      "key": "check-recurrence-against-size-2",
+      "do": "Check the recurrence against a size-2 input by hand"
+    }
+  ]
+}

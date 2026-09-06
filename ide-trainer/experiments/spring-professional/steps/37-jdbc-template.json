@@ -1,0 +1,63 @@
+{
+  "id": "37",
+  "title": "jdbc template",
+  "goal": "2.1.1 Configure JdbcTemplate",
+  "tasks": [
+    {
+      "key": "construct-jdbctemplate-from-datasource-java",
+      "do": "Construct a `JdbcTemplate` from a `DataSource` in Java config."
+    },
+    {
+      "key": "explain-what-boot-auto-configures",
+      "do": "Explain what Boot auto-configures when `spring-boot-starter-jdbc` and a driver are present."
+    },
+    {
+      "key": "use-queryforobject-single-column-single",
+      "do": "Use `queryForObject` for a single-column, single-row result."
+    },
+    {
+      "key": "predict-exception-when-queryforobject-returns",
+      "do": "Predict the exception when `queryForObject` returns 0 rows or more than 1 row."
+    },
+    {
+      "key": "use-query-queryforlist-zero-more",
+      "do": "Use `query` / `queryForList` for zero-or-more rows."
+    },
+    {
+      "key": "use-update-placeholders-insert-update",
+      "do": "Use `update` with `?` placeholders for INSERT/UPDATE/DELETE."
+    },
+    {
+      "key": "state-that-jdbctemplate-thread-safe",
+      "do": "State that `JdbcTemplate` is thread-safe after configuration."
+    },
+    {
+      "key": "state-that-jdbctemplate-does-not",
+      "do": "State that `JdbcTemplate` does not begin a transaction by itself."
+    },
+    {
+      "key": "distinguish-jdbctemplate-from-namedparameterjdbc",
+      "do": "Distinguish `JdbcTemplate` from `NamedParameterJdbcTemplate`."
+    },
+    {
+      "key": "name-exam-vs-lab-split",
+      "do": "Name the exam vs lab split: JDBC types stay `javax.sql` / `java.sql`; Boot 3 lab still uses the same Spring JDBC APIs."
+    },
+    {
+      "key": "queryforobject-empty-null",
+      "do": "`queryForObject` empty ≠ `null`."
+    },
+    {
+      "key": "single-type-queryforobject-needs-single",
+      "do": "Single-type `queryForObject` needs a single column."
+    },
+    {
+      "key": "boot-already-provides-template-bean",
+      "do": "Boot already provides the template bean; a duplicate `@Bean` is rarely needed."
+    },
+    {
+      "key": "no-transaction-started-just-because",
+      "do": "No transaction is started just because you called `update`."
+    }
+  ]
+}

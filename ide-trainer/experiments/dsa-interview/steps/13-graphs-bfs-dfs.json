@@ -1,0 +1,43 @@
+{
+  "id": "13",
+  "title": "graphs bfs dfs",
+  "goal": "P5.1 Grids and adjacency lists, flood fill, connected components",
+  "tasks": [
+    {
+      "key": "see-grid-as-graph-cells",
+      "do": "See a grid as a graph of cells and four-neighbour edges"
+    },
+    {
+      "key": "mark-visited-on-enqueue-never",
+      "do": "Mark visited on enqueue, never on dequeue"
+    },
+    {
+      "key": "choose-bfs-step-counts-dfs",
+      "do": "Choose BFS for step counts and DFS for connectivity"
+    },
+    {
+      "key": "seed-every-source-at-once",
+      "do": "Seed every source at once when the question is \"time to reach everything\""
+    },
+    {
+      "key": "say-whether-mutating-input-mark",
+      "do": "Say whether mutating the input to mark visited is acceptable"
+    },
+    {
+      "key": "solve-all-four-exercises-inside",
+      "do": "Solve all four exercises inside their target times"
+    },
+    {
+      "key": "name-nodes-edges-before-writing",
+      "do": "Name the nodes and the edges before writing any traversal"
+    },
+    {
+      "key": "give-complexity-as-o-v",
+      "do": "Give complexity as O(V + E), and say what V and E are for a grid"
+    },
+    {
+      "key": "state-how-visited-tracked-what",
+      "do": "State how visited is tracked and what it costs"
+    }
+  ]
+}

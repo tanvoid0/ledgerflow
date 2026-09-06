@@ -1,0 +1,192 @@
+{
+  "id": "04",
+  "title": "Two services, and the pom.xml problem",
+  "estimate": "1 day",
+  "goal": "Copy the service, feel the duplication, then fix it with a multi-module build. Multi-module Maven makes no sense until you have something to share — now you do.",
+  "startWith": "Step 03 finished: account-service is complete and its tests pass.",
+  "newIdeas": [
+    {
+      "term": "Aggregator (root) POM",
+      "plain": "A pom.xml with <code>&lt;packaging&gt;pom&lt;/packaging&gt;</code> that produces no jar. Its job is to list <code>&lt;modules&gt;</code> and hold shared settings so one <code>mvn install</code> at the root builds everything in dependency order."
+    },
+    {
+      "term": "relativePath",
+      "plain": "Tells a child pom where its parent is <b>on disk</b>. <code>&lt;relativePath&gt;../../pom.xml&lt;/relativePath&gt;</code> means \"two folders up\". An empty <code>&lt;relativePath/&gt;</code> means the opposite: do not look on disk, download it."
+    },
+    {
+      "term": "dependencyManagement",
+      "plain": "A section in the root pom that says \"if any module uses this library, here is the version\" — without adding the dependency itself. Modules then declare dependencies with no version, and versions stay in one file."
+    },
+    {
+      "term": "-pl and -am",
+      "plain": "<code>-pl services/ledger-service</code> means \"build only this module\". <code>-am</code> (also make) adds the modules it depends on. Without <code>-am</code> you build against the last jar you installed, which may be stale — and the failure looks like your code is wrong."
+    },
+    {
+      "term": "Shared library, carefully",
+      "plain": "A shared module should hold <b>data types and contracts</b> — ids, money, event records. The moment business logic goes in there, every service must be redeployed to change it, and you have built a distributed monolith with extra steps."
+    }
+  ],
+  "tasks": [
+    {
+      "key": "move-account-service-into-repository",
+      "do": "Move account-service into a repository root and copy it to ledger-service",
+      "why": "Copying is the fastest way to see what is genuinely shared. You cannot design a shared library from imagination.",
+      "how": "This is a mechanical rename, and the part people get wrong is that Java package names are also <b>folder names</b> — a search-and-replace inside files is not enough. The script below moves the folders first, then rewrites the text, then renames the two application classes.",
+      "blocks": [
+        {
+          "label": "Create the repository root and move the finished service into it",
+          "kind": "shell",
+          "body": "cd ..                                  # the folder that contains account-service/\nmkdir -p ledgerflow/services ledgerflow/libs\nmv account-service ledgerflow/services/account-service\nmv infra ledgerflow/infra 2>/dev/null || true\ncd ledgerflow                          # every command from now on runs from here"
+        },
+        {
+          "label": "Copy it, then rename package folders as well as file contents",
+          "kind": "shell",
+          "body": "cp -r services/account-service services/ledger-service\ncd services/ledger-service\n\n# 1. package names are folder names - move them first\nmv src/main/java/io/ledgerflow/account src/main/java/io/ledgerflow/ledger\nmv src/test/java/io/ledgerflow/account src/test/java/io/ledgerflow/ledger\n\n# 2. now rewrite what is inside the files\ngrep -rl 'account\\|Account' src pom.xml \\\n  | xargs sed -i 's/io\\.ledgerflow\\.account/io.ledgerflow.ledger/g; s/Account/Ledger/g; s/account-service/ledger-service/g; s/account/ledger/g'\n\n# 3. rename the classes whose names contained the old service name\nmv src/main/java/io/ledgerflow/ledger/AccountServiceApplication.java \\\n   src/main/java/io/ledgerflow/ledger/LedgerServiceApplication.java 2>/dev/null || true\nfor f in $(find src -name 'Account*.java'); do mv \"$f\" \"$(echo $f | sed 's/Account/Ledger/')\"; done\n\ncd ../.."
+        },
+        {
+          "label": "Give it its own port and its own database",
+          "kind": "paste",
+          "body": "# services/ledger-service/src/main/resources/application.yml\nserver:\n  port: 8081\nspring:\n  application:\n    name: ledger-service\n  datasource:\n    url: jdbc:postgresql://localhost:5432/ledger   # its own database, always"
+        }
+      ],
+      "check": {
+        "run": "grep -r 'account' services/ledger-service/src services/ledger-service/pom.xml || echo 'clean'",
+        "expect": "'clean'. Any leftover is a compile error waiting to happen."
+      }
+    },
+    {
+      "key": "delete-everything-ledger-does-not",
+      "do": "Delete everything ledger does not own",
+      "why": "A copied service arrives owning someone else's tables. Two services writing the same rows is the single worst mistake in this whole subject.",
+      "how": "Ledger holds wallets; it does not own accounts. Delete the account code and the copied migrations, and write ledger's own baseline. Note the migration is <code>V1__</code> again — Flyway version numbers are per database, and ledger has its own.",
+      "blocks": [
+        {
+          "label": "Remove the inherited account code and migrations",
+          "kind": "shell",
+          "body": "cd services/ledger-service\nrm -rf src/main/java/io/ledgerflow/ledger/adapter/in/web/AccountController.java \\\n       src/main/java/io/ledgerflow/ledger/adapter/out/persistence/*Entity.java \\\n       src/main/java/io/ledgerflow/ledger/adapter/out/persistence/Jpa*.java \\\n       src/main/java/io/ledgerflow/ledger/adapter/out/persistence/*Adapter.java \\\n       src/main/java/io/ledgerflow/ledger/application/AccountRepository.java \\\n       src/main/java/io/ledgerflow/ledger/domain/model/Account*.java \\\n       src/main/resources/db/migration/*.sql\nrm -rf src/test/java/io/ledgerflow/ledger/adapter src/test/java/io/ledgerflow/ledger/domain\ncd ../.."
+        },
+        {
+          "label": "services/ledger-service/src/main/resources/db/migration/V1__holds.sql",
+          "kind": "file",
+          "body": "cat > services/ledger-service/src/main/resources/db/migration/V1__holds.sql << 'EOF'\nCREATE TABLE funds_holds (\n    id          UUID PRIMARY KEY,\n    account_id    UUID         NOT NULL,\n    wallet_code  VARCHAR(16)  NOT NULL,\n    status      VARCHAR(16)  NOT NULL,      -- HELD | RELEASED | SOLD\n    created_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),\n    expires_at  TIMESTAMPTZ  NOT NULL,\n    UNIQUE (account_id, wallet_code, status)\n);\nEOF"
+        }
+      ],
+      "check": {
+        "run": "ls services/ledger-service/src/main/resources/db/migration",
+        "expect": "Only V1__holds.sql. No accounts table anywhere in ledger."
+      }
+    },
+    {
+      "key": "write-root-aggregator-pom-xml",
+      "do": "Write the root aggregator pom.xml",
+      "why": "One command should build the whole system, in the right order, with one set of versions.",
+      "how": "It lives at the repository root, produces no jar, and lists the modules. Everything shared goes here: Java version, and the version numbers of any library more than one module uses.",
+      "blocks": [
+        {
+          "label": "ledgerflow/pom.xml",
+          "kind": "file",
+          "body": "cat > pom.xml << 'EOF'\n<project xmlns=\"http://maven.apache.org/POM/4.0.0\">\n  <modelVersion>4.0.0</modelVersion>\n\n  <parent>\n    <groupId>org.springframework.boot</groupId>\n    <artifactId>spring-boot-starter-parent</artifactId>\n    <version>4.1.1</version>\n    <relativePath/>\n  </parent>\n\n  <groupId>io.ledgerflow</groupId>\n  <artifactId>ledgerflow</artifactId>\n  <version>1.0.0-SNAPSHOT</version>\n  <packaging>pom</packaging>            <!-- builds no jar of its own -->\n\n  <properties>\n    <java.version>25</java.version>\n    <springdoc.version>3.0.3</springdoc.version>\n  </properties>\n\n  <modules>\n    <module>libs/ledgerflow-events</module>\n    <module>services/account-service</module>\n    <module>services/ledger-service</module>\n  </modules>\n\n  <dependencyManagement>\n    <dependencies>\n      <dependency>\n        <groupId>org.springdoc</groupId>\n        <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>\n        <version>${springdoc.version}</version>\n      </dependency>\n    </dependencies>\n  </dependencyManagement>\n</project>\nEOF"
+        }
+      ]
+    },
+    {
+      "key": "create-libs-ledgerflow-events-move",
+      "do": "Create libs/ledgerflow-events and move the duplicated types into it",
+      "why": "WalletRef and Money are now defined twice. Two definitions of the same idea drift, and then two services disagree about what a wallet is.",
+      "how": "The library holds <b>types both sides must agree on</b> and nothing else — no controllers, no repositories, no business rules. One line matters more than it looks: <b>do not put <code>spring-boot-maven-plugin</code> in a library pom</b>. That plugin repackages a jar into an executable one and relocates the classes, so dependent services compile fine and then throw <code>ClassNotFoundException</code> at runtime.",
+      "blocks": [
+        {
+          "label": "libs/ledgerflow-events/pom.xml",
+          "kind": "file",
+          "body": "mkdir -p libs/ledgerflow-events/src/main/java/io/ledgerflow/events\ncat > libs/ledgerflow-events/pom.xml << 'EOF'\n<project xmlns=\"http://maven.apache.org/POM/4.0.0\">\n  <modelVersion>4.0.0</modelVersion>\n\n  <parent>\n    <groupId>io.ledgerflow</groupId>\n    <artifactId>ledgerflow</artifactId>\n    <version>1.0.0-SNAPSHOT</version>\n    <relativePath>../../pom.xml</relativePath>   <!-- two folders up -->\n  </parent>\n\n  <artifactId>ledgerflow-events</artifactId>\n\n  <!-- NO spring-boot-maven-plugin here. It would repackage this jar and\n       every service depending on it would fail with ClassNotFoundException. -->\n</project>\nEOF"
+        },
+        {
+          "label": "libs/ledgerflow-events/src/main/java/io/ledgerflow/events/WalletRef.java",
+          "kind": "file",
+          "body": "package io.ledgerflow.events;\n\nimport java.util.UUID;\n\n/** How every service refers to a wallet. Agreed once, here. */\npublic record WalletRef(UUID accountId, String label) {}"
+        },
+        {
+          "label": "libs/ledgerflow-events/src/main/java/io/ledgerflow/events/Money.java",
+          "kind": "file",
+          "body": "package io.ledgerflow.events;\n\n/**\n * Minor units only - 4500 means GBP 45.00.\n * Never use double for money: 0.1 + 0.2 is not 0.3 in binary floating point.\n */\npublic record Money(long minorUnits, String currency) {\n\n    public Money {\n        if (currency == null || currency.length() != 3)\n            throw new IllegalArgumentException(\"currency must be an ISO-4217 code\");\n    }\n\n    public static Money gbp(long minorUnits) { return new Money(minorUnits, \"GBP\"); }\n}"
+        }
+      ]
+    },
+    {
+      "key": "point-both-service-poms-at",
+      "do": "Point both service POMs at the root and depend on the library",
+      "why": "Until the parent changes, each service is still an island that happens to sit in the same folder.",
+      "how": "In each of the two service poms: replace the <code>&lt;parent&gt;</code> block, delete the now-inherited <code>&lt;groupId&gt;</code>, <code>&lt;version&gt;</code> and <code>&lt;properties&gt;</code>, and add the library dependency. Keep <code>spring-boot-maven-plugin</code> in the <b>services</b> — they do produce executable jars.",
+      "blocks": [
+        {
+          "label": "services/*/pom.xml — the top of the file becomes this",
+          "kind": "paste",
+          "body": "<parent>\n  <groupId>io.ledgerflow</groupId>\n  <artifactId>ledgerflow</artifactId>\n  <version>1.0.0-SNAPSHOT</version>\n  <relativePath>../../pom.xml</relativePath>\n</parent>\n\n<artifactId>account-service</artifactId>\n<!-- delete the old groupId, version and <properties>: inherited now -->"
+        },
+        {
+          "label": "services/*/pom.xml — add to &lt;dependencies&gt;",
+          "kind": "paste",
+          "body": "<dependency>\n  <groupId>io.ledgerflow</groupId>\n  <artifactId>ledgerflow-events</artifactId>\n  <version>${project.version}</version>\n</dependency>"
+        },
+        {
+          "label": "One Maven wrapper for the whole repository, at the root",
+          "kind": "shell",
+          "body": "mv services/account-service/mvnw services/account-service/mvnw.cmd services/account-service/.mvn .\nrm -rf services/ledger-service/mvnw services/ledger-service/mvnw.cmd services/ledger-service/.mvn"
+        }
+      ]
+    },
+    {
+      "key": "build-whole-tree-from-root",
+      "do": "Build the whole tree from the root",
+      "why": "If the modules are wired correctly this is one command. If they are not, you find out now rather than in step 12.",
+      "how": "<code>-T 1C</code> builds modules in parallel, one thread per CPU core. Maven still respects dependency order, so the library is built before the services that need it.",
+      "blocks": [
+        {
+          "label": "Everything, in parallel",
+          "kind": "shell",
+          "body": "./mvnw -T 1C clean install -DskipTests"
+        },
+        {
+          "label": "One service plus the libraries it depends on",
+          "kind": "shell",
+          "body": "./mvnw -pl services/ledger-service -am test"
+        },
+        {
+          "label": "Confirm the shared library really is on the classpath",
+          "kind": "shell",
+          "body": "./mvnw dependency:tree -pl services/ledger-service | grep ledgerflow"
+        }
+      ],
+      "check": {
+        "run": "./mvnw -T 1C clean install -DskipTests",
+        "expect": "Reactor summary lists three modules, all SUCCESS."
+      }
+    }
+  ],
+  "proof": {
+    "run": "./mvnw -T 1C clean install",
+    "expect": "Three modules build from the root and the shared types exist exactly once.",
+    "note": "If a change to ledgerflow-events does not seem to reach a service, you forgot -am, or you are building from inside the service folder instead of the root."
+  },
+  "doneWhen": "The whole tree builds from the root, no type is defined twice, and ledger owns no account tables.",
+  "services": [
+    "account-service",
+    "ledger-service"
+  ],
+  "infra": [
+    "postgres"
+  ],
+  "newThisStep": "ledger-service",
+  "lessons": [
+    {
+      "id": "04-maven-tool",
+      "title": "Maven tool window",
+      "teach": "Two modules means a reactor. Open <b>Maven</b> to see the module tree, run a goal on one module, and hit reload after every <code>pom.xml</code> edit — half of \"IntelliJ can't find the class\" is an unreloaded reactor.",
+      "trigger": {
+        "type": "toolWindow",
+        "id": "Maven"
+      },
+      "fallbackTip": "./mvnw -pl <module> -am install"
+    }
+  ]
+}

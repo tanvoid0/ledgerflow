@@ -1,0 +1,43 @@
+{
+  "id": "10",
+  "title": "heap priority queue",
+  "goal": "P4.1 Top-k, streaming medians, custom orderings",
+  "tasks": [
+    {
+      "key": "reach-heap-when-extreme-needed",
+      "do": "Reach for a heap when the extreme is needed repeatedly, especially over a stream"
+    },
+    {
+      "key": "use-min-heap-size-k",
+      "do": "Use a min-heap of size k for \"k largest\", and say why"
+    },
+    {
+      "key": "write-custom-order-as-comparator",
+      "do": "Write custom order as a comparator, not by pre-transforming the data"
+    },
+    {
+      "key": "split-stream-at-its-median",
+      "do": "Split a stream at its median with two heaps"
+    },
+    {
+      "key": "quote-o-n-log-k",
+      "do": "Quote O(n log k) vs O(n log n) when choosing the heap size"
+    },
+    {
+      "key": "solve-all-four-exercises-inside",
+      "do": "Solve all four exercises inside their target times"
+    },
+    {
+      "key": "say-whether-need-extreme-once",
+      "do": "Say whether you need the extreme once or repeatedly before choosing heap vs sort"
+    },
+    {
+      "key": "state-heap-s-size-bound",
+      "do": "State the heap's size bound and what it costs"
+    },
+    {
+      "key": "name-rebalancing-rule-before-writing",
+      "do": "Name the rebalancing rule before writing the two-heap code"
+    }
+  ]
+}

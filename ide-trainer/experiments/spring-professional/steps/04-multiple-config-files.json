@@ -1,0 +1,47 @@
+{
+  "id": "04",
+  "title": "multiple config files",
+  "goal": "1.2.3 Handle multiple Configuration files",
+  "tasks": [
+    {
+      "key": "explain-why-splitting-configuration-into",
+      "do": "Explain why splitting configuration into multiple files is beneficial."
+    },
+    {
+      "key": "demonstrate-how-use-import-aggregate",
+      "do": "Demonstrate how to use `@Import` to aggregate multiple configuration classes."
+    },
+    {
+      "key": "contrast-loading-configurations-via-import",
+      "do": "Contrast loading configurations via `@Import` versus `@ComponentScan`."
+    },
+    {
+      "key": "describe-process-loading-multiple-configuration",
+      "do": "Describe the process of loading multiple configuration classes via the `AnnotationConfigApplicationContext` constructor."
+    },
+    {
+      "key": "explain-how-bean-dependencies-are",
+      "do": "Explain how bean dependencies are resolved when they are defined in different configuration files."
+    },
+    {
+      "key": "identify-what-happens-when-two",
+      "do": "Identify what happens when two different configuration files define a bean with the same name."
+    },
+    {
+      "key": "determine-effect-order-imported-configuration",
+      "do": "Determine the effect of the order of imported configuration classes on bean overriding."
+    },
+    {
+      "key": "verify-that-import-can-target",
+      "do": "Verify that `@Import` can target classes regardless of their package location."
+    },
+    {
+      "key": "remember-that-configuration-does-not",
+      "do": "Remember that `@Configuration` does not \"auto-register\" itself; it needs a trigger (`@Import`, constructor, or scan)."
+    },
+    {
+      "key": "do-not-assume-that-serviceconfig",
+      "do": "Do not assume that `ServiceConfig` must import `DbConfig` just because it depends on a bean inside it—global availability in the context is what matters."
+    }
+  ]
+}

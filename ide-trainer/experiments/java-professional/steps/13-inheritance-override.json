@@ -1,0 +1,39 @@
+{
+  "id": "13",
+  "title": "inheritance override",
+  "goal": "3.5 Inheritance, overriding, Object methods",
+  "tasks": [
+    {
+      "key": "write-subclass-that-calls-super",
+      "do": "Write a subclass that calls `super(...)` in its constructor"
+    },
+    {
+      "key": "override-instance-method-override-legal",
+      "do": "Override an instance method with `@Override` and a legal signature"
+    },
+    {
+      "key": "use-super-method-reuse-parent",
+      "do": "Use `super.method()` to reuse the parent body"
+    },
+    {
+      "key": "apply-covariant-returns-non-reducing",
+      "do": "Apply covariant returns and non-reducing access"
+    },
+    {
+      "key": "explain-why-private-static-methods",
+      "do": "Explain why `private` and `static` methods are not overridden"
+    },
+    {
+      "key": "pair-equals-hashcode-value-types",
+      "do": "Pair `equals` and `hashCode` for value types"
+    },
+    {
+      "key": "contrast-field-hiding-method-overriding",
+      "do": "Contrast field hiding with method overriding"
+    },
+    {
+      "key": "state-that-constructors-final-methods",
+      "do": "State that constructors and `final` methods are not inherited as overridable methods"
+    }
+  ]
+}

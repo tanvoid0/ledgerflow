@@ -1,0 +1,195 @@
+{
+  "id": "07",
+  "title": "Your first event",
+  "estimate": "1 day",
+  "goal": "Publish something, consume it somewhere else, see it work. This one is naive on purpose — it will be wrong in ways you fix in steps 08 to 11, and knowing why it is wrong is the point.",
+  "startWith": "Step 06 finished: two services, a measured cascade, and a timeout that fixed it.",
+  "newIdeas": [
+    {
+      "term": "Broker / topic / partition",
+      "plain": "A <b>broker</b> stores messages. A <b>topic</b> is a named log you append to. A topic is split into <b>partitions</b>, each an ordered sequence; ordering is guaranteed within a partition, never across them. More partitions means more consumers can work in parallel."
+    },
+    {
+      "term": "Redpanda",
+      "plain": "A Kafka-compatible broker in a single container that starts in about a second. Your code uses the ordinary Kafka client, so everything you learn transfers."
+    },
+    {
+      "term": "Producer / consumer group",
+      "plain": "Producers append. Consumers read. Consumers with the same <code>group-id</code> share the work: each partition goes to exactly one member of the group. Two different groups each get their own copy of everything."
+    },
+    {
+      "term": "Offset",
+      "plain": "A consumer's bookmark: how far through a partition it has read. Committing an offset says \"I am done with everything up to here\". Where and when you commit is the whole of step 09."
+    },
+    {
+      "term": "Event vs command",
+      "plain": "An event states a fact in the past tense — <code>FundsHeld</code> — and the publisher does not care who listens. A command tells a specific service to do something. Naming a command <code>...Event</code> does not make it one, and the difference decides who you are coupled to."
+    }
+  ],
+  "tasks": [
+    {
+      "key": "add-redpanda-compose-create-topic",
+      "do": "Add Redpanda to Compose and create a topic",
+      "why": "You need a broker before you can publish anything, and it should be as disposable as the database.",
+      "how": "Append the service to the existing compose file. The two <code>kafka-addr</code> lines exist because the broker must advertise one address to containers (<code>redpanda:29092</code>) and a different one to processes on your machine (<code>localhost:9092</code>). Getting this wrong is the most common first-day Kafka problem: the connection succeeds and then every send times out.",
+      "blocks": [
+        {
+          "label": "infra/compose/docker-compose.yml — append",
+          "kind": "file",
+          "body": "cat >> infra/compose/docker-compose.yml << 'EOF'\n\n  redpanda:\n    image: redpandadata/redpanda:latest\n    container_name: lf-redpanda\n    command:\n      - redpanda start\n      - --smp 1\n      - --overprovisioned\n      - --kafka-addr PLAINTEXT://0.0.0.0:29092,OUTSIDE://0.0.0.0:9092\n      - --advertise-kafka-addr PLAINTEXT://redpanda:29092,OUTSIDE://localhost:9092\n    ports: [\"9092:9092\", \"9644:9644\"]\n    healthcheck:\n      test: [\"CMD-SHELL\", \"rpk cluster health | grep -q 'Healthy:.*true'\"]\n      interval: 5s\n      retries: 20\nEOF"
+        },
+        {
+          "label": "Start it and check it is healthy",
+          "kind": "shell",
+          "body": "docker compose -f infra/compose/docker-compose.yml up -d redpanda\ndocker exec -it lf-redpanda rpk cluster health"
+        },
+        {
+          "label": "Create the topic with three partitions",
+          "kind": "shell",
+          "body": "docker exec -it lf-redpanda rpk topic create wallet-hold-events -p 3"
+        }
+      ],
+      "check": {
+        "run": "docker exec -it lf-redpanda rpk topic list",
+        "expect": "wallet-hold-events, 3 partitions."
+      }
+    },
+    {
+      "key": "create-notification-service-third-service",
+      "do": "Create notification-service — a third service that consumes and owns no data",
+      "why": "A consumer that owns nothing is the simplest possible listener, so nothing distracts from the messaging itself.",
+      "how": "Same copy-and-rename procedure as step 04, then strip it down. It needs no database yet — that arrives in step 11 when it has to remember what it has already processed. Remember to add it to <code>&lt;modules&gt;</code> in the root pom.",
+      "blocks": [
+        {
+          "label": "Scaffold it",
+          "kind": "shell",
+          "body": "cp -r services/account-service services/notification-service\ncd services/notification-service\nmv src/main/java/io/ledgerflow/account src/main/java/io/ledgerflow/notification\nmv src/test/java/io/ledgerflow/account src/test/java/io/ledgerflow/notification\ngrep -rl 'account\\|Account' src pom.xml \\\n  | xargs sed -i 's/io\\.ledgerflow\\.account/io.ledgerflow.notification/g; s/Account/Notification/g; s/account-service/notification-service/g; s/account/notification/g'\nfor f in $(find src -name 'Account*.java'); do mv \"$f\" \"$(echo $f | sed 's/Account/Notification/')\"; done\n\n# it owns nothing yet: no tables, no web layer\nrm -rf src/main/java/io/ledgerflow/notification/adapter/in/web \\\n       src/main/java/io/ledgerflow/notification/adapter/out/persistence \\\n       src/main/java/io/ledgerflow/notification/application \\\n       src/main/java/io/ledgerflow/notification/domain \\\n       src/main/resources/db src/test/java/io/ledgerflow/notification/adapter\ncd ../.."
+        },
+        {
+          "label": "Add it to the root pom",
+          "kind": "paste",
+          "body": "<modules>\n  <module>libs/ledgerflow-events</module>\n  <module>services/account-service</module>\n  <module>services/ledger-service</module>\n  <module>services/notification-service</module>\n</modules>"
+        },
+        {
+          "label": "services/notification-service/src/main/resources/application.yml",
+          "kind": "file",
+          "body": "cat > services/notification-service/src/main/resources/application.yml << 'EOF'\nserver:\n  port: 8082\nspring:\n  application:\n    name: notification-service\n  kafka:\n    bootstrap-servers: localhost:9092\n    consumer:\n      group-id: notification-service\n      auto-offset-reset: earliest\n      properties:\n        spring.json.trusted.packages: \"io.ledgerflow.*\"\n  autoconfigure:\n    exclude:                    # no database in this service yet\n      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration\nlogging:\n  level:\n    io.ledgerflow: DEBUG\nEOF"
+        }
+      ]
+    },
+    {
+      "key": "add-kafka-starter-both-services",
+      "do": "Add the Kafka starter to both services",
+      "why": "One dependency gives you the template for producing and the listener annotation for consuming.",
+      "how": "Boot 4 ships a dedicated Kafka starter. Add it to ledger (which will publish) and notification (which will consume).",
+      "blocks": [
+        {
+          "label": "services/ledger-service/pom.xml and services/notification-service/pom.xml",
+          "kind": "paste",
+          "body": "<dependency>\n  <groupId>org.springframework.boot</groupId>\n  <artifactId>spring-boot-starter-kafka</artifactId>\n</dependency>"
+        },
+        {
+          "label": "services/ledger-service — Kafka config",
+          "kind": "paste",
+          "body": "spring:\n  kafka:\n    bootstrap-servers: localhost:9092\n    producer:\n      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer"
+        }
+      ]
+    },
+    {
+      "key": "publish-fundsheld-object-after-hold",
+      "do": "Publish a FundsHeld object after a hold succeeds",
+      "why": "The whole point of the event: ledger tells the world, without knowing or caring who is listening.",
+      "how": "Note exactly where the send happens — <b>after</b> the transaction that wrote the hold. That ordering is a bug, and step 10 is entirely about it. Leave it as it is for now, and write yourself a note.",
+      "blocks": [
+        {
+          "label": "ledger: domain/event/FundsHeld.java — plain object, for now",
+          "kind": "file",
+          "body": "package io.ledgerflow.ledger.domain.event;\n\nimport java.time.Instant;\nimport java.util.List;\nimport java.util.UUID;\n\n/** Past tense: this states a fact that has already happened. */\npublic record FundsHeld(UUID holdId, UUID accountId, List<String> wallets, Instant expiresAt) {}"
+        },
+        {
+          "label": "ledger: adapter/out/messaging/HoldEventPublisher.java",
+          "kind": "file",
+          "body": "package io.ledgerflow.ledger.adapter.out.messaging;\n\nimport io.ledgerflow.ledger.domain.event.FundsHeld;\nimport org.springframework.kafka.core.KafkaTemplate;\nimport org.springframework.stereotype.Component;\n\n@Component\npublic class HoldEventPublisher {\n\n    static final String TOPIC = \"wallet-hold-events\";\n\n    private final KafkaTemplate<String, Object> kafka;\n\n    HoldEventPublisher(KafkaTemplate<String, Object> kafka) { this.kafka = kafka; }\n\n    public void publish(FundsHeld event) {\n        kafka.send(TOPIC, event.holdId().toString(), event);\n    }\n}"
+        },
+        {
+          "label": "ledger: call it from the controller, after the transaction commits",
+          "kind": "paste",
+          "body": "// adapter/in/web/HoldController.java\n@PostMapping\n@ResponseStatus(HttpStatus.CREATED)\nList<FundsHold> place(@Valid @RequestBody HoldRequest req) {\n    var holds = placeHold.place(req.accountId(), req.wallets());   // transaction commits here\n\n    // ...and only then do we publish. Two systems, two writes, no atomicity.\n    // This is a real bug. Step 10 reproduces it and fixes it. Leave it for now.\n    publisher.publish(new FundsHeld(\n            holds.getFirst().id(), req.accountId(), req.wallets(), holds.getFirst().expiresAt()));\n\n    return holds;\n}"
+        }
+      ]
+    },
+    {
+      "key": "consume-notification-service-log",
+      "do": "Consume it in notification-service and log it",
+      "why": "A log line in a different process, caused by a request you never sent to it, is the whole idea in one observation.",
+      "how": "<code>@KafkaListener</code> subscribes the method to the topic. Because notification uses its own <code>group-id</code>, it gets its own copy of every message regardless of who else is listening.",
+      "blocks": [
+        {
+          "label": "notification: adapter/in/messaging/FundsHoldListener.java",
+          "kind": "file",
+          "body": "package io.ledgerflow.notification.adapter.in.messaging;\n\nimport org.slf4j.Logger;\nimport org.slf4j.LoggerFactory;\nimport org.springframework.kafka.annotation.KafkaListener;\nimport org.springframework.stereotype.Component;\n\nimport java.time.Instant;\nimport java.util.List;\nimport java.util.UUID;\n\n@Component\nclass FundsHoldListener {\n\n    private static final Logger log = LoggerFactory.getLogger(FundsHoldListener.class);\n\n    record FundsHeld(UUID holdId, UUID accountId, List<String> wallets, Instant expiresAt) {}\n\n    @KafkaListener(topics = \"wallet-hold-events\")\n    void onFundsHeld(FundsHeld event) {\n        log.info(\"would email the customer about hold {} ({} wallets)\",\n                 event.holdId(), event.wallets().size());\n    }\n}"
+        },
+        {
+          "label": "Run all three services, each in its own terminal",
+          "kind": "shell",
+          "body": "./mvnw -pl services/account-service      spring-boot:run     # 8080\n./mvnw -pl services/ledger-service    spring-boot:run     # 8081\n./mvnw -pl services/notification-service spring-boot:run     # 8082"
+        },
+        {
+          "label": "Place a hold and watch notification's terminal",
+          "kind": "shell",
+          "body": "curl -s -X POST localhost:8081/api/v1/holds \\\n  -H 'content-type: application/json' \\\n  -d '{\"accountId\":\"11111111-1111-1111-1111-111111111111\",\"wallets\":[\"A-12\"]}' | jq"
+        },
+        {
+          "label": "Or watch the raw topic from the broker",
+          "kind": "shell",
+          "body": "docker exec -it lf-redpanda rpk topic consume wallet-hold-events"
+        }
+      ],
+      "check": {
+        "run": "# watch the notification-service terminal",
+        "expect": "A 'would email the customer' line appears within a second of the curl."
+      }
+    },
+    {
+      "key": "write-down-what-wrong-what",
+      "do": "Write down what is wrong with what you just built",
+      "why": "The next four steps each fix one of these. Predicting them yourself is worth more than being told.",
+      "how": "Genuinely try to list the problems before reading the answers. Then keep this file — it is the map of stage C and D.",
+      "blocks": [
+        {
+          "label": "docs/events/README.md",
+          "kind": "file",
+          "body": "mkdir -p docs/events && cat > docs/events/README.md << 'EOF'\n# What is wrong with our first event (written at step 07)\n\n1. Published AFTER the transaction committed. If the broker is down, the hold\n   exists and nobody will ever hear about it.            -> fixed in step 10\n2. The event class is defined twice, once in each service. They will drift.\n                                                          -> fixed in step 08\n3. The topic name says nothing about who owns it or which version it is.\n                                                          -> fixed in step 08\n4. No eventId, so a consumer cannot tell a redelivery from a new event.\n                                                          -> fixed in steps 08, 11\n5. Consumer offsets are auto-committed, so a crash mid-processing loses work.\n                                                          -> fixed in step 09\n6. A message the consumer cannot handle will be retried forever.\n                                                          -> fixed in step 09\nEOF"
+        }
+      ]
+    }
+  ],
+  "proof": {
+    "run": "curl -s -X POST localhost:8081/api/v1/holds \\\n  -H 'content-type: application/json' \\\n  -d '{\"accountId\":\"11111111-1111-1111-1111-111111111111\",\"wallets\":[\"A-12\"]}'\n# then watch the notification-service terminal",
+    "expect": "A log line in notification-service, with no HTTP call between the two services.",
+    "note": "An event crossed a process boundary. It is not yet reliable, versioned, or replayable — and you have a list of exactly why."
+  },
+  "doneWhen": "A hold in one service causes a log line in another, and you have written down the six things wrong with it.",
+  "services": [
+    "account-service",
+    "ledger-service",
+    "notification-service"
+  ],
+  "infra": [
+    "postgres",
+    "redpanda"
+  ],
+  "newThisStep": "notification-service",
+  "lessons": [
+    {
+      "id": "07-find-usages",
+      "title": "Find Usages (Alt+F7)",
+      "teach": "You just published an event type. <b>Alt+F7</b> on it answers \"who consumes this?\" across every module — the question you will ask constantly from here on.",
+      "trigger": {
+        "type": "action",
+        "id": "FindUsages"
+      },
+      "fallbackTip": "grep -r for the event class name."
+    }
+  ]
+}

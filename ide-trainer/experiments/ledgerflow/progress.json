@@ -1,0 +1,244 @@
+{
+  "progress": {
+    "updatedAt": "2026-08-30T20:10:59.359Z",
+    "summary": {
+      "tasksDone": 17,
+      "tasksTotal": 106,
+      "percent": 16,
+      "stepsComplete": 2,
+      "stepsTotal": 21,
+      "currentStep": "03",
+      "currentStepTitle": "Production shape"
+    },
+    "steps": [
+      {
+        "id": "01",
+        "title": "A service that runs",
+        "done": 6,
+        "total": 6,
+        "complete": true,
+        "tasks": [
+          "generate-project-from-start-spring",
+          "read-pom-xml-confirm-single",
+          "create-package-folders",
+          "write-account-wallet-as-plain",
+          "serve-get-api-v1-accounts",
+          "run-curl"
+        ]
+      },
+      {
+        "id": "02",
+        "title": "Give it a real database",
+        "done": 7,
+        "total": 7,
+        "complete": true,
+        "tasks": [
+          "start-single-postgres-17-container",
+          "add-jpa-postgres-flyway-testcontainers",
+          "point-app-at-postgres-set",
+          "write-v1-baseline-sql-v2",
+          "add-jpa-entities-repository-under",
+          "define-accountrepository-port-make-controller",
+          "write-first-testcontainers-test"
+        ]
+      },
+      {
+        "id": "03",
+        "title": "Production shape",
+        "done": 4,
+        "total": 6,
+        "complete": false,
+        "tasks": [
+          "return-rfc-9457-problem-details",
+          "move-configuration-onto-validated-configurationp",
+          "write-domain-unit-test-no",
+          "add-webmvctest-slice-test-controller"
+        ]
+      },
+      {
+        "id": "04",
+        "title": "Two services, and the pom.xml problem",
+        "done": 0,
+        "total": 6,
+        "complete": false,
+        "tasks": []
+      },
+      {
+        "id": "05",
+        "title": "Make them talk",
+        "done": 0,
+        "total": 4,
+        "complete": false,
+        "tasks": []
+      },
+      {
+        "id": "06",
+        "title": "Break it on purpose",
+        "done": 0,
+        "total": 6,
+        "complete": false,
+        "tasks": []
+      },
+      {
+        "id": "07",
+        "title": "Your first event",
+        "done": 0,
+        "total": 6,
+        "complete": false,
+        "tasks": []
+      },
+      {
+        "id": "08",
+        "title": "Turn it into a contract",
+        "done": 0,
+        "total": 5,
+        "complete": false,
+        "tasks": []
+      },
+      {
+        "id": "09",
+        "title": "Consumers that survive",
+        "done": 0,
+        "total": 4,
+        "complete": false,
+        "tasks": []
+      },
+      {
+        "id": "10",
+        "title": "The dual-write bug",
+        "done": 0,
+        "total": 7,
+        "complete": false,
+        "tasks": []
+      },
+      {
+        "id": "11",
+        "title": "At-least-once means duplicates",
+        "done": 0,
+        "total": 5,
+        "complete": false,
+        "tasks": []
+      },
+      {
+        "id": "12",
+        "title": "A workflow across services",
+        "done": 0,
+        "total": 8,
+        "complete": false,
+        "tasks": []
+      },
+      {
+        "id": "13",
+        "title": "Read models and CQRS",
+        "done": 0,
+        "total": 3,
+        "complete": false,
+        "tasks": []
+      },
+      {
+        "id": "14",
+        "title": "Observability",
+        "done": 0,
+        "total": 4,
+        "complete": false,
+        "tasks": []
+      },
+      {
+        "id": "15",
+        "title": "Make it fast, and prove it",
+        "done": 0,
+        "total": 5,
+        "complete": false,
+        "tasks": []
+      },
+      {
+        "id": "16",
+        "title": "A model that never touches the ledger",
+        "done": 0,
+        "total": 5,
+        "complete": false,
+        "tasks": []
+      },
+      {
+        "id": "17",
+        "title": "The repository someone actually reads",
+        "done": 0,
+        "total": 5,
+        "complete": false,
+        "tasks": []
+      },
+      {
+        "id": "18",
+        "title": "Partitions decide everything",
+        "done": 0,
+        "total": 4,
+        "complete": false,
+        "tasks": []
+      },
+      {
+        "id": "19",
+        "title": "The group, and the cost of changing it",
+        "done": 0,
+        "total": 3,
+        "complete": false,
+        "tasks": []
+      },
+      {
+        "id": "20",
+        "title": "Topics that forget, topics that remember",
+        "done": 0,
+        "total": 4,
+        "complete": false,
+        "tasks": []
+      },
+      {
+        "id": "21",
+        "title": "Kill a broker",
+        "done": 0,
+        "total": 3,
+        "complete": false,
+        "tasks": []
+      }
+    ],
+    "plan": {
+      "extrasDone": [],
+      "milestones": [
+        {
+          "id": "m1",
+          "name": "Essentials",
+          "done": 17,
+          "total": 50,
+          "complete": false
+        },
+        {
+          "id": "m2",
+          "name": "Advanced",
+          "done": 0,
+          "total": 27,
+          "complete": false
+        },
+        {
+          "id": "m3",
+          "name": "Pro",
+          "done": 0,
+          "total": 18,
+          "complete": false
+        },
+        {
+          "id": "m4",
+          "name": "Broker internals",
+          "done": 0,
+          "total": 14,
+          "complete": false
+        }
+      ]
+    }
+  },
+  "ui": {
+    "theme": "light",
+    "open": [
+      "02"
+    ],
+    "showLockedReference": false
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "id": "02",
+  "title": "pipeline running",
+  "goal": "O2 Live application pipeline",
+  "tasks": [
+    {
+      "key": "tracker-built-25-companies-seeded",
+      "do": "Tracker built (25 companies seeded: FAANG/Big Tech + Spring shops, sponsor tagged)"
+    },
+    {
+      "key": "send-25-35-employee-alumni",
+      "do": "Send 25–35 employee/alumni outreaches [weekly]"
+    },
+    {
+      "key": "submit-6-8-tailored-applications",
+      "do": "Submit 6–8 tailored applications [weekly]"
+    },
+    {
+      "key": "chase-day-3-day-7",
+      "do": "Chase Day-3 / Day-7 follow-ups on open threads [weekly]"
+    },
+    {
+      "key": "15-min-careers-page-sweep",
+      "do": "15-min careers-page sweep across tracker companies [weekly]"
+    }
+  ]
+}

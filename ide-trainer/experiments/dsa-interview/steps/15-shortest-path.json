@@ -1,0 +1,43 @@
+{
+  "id": "15",
+  "title": "shortest path",
+  "goal": "P5.3 BFS unweighted, Dijkstra weighted, Bellman-Ford with hop limits",
+  "tasks": [
+    {
+      "key": "pick-bfs-dijkstra-bellman-ford",
+      "do": "Pick BFS, Dijkstra, or Bellman-Ford from the edge weights and constraints, and say why"
+    },
+    {
+      "key": "write-dijkstra-priority-queue-stale",
+      "do": "Write Dijkstra with a priority queue and the stale-entry skip"
+    },
+    {
+      "key": "explain-why-settling-valid-only",
+      "do": "Explain why settling is valid only with non-negative weights"
+    },
+    {
+      "key": "use-bellman-ford-rounds-when",
+      "do": "Use Bellman-Ford rounds when there is a hop limit, relaxing from a snapshot"
+    },
+    {
+      "key": "guard-against-max-value-weight",
+      "do": "Guard against `MAX_VALUE + weight` overflow"
+    },
+    {
+      "key": "solve-all-three-exercises-inside",
+      "do": "Solve all three exercises inside their target times"
+    },
+    {
+      "key": "name-algorithm-its-complexity-before",
+      "do": "Name the algorithm and its complexity before coding"
+    },
+    {
+      "key": "say-what-settled-means-when",
+      "do": "Say what \"settled\" means when you write the pop"
+    },
+    {
+      "key": "state-how-unreachable-nodes-are",
+      "do": "State how unreachable nodes are reported"
+    }
+  ]
+}

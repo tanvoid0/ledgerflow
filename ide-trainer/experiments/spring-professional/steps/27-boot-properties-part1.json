@@ -1,0 +1,75 @@
+{
+  "id": "27",
+  "title": "boot properties part1",
+  "goal": "6.2.1a Defining & loading properties",
+  "tasks": [
+    {
+      "key": "name-locations-boot-searches-application",
+      "do": "Name the locations Boot searches for `application.properties` / `application.yml`."
+    },
+    {
+      "key": "choose-between-value-configurationproperties-giv",
+      "do": "Choose between `@Value` and `@ConfigurationProperties` for a given case, with reasons."
+    },
+    {
+      "key": "register-configurationproperties-class-three-dif",
+      "do": "Register a `@ConfigurationProperties` class three different ways."
+    },
+    {
+      "key": "bind-record-immutably-via-constructor",
+      "do": "Bind a `record` immutably via constructor binding."
+    },
+    {
+      "key": "list-relaxed-binding-forms-name",
+      "do": "List the relaxed-binding forms and name the canonical one."
+    },
+    {
+      "key": "bind-duration-datasize-enum-list",
+      "do": "Bind `Duration`, `DataSize`, an enum, a `List`, and a `Map`."
+    },
+    {
+      "key": "add-jsr-380-validation-confirm",
+      "do": "Add JSR-380 validation and confirm it fails startup, not runtime."
+    },
+    {
+      "key": "supply-defaults-defaultvalue-including-nested",
+      "do": "Supply defaults with `@DefaultValue`, including for a nested object."
+    },
+    {
+      "key": "write-same-configuration-properties-yaml",
+      "do": "Write the same configuration in properties and YAML form."
+    },
+    {
+      "key": "generate-configuration-metadata-ide-completion",
+      "do": "Generate configuration metadata for IDE completion."
+    },
+    {
+      "key": "explain-why-validation-strongest-argument",
+      "do": "Explain why validation is the strongest argument for typed binding."
+    },
+    {
+      "key": "configurationproperties-alone-registers-nothing",
+      "do": "`@ConfigurationProperties` alone registers nothing — it needs enabling or a stereotype."
+    },
+    {
+      "key": "validation-needs-validated-on-class",
+      "do": "Validation needs `@Validated` on the class, not just field annotations."
+    },
+    {
+      "key": "value-placeholders-are-looked-up",
+      "do": "`@Value` placeholders are looked up literally — no relaxed binding on the key you write."
+    },
+    {
+      "key": "setter-bound-class-no-setters",
+      "do": "A setter-bound class with no setters binds nothing, silently."
+    },
+    {
+      "key": "record-always-constructor-bound",
+      "do": "A `record` is always constructor-bound."
+    },
+    {
+      "key": "propertysource-still-cannot-read-yaml",
+      "do": "`@PropertySource` still cannot read YAML."
+    }
+  ]
+}

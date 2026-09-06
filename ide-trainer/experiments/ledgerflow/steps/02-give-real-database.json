@@ -1,0 +1,221 @@
+{
+  "id": "02",
+  "title": "Give it a real database",
+  "estimate": "1 day",
+  "goal": "Replace the hardcoded list with PostgreSQL. One database container, a versioned schema, and a test that runs against a real Postgres rather than an in-memory imitation.",
+  "startWith": "Step 01 finished: the app runs and GET /api/v1/accounts returns the hardcoded account. Docker Desktop running.",
+  "newIdeas": [
+    {
+      "term": "Migration (Flyway)",
+      "plain": "A numbered SQL file, e.g. <code>V1__baseline.sql</code>, that Flyway runs once and then records in a table called <code>flyway_schema_history</code>. Your schema becomes a sequence of small, reviewable, replayable changes instead of a thing someone changed by hand."
+    },
+    {
+      "term": "ddl-auto: validate",
+      "plain": "Tells Hibernate: <b>check</b> that the tables match my entities and fail loudly if they do not. The alternative, <code>update</code>, lets Hibernate silently alter your schema — convenient locally and catastrophic in production. Use <code>validate</code> from day one so the two never diverge."
+    },
+    {
+      "term": "Entity vs domain record",
+      "plain": "An <code>@Entity</code> is a mutable class Hibernate manages, mirroring a table. Your domain record is an immutable business type. You keep both and map between them, so a schema change does not ripple into your business rules and Hibernate's requirements (no-arg constructor, non-final fields) do not infect them."
+    },
+    {
+      "term": "Port and adapter",
+      "plain": "A <b>port</b> is an interface your application defines for something it needs, e.g. <code>AccountRepository</code>. An <b>adapter</b> is an implementation of it that knows a specific technology, e.g. a JPA one. The application depends on the interface, so the technology can be swapped or faked in tests."
+    },
+    {
+      "term": "Testcontainers",
+      "plain": "A library that starts a real Docker container for the duration of your test and throws it away afterwards. You test against actual PostgreSQL — real types, real constraints — instead of H2, which quietly behaves differently."
+    },
+    {
+      "term": "@ServiceConnection",
+      "plain": "A Spring Boot annotation on a Testcontainers container that points <code>spring.datasource.*</code> at that container automatically. Without it you hand-wire the JDBC URL with <code>@DynamicPropertySource</code>."
+    }
+  ],
+  "tasks": [
+    {
+      "key": "start-single-postgres-17-container",
+      "do": "Start a single Postgres 17 container with Docker Compose",
+      "why": "You want a database that behaves like the production one, and that you can throw away and recreate in ten seconds.",
+      "how": "Create <code>infra/compose/docker-compose.yml</code> one level above the service, so later services share it. The init script creates the databases the later steps need — writing them now saves editing this file five more times. One database per service is a rule this project takes seriously: services never read each other's tables. The named <code>pgdata</code> volume matters: Postgres only creates <code>POSTGRES_USER</code> and runs the init script when the data directory is empty, so if you ever change the credentials or edit the init script you must <code>down -v</code> first. Without a named volume the anonymous one survives and you get <code>role \"ledgerflow\" does not exist</code> with no obvious cause.",
+      "blocks": [
+        {
+          "label": "infra/compose/docker-compose.yml — run from inside account-service/",
+          "kind": "file",
+          "body": "mkdir -p ../infra/compose && cat > ../infra/compose/docker-compose.yml << 'EOF'\nservices:\n  postgres:\n    image: postgres:17\n    container_name: lf-postgres\n    environment:\n      POSTGRES_USER: ledgerflow\n      POSTGRES_PASSWORD: ledgerflow\n      POSTGRES_DB: account\n    ports: [\"5432:5432\"]\n    volumes:\n      - \"./init-databases.sh:/docker-entrypoint-initdb.d/init.sh\"\n      - \"pgdata:/var/lib/postgresql/data\"\n    healthcheck:\n      test: [\"CMD-SHELL\", \"pg_isready -U ledgerflow\"]\n      interval: 5s\n      retries: 10\n\nvolumes:\n  pgdata:\nEOF"
+        },
+        {
+          "label": "infra/compose/init-databases.sh — one database per service, created up front",
+          "kind": "file",
+          "body": "cat > ../infra/compose/init-databases.sh << 'EOF'\n#!/bin/bash\n# Runs once, the first time the volume is created.\n# account already exists (POSTGRES_DB); these are for later steps.\nset -e\nfor db in ledger notification payment issuer settlement balance risk; do\n  psql -v ON_ERROR_STOP=1 -U \"$POSTGRES_USER\" -c \"CREATE DATABASE \\\"$db\\\";\"\ndone\nEOF\nchmod +x ../infra/compose/init-databases.sh"
+        },
+        {
+          "label": "Start it",
+          "kind": "shell",
+          "body": "docker compose -f ../infra/compose/docker-compose.yml up -d"
+        }
+      ],
+      "check": {
+        "run": "docker exec -it lf-postgres psql -U ledgerflow -l",
+        "expect": "A list including account, ledger, payment, issuer, settlement, balance, notification, risk."
+      }
+    },
+    {
+      "key": "add-jpa-postgres-flyway-testcontainers",
+      "do": "Add the JPA, Postgres, Flyway and Testcontainers dependencies",
+      "why": "Four libraries, each with one job: talk to the database, drive Postgres, version the schema, and start a throwaway database in tests.",
+      "how": "Paste these inside the existing <code>&lt;dependencies&gt;</code> block in <code>pom.xml</code>. No version numbers — the Boot parent supplies them. <code>flyway-database-postgresql</code> is separate from <code>flyway-core</code> and is easy to forget; without it Flyway starts and then refuses to recognise Postgres. Watch the Testcontainers artifactIds: Boot 4 pins Testcontainers 2.0, which renamed every module from <code>postgresql</code> to <code>testcontainers-postgresql</code>. Paste the 1.x name and the BOM has no version for it, so Maven fails the build with <code>'dependencies.dependency.version' ... is missing</code> before it compiles anything.",
+      "blocks": [
+        {
+          "label": "pom.xml — paste inside &lt;dependencies&gt;",
+          "kind": "paste",
+          "body": "<dependency>\n  <groupId>org.springframework.boot</groupId>\n  <artifactId>spring-boot-starter-data-jpa</artifactId>\n</dependency>\n<dependency>\n  <groupId>org.flywaydb</groupId>\n  <artifactId>flyway-core</artifactId>\n</dependency>\n<dependency>\n  <groupId>org.flywaydb</groupId>\n  <artifactId>flyway-database-postgresql</artifactId>\n</dependency>\n<dependency>\n  <groupId>org.postgresql</groupId>\n  <artifactId>postgresql</artifactId>\n  <scope>runtime</scope>\n</dependency>\n\n<!-- test only -->\n<dependency>\n  <groupId>org.springframework.boot</groupId>\n  <artifactId>spring-boot-testcontainers</artifactId>\n  <scope>test</scope>\n</dependency>\n<dependency>\n  <groupId>org.testcontainers</groupId>\n  <artifactId>testcontainers-postgresql</artifactId>\n  <scope>test</scope>\n</dependency>\n<dependency>\n  <groupId>org.testcontainers</groupId>\n  <artifactId>testcontainers-junit-jupiter</artifactId>\n  <scope>test</scope>\n</dependency>"
+        }
+      ],
+      "check": {
+        "run": "./mvnw -q dependency:tree | grep -E 'flyway|postgresql|testcontainers'",
+        "expect": "All four appear."
+      }
+    },
+    {
+      "key": "point-app-at-postgres-set",
+      "do": "Point the app at Postgres and set ddl-auto to validate",
+      "why": "Configuration in one file, in a format you will re-use in every service that follows.",
+      "how": "Delete the generated <code>application.properties</code> and use YAML instead — nested keys are easier to read once there are twenty of them. <code>open-in-view: false</code> turns off a Spring default that keeps a database session open for the whole HTTP request; leaving it on hides lazy-loading bugs until they hit production.",
+      "blocks": [
+        {
+          "label": "src/main/resources/application.yml (delete application.properties)",
+          "kind": "file",
+          "body": "rm -f src/main/resources/application.properties\ncat > src/main/resources/application.yml << 'EOF'\nspring:\n  application:\n    name: account-service\n  datasource:\n    url: jdbc:postgresql://localhost:5432/account\n    username: ledgerflow\n    password: ledgerflow\n  jpa:\n    hibernate:\n      ddl-auto: validate      # never 'update'. not even locally.\n    open-in-view: false\n  flyway:\n    enabled: true\nEOF"
+        }
+      ]
+    },
+    {
+      "key": "write-v1-baseline-sql-v2",
+      "do": "Write V1__baseline.sql and V2__seed.sql",
+      "why": "The schema is now code: reviewable, versioned, and identical on every machine.",
+      "how": "Flyway looks in <code>src/main/resources/db/migration</code> and runs anything it has not run before, in version order. <b>Never edit a migration that has already run</b> — Flyway stores a checksum and will refuse to start. To change something, add <code>V3__…</code>. The seed data matters: the account id below is the one every curl command in this project uses.",
+      "blocks": [
+        {
+          "label": "src/main/resources/db/migration/V1__baseline.sql",
+          "kind": "file",
+          "body": "mkdir -p src/main/resources/db/migration && cat > src/main/resources/db/migration/V1__baseline.sql << 'EOF'\nCREATE TABLE accounts (\n    id   UUID PRIMARY KEY,\n    name VARCHAR(200) NOT NULL\n);\n\nCREATE TABLE wallets (\n    id       UUID PRIMARY KEY,\n    account_id UUID NOT NULL REFERENCES accounts(id),\n    label    VARCHAR(16) NOT NULL,\n    UNIQUE (account_id, label)\n);\nEOF"
+        },
+        {
+          "label": "src/main/resources/db/migration/V2__seed.sql — do this or later steps have nothing to book",
+          "kind": "file",
+          "body": "cat > src/main/resources/db/migration/V2__seed.sql << 'EOF'\nINSERT INTO accounts (id, name) VALUES\n  ('11111111-1111-1111-1111-111111111111', 'Demo Arena');\n\nINSERT INTO wallets (id, account_id, label)\nSELECT gen_random_uuid(), '11111111-1111-1111-1111-111111111111', 'A-' || i\nFROM generate_series(1, 20) AS i;\nEOF"
+        }
+      ],
+      "check": {
+        "run": "docker exec -it lf-postgres psql -U ledgerflow -d account -c 'SELECT version, description, success FROM flyway_schema_history;'",
+        "expect": "Two rows, both success = t. Run the app once first — Flyway applies migrations at startup."
+      }
+    },
+    {
+      "key": "add-jpa-entities-repository-under",
+      "do": "Add JPA entities and a repository under adapter/out/persistence",
+      "why": "This is where the database lives. Everything Hibernate needs stays in this folder and nowhere else.",
+      "how": "Three files: an entity that mirrors the table, a Spring Data interface, and an adapter that converts entities into your domain records. The entity has a no-arg constructor and mutable fields because Hibernate requires them — which is exactly why you do not want your business types to be entities.",
+      "blocks": [
+        {
+          "label": "adapter/out/persistence/AccountEntity.java",
+          "kind": "file",
+          "body": "package io.ledgerflow.account.adapter.out.persistence;\n\nimport jakarta.persistence.*;\nimport java.util.ArrayList;\nimport java.util.List;\nimport java.util.UUID;\n\n@Entity\n@Table(name = \"accounts\")\nclass AccountEntity {\n\n    @Id\n    private UUID id;\n\n    @Column(nullable = false)\n    private String name;\n\n    @OneToMany(mappedBy = \"account\", fetch = FetchType.EAGER)\n    private List<WalletEntity> wallets = new ArrayList<>();\n\n    protected AccountEntity() { }   // Hibernate needs this\n\n    UUID id()               { return id; }\n    String name()           { return name; }\n    List<WalletEntity> wallets(){ return wallets; }\n}"
+        },
+        {
+          "label": "adapter/out/persistence/WalletEntity.java",
+          "kind": "file",
+          "body": "package io.ledgerflow.account.adapter.out.persistence;\n\nimport jakarta.persistence.*;\nimport java.util.UUID;\n\n@Entity\n@Table(name = \"wallets\")\nclass WalletEntity {\n\n    @Id\n    private UUID id;\n\n    @ManyToOne(fetch = FetchType.LAZY)\n    @JoinColumn(name = \"account_id\", nullable = false)\n    private AccountEntity account;\n\n    @Column(nullable = false)\n    private String label;\n\n    protected WalletEntity() { }\n\n    UUID id()      { return id; }\n    String label() { return label; }\n}"
+        },
+        {
+          "label": "adapter/out/persistence/JpaAccountRepository.java — Spring Data writes the implementation",
+          "kind": "file",
+          "body": "package io.ledgerflow.account.adapter.out.persistence;\n\nimport org.springframework.data.jpa.repository.JpaRepository;\nimport java.util.UUID;\n\ninterface JpaAccountRepository extends JpaRepository<AccountEntity, UUID> { }"
+        },
+        {
+          "label": "adapter/out/persistence/AccountRepositoryAdapter.java — entity in, domain record out",
+          "kind": "file",
+          "body": "package io.ledgerflow.account.adapter.out.persistence;\n\nimport io.ledgerflow.account.application.AccountRepository;\nimport io.ledgerflow.account.domain.model.Wallet;\nimport io.ledgerflow.account.domain.model.Account;\nimport org.springframework.stereotype.Component;\n\nimport java.util.List;\nimport java.util.Optional;\nimport java.util.UUID;\n\n@Component\nclass AccountRepositoryAdapter implements AccountRepository {\n\n    private final JpaAccountRepository jpa;\n\n    AccountRepositoryAdapter(JpaAccountRepository jpa) { this.jpa = jpa; }\n\n    @Override\n    public List<Account> findAll() {\n        return jpa.findAll().stream().map(AccountRepositoryAdapter::toDomain).toList();\n    }\n\n    @Override\n    public Optional<Account> findById(UUID id) {\n        return jpa.findById(id).map(AccountRepositoryAdapter::toDomain);\n    }\n\n    private static Account toDomain(AccountEntity e) {\n        return new Account(e.id(), e.name(),\n                e.wallets().stream().map(s -> new Wallet(s.id(), s.label())).toList());\n    }\n}"
+        }
+      ]
+    },
+    {
+      "key": "define-accountrepository-port-make-controller",
+      "do": "Define the AccountRepository port and make the controller use it",
+      "why": "The controller should ask for accounts without knowing whether they come from Postgres, a cache, or a test double.",
+      "how": "The interface lives in <code>application/</code> — the layer that owns the use cases — and the JPA class in <code>adapter/out/persistence</code> implements it. That direction matters: the application defines what it needs, the adapter satisfies it. Notice your domain records did not change at all when the database arrived.",
+      "blocks": [
+        {
+          "label": "application/AccountRepository.java — the port",
+          "kind": "file",
+          "body": "package io.ledgerflow.account.application;\n\nimport io.ledgerflow.account.domain.model.Account;\n\nimport java.util.List;\nimport java.util.Optional;\nimport java.util.UUID;\n\npublic interface AccountRepository {\n    List<Account> findAll();\n    Optional<Account> findById(UUID id);\n}"
+        },
+        {
+          "label": "adapter/in/web/AccountController.java — replaces the hardcoded version",
+          "kind": "file",
+          "body": "package io.ledgerflow.account.adapter.in.web;\n\nimport io.ledgerflow.account.application.AccountRepository;\nimport io.ledgerflow.account.domain.model.Account;\nimport org.springframework.http.ResponseEntity;\nimport org.springframework.web.bind.annotation.*;\n\nimport java.util.List;\nimport java.util.UUID;\n\n@RestController\n@RequestMapping(\"/api/v1/accounts\")\npublic class AccountController {\n\n    private final AccountRepository accounts;\n\n    AccountController(AccountRepository accounts) { this.accounts = accounts; }\n\n    @GetMapping\n    public List<Account> all() {\n        return accounts.findAll();\n    }\n\n    @GetMapping(\"/{id}\")\n    public ResponseEntity<Account> byId(@PathVariable UUID id) {\n        return accounts.findById(id)\n                     .map(ResponseEntity::ok)\n                     .orElseGet(() -> ResponseEntity.notFound().build());\n    }\n}"
+        }
+      ],
+      "check": {
+        "run": "./mvnw spring-boot:run\n# then, in another terminal:\ncurl -s localhost:8080/api/v1/accounts | jq '.[0].wallets | length'",
+        "expect": "20 — and the wallet ids are now stable across restarts, because they come from the database."
+      }
+    },
+    {
+      "key": "write-first-testcontainers-test",
+      "do": "Write the first Testcontainers test",
+      "why": "A test that runs against real PostgreSQL catches the things H2 hides: real constraint violations, real types, real SQL.",
+      "how": "<code>@ServiceConnection</code> is the piece that makes this short — it wires <code>spring.datasource.*</code> to the container Spring just started. The first run pulls the postgres:17 image and is slow; later runs are quick. Flyway runs inside the container too, so the test exercises your migrations as well as your code.",
+      "blocks": [
+        {
+          "label": "src/test/java/io/ledgerflow/account/AccountRepositoryIT.java",
+          "kind": "file",
+          "body": "package io.ledgerflow.account;\n\nimport io.ledgerflow.account.application.AccountRepository;\nimport org.junit.jupiter.api.Test;\nimport org.springframework.beans.factory.annotation.Autowired;\nimport org.springframework.boot.test.context.SpringBootTest;\nimport org.springframework.boot.testcontainers.service.connection.ServiceConnection;\nimport org.testcontainers.postgresql.PostgreSQLContainer;\nimport org.testcontainers.junit.jupiter.Container;\nimport org.testcontainers.junit.jupiter.Testcontainers;\n\nimport java.util.UUID;\n\nimport static org.assertj.core.api.Assertions.assertThat;\n\n@Testcontainers\n@SpringBootTest\nclass AccountRepositoryIT {\n\n    @Container\n    @ServiceConnection\n    static PostgreSQLContainer postgres = new PostgreSQLContainer(\"postgres:17\");\n\n    @Autowired AccountRepository accounts;\n\n    @Test\n    void seededAccountIsReadable() {\n        var demo = UUID.fromString(\"11111111-1111-1111-1111-111111111111\");\n\n        var account = accounts.findById(demo).orElseThrow();\n\n        assertThat(account.name()).isEqualTo(\"Demo Arena\");\n        assertThat(account.wallets()).hasSize(20);\n        assertThat(account.hasWallet(\"A-12\")).isTrue();\n    }\n}"
+        },
+        {
+          "label": "Run it — the container starts and stops by itself",
+          "kind": "shell",
+          "body": "./mvnw test"
+        }
+      ],
+      "check": {
+        "run": "./mvnw test",
+        "expect": "Green. Docker shows a postgres container appearing and disappearing during the run — that is the test's own database, unrelated to your Compose one."
+      }
+    }
+  ],
+  "proof": {
+    "run": "docker compose -f ../infra/compose/docker-compose.yml up -d\n./mvnw test\n./mvnw spring-boot:run",
+    "expect": "Tests green, app starts clean, /api/v1/accounts serves rows that came out of Postgres.",
+    "note": "Two databases are in play and that is intentional: Compose runs the one your app uses, Testcontainers starts a separate throwaway one for the tests."
+  },
+  "doneWhen": "Tests spin up a real Postgres and pass, and the app starts clean against Compose with ddl-auto set to validate.",
+  "services": [
+    "account-service"
+  ],
+  "infra": [
+    "postgres"
+  ],
+  "newThisStep": "postgres",
+  "lessons": [
+    {
+      "id": "02-database-tool",
+      "title": "Database tool window",
+      "teach": "Open <b>View → Tool Windows → Database</b> and add your Postgres data source. From then on you inspect tables and run SQL without leaving the IDE — and Flyway migrations get schema-aware completion.",
+      "trigger": {
+        "type": "toolWindow",
+        "id": "Database"
+      },
+      "fallbackTip": "Ultimate only. Community: psql inside the container."
+    },
+    {
+      "id": "02-new-migration",
+      "title": "New file without leaving the keyboard",
+      "teach": "Your first Flyway migration needs an exact name. Select the folder and press <b>Ctrl+Alt+Insert</b> (New → File) rather than reaching for the mouse — and note the IDE will not let you create it twice.",
+      "trigger": {
+        "type": "fileCreate",
+        "id": "*.sql"
+      },
+      "fallbackTip": "touch src/main/resources/db/migration/V1__init.sql"
+    }
+  ]
+}

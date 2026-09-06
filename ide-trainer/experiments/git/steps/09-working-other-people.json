@@ -1,0 +1,102 @@
+{
+  "id": "09",
+  "title": "working with other people",
+  "estimate": "40 min",
+  "goal": "C3 Pull requests, review, and the hygiene that keeps a shared branch usable",
+  "startWith": "A repo with a remote you share, or a fork of a public one.",
+  "newIdeas": [
+    {
+      "term": "upstream vs origin",
+      "plain": "In a fork workflow <code>origin</code> is your fork and <code>upstream</code> is the project."
+    },
+    {
+      "term": "draft PR",
+      "plain": "A pull request open for feedback before it is finished."
+    },
+    {
+      "term": "signed commit",
+      "plain": "A commit with a verifiable author, via an SSH or GPG key."
+    }
+  ],
+  "tasks": [
+    {
+      "key": "set-up-fork-two-remotes",
+      "do": "Set up a fork with two remotes and keep it current",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git remote add upstream https://github.com/org/project.git\ngit fetch upstream\ngit switch main && git rebase upstream/main && git push"
+        }
+      ]
+    },
+    {
+      "key": "open-pull-request-from-command",
+      "do": "Open a pull request from the command line",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git switch -c feat/thing\n# ... commits ...\ngit push -u origin feat/thing\ngh pr create --fill --draft\ngh pr view --web"
+        },
+        {
+          "label": "IntelliJ",
+          "kind": "note",
+          "body": "The <b>Pull Requests</b> tool window (GitHub plugin) lists, reviews and merges PRs in the IDE, inline review comments included."
+        }
+      ]
+    },
+    {
+      "key": "review-someone-else-s-branch",
+      "do": "Review someone else's branch locally",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "gh pr checkout 123\ngit diff main...HEAD\ngit log --oneline main..HEAD"
+        }
+      ]
+    },
+    {
+      "key": "keep-branch-reviewable-while-review",
+      "do": "Keep the branch reviewable while review is happening",
+      "why": "Force-pushing a rebased branch mid-review destroys the reviewer's “what changed since I looked”. Add fixups, squash at the end.",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git commit --fixup=<hash> && git push          # reviewable increments\n# once approved:\ngit rebase -i --autosquash origin/main && git push --force-with-lease"
+        }
+      ]
+    },
+    {
+      "key": "sign-commits",
+      "do": "Sign your commits",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git config --global gpg.format ssh\ngit config --global user.signingkey ~/.ssh/id_ed25519.pub\ngit config --global commit.gpgsign true\ngit log --show-signature -1"
+        }
+      ]
+    }
+  ],
+  "proof": {
+    "run": "git log --oneline -5",
+    "expect": "the commits your PR would contain",
+    "note": "Your branch is one readable change."
+  },
+  "doneWhen": "You can open, update and land a PR without leaving the terminal or the IDE.",
+  "lessons": [
+    {
+      "id": "09-pull-requests",
+      "title": "Pull Requests in the IDE",
+      "teach": "With the GitHub plugin, the <b>Pull Requests</b> tool window lists PRs, checks out a branch in one click, and takes review comments inline on the diff — the review half of step 09 without a browser.",
+      "trigger": {
+        "type": "toolWindow",
+        "id": "Pull Requests"
+      },
+      "fallbackTip": "gh pr list / gh pr checkout <n> / gh pr view --web"
+    }
+  ]
+}

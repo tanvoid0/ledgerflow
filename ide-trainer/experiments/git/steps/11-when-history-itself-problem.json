@@ -1,0 +1,89 @@
+{
+  "id": "11",
+  "title": "when history itself is the problem",
+  "estimate": "45 min",
+  "goal": "D2 Big files, leaked secrets, and rewriting a whole repository",
+  "startWith": "A throwaway clone. Never a first attempt on anything shared.",
+  "newIdeas": [
+    {
+      "term": "git filter-repo",
+      "plain": "The supported tool for bulk history rewriting. <code>filter-branch</code> is deprecated and slow."
+    },
+    {
+      "term": "partial / shallow clone",
+      "plain": "Clone less: <code>--filter=blob:none</code> for metadata first, <code>--depth</code> for recent history only."
+    },
+    {
+      "term": "LFS",
+      "plain": "Large files stored outside the object database, with a stub committed in their place."
+    }
+  ],
+  "tasks": [
+    {
+      "key": "find-what-making-repository-big",
+      "do": "Find what is making the repository big",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git count-objects -vH\ngit rev-list --objects --all \\\n  | git cat-file --batch-check='%(objecttype) %(objectname) %(objectsize) %(rest)' \\\n  | awk '$1==\"blob\"' | sort -k3 -n -r | head -20"
+        }
+      ],
+      "check": {
+        "run": "git count-objects -vH",
+        "expect": "size figures printed"
+      }
+    },
+    {
+      "key": "purge-leaked-secret-from-history",
+      "do": "Purge a leaked secret from history — and know what that does not fix",
+      "why": "Rewriting changes every downstream hash. The credential is still compromised and must be rotated regardless.",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "pip install git-filter-repo\ngit filter-repo --invert-paths --path secrets.env\n# every collaborator must re-clone; every open PR is invalidated\n# rotate the credential anyway: it was public"
+        }
+      ]
+    },
+    {
+      "key": "clone-big-repositories-without-waiting",
+      "do": "Clone big repositories without waiting for all of history",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git clone --filter=blob:none <url>    # blobs fetched on demand\ngit clone --depth 1 <url>             # latest snapshot only\ngit fetch --unshallow                 # fill it in later"
+        }
+      ]
+    },
+    {
+      "key": "track-large-binary-lfs",
+      "do": "Track a large binary with LFS",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git lfs install\ngit lfs track \"*.pdf\"\ngit add .gitattributes && git commit -m \"track pdfs with lfs\"\ngit lfs ls-files"
+        }
+      ]
+    },
+    {
+      "key": "maintain-repository-that-has-grown",
+      "do": "Maintain a repository that has grown slow",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git maintenance start              # background gc, prefetch, commit-graph\ngit gc --prune=now --aggressive    # one-off, slow\ngit fsck --lost-found              # find dangling objects"
+        }
+      ]
+    }
+  ],
+  "proof": {
+    "run": "git count-objects -vH",
+    "expect": "a smaller size-pack than before",
+    "note": "You rewrote a repository knowingly, fallout included."
+  },
+  "doneWhen": "You can rewrite history when it is genuinely the answer, and you know why it usually is not."
+}

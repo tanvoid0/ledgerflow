@@ -1,0 +1,75 @@
+{
+  "id": "32",
+  "title": "exclude auto config",
+  "goal": "6.2.3b Exclude auto-configuration",
+  "tasks": [
+    {
+      "key": "exclude-auto-configuration-springbootapplication",
+      "do": "Exclude an auto-configuration with `@SpringBootApplication(exclude = ...)`."
+    },
+    {
+      "key": "exclude-by-name-excludename-say",
+      "do": "Exclude by name with `excludeName`, and say when that is needed."
+    },
+    {
+      "key": "exclude-spring-autoconfigure-exclude-property",
+      "do": "Exclude with the `spring.autoconfigure.exclude` property."
+    },
+    {
+      "key": "state-one-thing-property-form",
+      "do": "State the one thing the property form can do that the annotation cannot."
+    },
+    {
+      "key": "explain-that-annotation-property-exclusions",
+      "do": "Explain that annotation and property exclusions are additive."
+    },
+    {
+      "key": "explain-when-exclusion-removed-relative",
+      "do": "Explain when exclusion is removed relative to condition evaluation."
+    },
+    {
+      "key": "predict-what-happens-when-non",
+      "do": "Predict what happens when a non-candidate class is excluded."
+    },
+    {
+      "key": "explain-why-exclusion-can-break",
+      "do": "Explain why exclusion can break unrelated auto-configurations."
+    },
+    {
+      "key": "argue-why-bean-override-usually",
+      "do": "Argue why a bean override is usually better than an exclusion."
+    },
+    {
+      "key": "verify-exclusion-condition-evaluation-report",
+      "do": "Verify an exclusion in the condition evaluation report."
+    },
+    {
+      "key": "choose-test-slice-over-exclusion",
+      "do": "Choose a test slice over exclusion in tests."
+    },
+    {
+      "key": "exclusion-removes-whole-class-not",
+      "do": "Exclusion removes the WHOLE class, not one bean."
+    },
+    {
+      "key": "dependency-stays-on-classpath-other",
+      "do": "The dependency stays on the classpath — other conditions still match."
+    },
+    {
+      "key": "excluding-non-candidate-class-fails",
+      "do": "Excluding a non-candidate class FAILS startup."
+    },
+    {
+      "key": "exclude-class-literals-excludename-strings",
+      "do": "`exclude` = class literals, `excludeName` = strings."
+    },
+    {
+      "key": "only-property-form-can-be",
+      "do": "Only the property form can be profile-specific."
+    },
+    {
+      "key": "check-exclusions-section-report-confirm",
+      "do": "Check the Exclusions section of the report to confirm."
+    }
+  ]
+}

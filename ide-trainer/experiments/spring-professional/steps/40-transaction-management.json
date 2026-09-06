@@ -1,0 +1,59 @@
+{
+  "id": "40",
+  "title": "transaction management",
+  "goal": "2.2.1 Spring Transaction Management",
+  "tasks": [
+    {
+      "key": "name-platformtransactionmanager-at-least-datasou",
+      "do": "Name `PlatformTransactionManager` and at least `DataSourceTransactionManager` and `JpaTransactionManager`."
+    },
+    {
+      "key": "enable-annotation-transactions-enabletransaction",
+      "do": "Enable annotation transactions with `@EnableTransactionManagement` in a non-Boot app."
+    },
+    {
+      "key": "explain-what-boot-auto-configures",
+      "do": "Explain what Boot auto-configures for transactions."
+    },
+    {
+      "key": "place-transactional-on-class-public",
+      "do": "Place `@Transactional` on a class or public method and state the defaults."
+    },
+    {
+      "key": "use-spring-s-transactional-not",
+      "do": "Use Spring's `@Transactional`, not the JTA one, on Spring beans."
+    },
+    {
+      "key": "predict-self-invocation-non-public",
+      "do": "Predict self-invocation and non-public method behaviour."
+    },
+    {
+      "key": "use-transactiontemplate-programmatic-boundaries",
+      "do": "Use `TransactionTemplate` for programmatic boundaries."
+    },
+    {
+      "key": "explain-how-jdbctemplate-joins-thread",
+      "do": "Explain how `JdbcTemplate` joins the thread-bound connection."
+    },
+    {
+      "key": "proxy-public-methods-only-default",
+      "do": "Proxy + public methods only (default mode)."
+    },
+    {
+      "key": "self-invocation-skips-transactional",
+      "do": "Self-invocation skips `@Transactional`."
+    },
+    {
+      "key": "checked-exceptions-do-not-roll",
+      "do": "Checked exceptions do not roll back by default."
+    },
+    {
+      "key": "catch-swallow-commits",
+      "do": "Catch-and-swallow commits."
+    },
+    {
+      "key": "exam-vs-lab-spring-annotation",
+      "do": "Exam vs lab: Spring annotation package is the same; JTA annotation moved `javax.transaction` → `jakarta.transaction`."
+    }
+  ]
+}

@@ -1,0 +1,328 @@
+{
+  "title": "Git quick commands",
+  "groups": [
+    {
+      "name": "Start and configure",
+      "entries": [
+        {
+          "name": "Set identity",
+          "cmd": "git config --global user.name \"{name}\" && git config --global user.email \"{email}\"",
+          "vars": [
+            { "name": "name", "hint": "Your Name" },
+            { "name": "email", "hint": "you@example.com" }
+          ],
+          "note": "Recorded in every commit you make from now on."
+        },
+        {
+          "name": "Clone",
+          "cmd": "git clone {url} {dir}",
+          "vars": [
+            { "name": "url", "hint": "https://github.com/org/repo.git" },
+            { "name": "dir", "hint": "leave empty for the repo name" }
+          ],
+          "ide": "File → New → Project from Version Control"
+        },
+        {
+          "name": "Clone without all of history",
+          "cmd": "git clone --filter=blob:none {url}",
+          "vars": [{ "name": "url", "hint": "https://…" }],
+          "note": "Blobs are fetched on demand. --depth 1 is smaller still but cannot be rebased against old history."
+        },
+        {
+          "name": "Add a remote",
+          "cmd": "git remote add {remote} {url}",
+          "vars": [
+            { "name": "remote", "default": "origin" },
+            { "name": "url", "hint": "https://…" }
+          ]
+        },
+        {
+          "name": "Add an alias",
+          "cmd": "git config --global alias.{alias} \"{command}\"",
+          "vars": [
+            { "name": "alias", "hint": "lg" },
+            { "name": "command", "default": "log --oneline --graph --decorate --all -20" }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Every day",
+      "entries": [
+        {
+          "name": "Status, short",
+          "cmd": "git status -sb",
+          "ide": "Git tool window → Commit tab (Alt+9)"
+        },
+        {
+          "name": "Stage and commit",
+          "cmd": "git add -A && git commit -m \"{message}\"",
+          "vars": [{ "name": "message", "hint": "imperative, under 50 chars" }],
+          "ide": "Ctrl+K"
+        },
+        {
+          "name": "Stage part of a file",
+          "cmd": "git add -p {path}",
+          "vars": [{ "name": "path", "default": "." }],
+          "ide": "Select lines in the commit diff → right-click → Include into commit"
+        },
+        {
+          "name": "Amend the last commit",
+          "cmd": "git commit --amend --no-edit",
+          "note": "Rewrites the commit. If it is pushed, follow with --force-with-lease and only on your own branch.",
+          "ide": "Amend checkbox in the Commit dialog"
+        },
+        {
+          "name": "Update from the remote",
+          "cmd": "git fetch {remote} && git rebase {remote}/{branch}",
+          "vars": [
+            { "name": "remote", "default": "origin" },
+            { "name": "branch", "default": "main" }
+          ],
+          "ide": "Ctrl+T (Update Project)"
+        },
+        {
+          "name": "Push a new branch",
+          "cmd": "git push -u {remote} {branch}",
+          "vars": [
+            { "name": "remote", "default": "origin" },
+            { "name": "branch", "hint": "feat/thing" }
+          ],
+          "ide": "Ctrl+Shift+K"
+        },
+        {
+          "name": "Push a rewritten branch safely",
+          "cmd": "git push --force-with-lease",
+          "note": "Refuses if someone else pushed since your last fetch. Never plain --force on a shared branch."
+        }
+      ]
+    },
+    {
+      "name": "Branches",
+      "entries": [
+        {
+          "name": "New branch from an updated base",
+          "cmd": "git fetch origin && git switch -c {branch} {base}",
+          "vars": [
+            { "name": "branch", "hint": "feat/thing" },
+            { "name": "base", "default": "origin/main" }
+          ],
+          "ide": "Ctrl+Shift+` → New Branch"
+        },
+        { "name": "Switch back to the previous branch", "cmd": "git switch -" },
+        {
+          "name": "What is on this branch and not on main",
+          "cmd": "git log --oneline {base}..{branch}",
+          "vars": [
+            { "name": "base", "default": "origin/main" },
+            { "name": "branch", "default": "HEAD" }
+          ]
+        },
+        {
+          "name": "The change a branch makes",
+          "cmd": "git diff {base}...{branch}",
+          "vars": [
+            { "name": "base", "default": "origin/main" },
+            { "name": "branch", "default": "HEAD" }
+          ],
+          "note": "Three dots: against the merge base, not against the tip of main."
+        },
+        {
+          "name": "Delete a branch locally and on the remote",
+          "cmd": "git branch -d {branch} && git push origin --delete {branch}",
+          "vars": [{ "name": "branch", "hint": "feat/thing" }]
+        },
+        { "name": "Drop stale remote branches", "cmd": "git fetch --prune" }
+      ]
+    },
+    {
+      "name": "Undo",
+      "entries": [
+        {
+          "name": "Discard edits to one file",
+          "cmd": "git restore {path}",
+          "vars": [{ "name": "path", "hint": "src/Foo.java" }],
+          "note": "Unrecoverable from git. In the IDE, Local History still has it.",
+          "ide": "Ctrl+Alt+Z"
+        },
+        { "name": "Unstage everything, keep the edits", "cmd": "git restore --staged ." },
+        {
+          "name": "Take a file from another commit",
+          "cmd": "git restore --source={rev} -- {path}",
+          "vars": [
+            { "name": "rev", "default": "HEAD~1" },
+            { "name": "path", "hint": "src/Foo.java" }
+          ]
+        },
+        {
+          "name": "Undo the last commit, keep the work staged",
+          "cmd": "git reset --soft HEAD~{n}",
+          "vars": [{ "name": "n", "default": "1" }]
+        },
+        {
+          "name": "Undo the last commit and the work",
+          "cmd": "git reset --hard HEAD~{n}",
+          "vars": [{ "name": "n", "default": "1" }],
+          "note": "The reflog can still get it back for about 90 days."
+        },
+        {
+          "name": "Undo a pushed commit",
+          "cmd": "git revert {hash}",
+          "vars": [{ "name": "hash", "hint": "the commit to undo" }],
+          "ide": "Log → right-click → Revert Commit"
+        },
+        {
+          "name": "Where was I before that",
+          "cmd": "git reflog -{n}",
+          "vars": [{ "name": "n", "default": "20" }]
+        },
+        {
+          "name": "Go back to a reflog position",
+          "cmd": "git reset --hard HEAD@{{n}}",
+          "vars": [{ "name": "n", "default": "1" }]
+        }
+      ]
+    },
+    {
+      "name": "Conflicts and stash",
+      "entries": [
+        { "name": "List unresolved files", "cmd": "git diff --name-only --diff-filter=U" },
+        {
+          "name": "Take one whole side",
+          "cmd": "git checkout --{side} {path} && git add {path}",
+          "vars": [
+            { "name": "side", "default": "theirs", "hint": "ours | theirs" },
+            { "name": "path", "hint": "package-lock.json" }
+          ],
+          "note": "In a rebase, ours and theirs are swapped: ours is the branch you are replaying onto."
+        },
+        { "name": "Abandon the merge", "cmd": "git merge --abort" },
+        { "name": "Abandon the rebase", "cmd": "git rebase --abort" },
+        {
+          "name": "Stash work in progress",
+          "cmd": "git stash push -m \"{message}\"",
+          "vars": [{ "name": "message", "hint": "what it is" }],
+          "ide": "Git → Shelve Changes"
+        },
+        { "name": "Bring the last stash back", "cmd": "git stash pop" },
+        { "name": "Resolve each conflict only once", "cmd": "git config --global rerere.enabled true" }
+      ]
+    },
+    {
+      "name": "Look things up",
+      "entries": [
+        {
+          "name": "Who wrote these lines",
+          "cmd": "git blame -L {from},{to} {path}",
+          "vars": [
+            { "name": "from", "default": "1" },
+            { "name": "to", "default": "40" },
+            { "name": "path", "hint": "src/Foo.java" }
+          ],
+          "ide": "Right-click the gutter → Annotate with Git Blame"
+        },
+        {
+          "name": "History of one file, with diffs",
+          "cmd": "git log -p --follow -- {path}",
+          "vars": [{ "name": "path", "hint": "src/Foo.java" }],
+          "ide": "Right-click the file → Git → Show History"
+        },
+        {
+          "name": "Which commit added or removed this text",
+          "cmd": "git log -S\"{text}\" --oneline",
+          "vars": [{ "name": "text", "hint": "someFunctionName" }]
+        },
+        {
+          "name": "Commits by author since a date",
+          "cmd": "git log --author=\"{author}\" --since=\"{since}\" --oneline",
+          "vars": [
+            { "name": "author", "hint": "name or email fragment" },
+            { "name": "since", "default": "2 weeks ago" }
+          ]
+        },
+        {
+          "name": "When was this file deleted",
+          "cmd": "git log --diff-filter=D --oneline -- {path}",
+          "vars": [{ "name": "path", "hint": "src/Gone.java" }]
+        },
+        {
+          "name": "Find the commit that broke it",
+          "cmd": "git bisect start HEAD {good} && git bisect run {command}",
+          "vars": [
+            { "name": "good", "hint": "a hash or tag that worked" },
+            { "name": "command", "default": "./mvnw -q test" }
+          ],
+          "note": "Finish with git bisect reset."
+        }
+      ]
+    },
+    {
+      "name": "Rewrite history",
+      "entries": [
+        {
+          "name": "Clean up the last n commits",
+          "cmd": "git rebase -i HEAD~{n}",
+          "vars": [{ "name": "n", "default": "5" }],
+          "ide": "Log → right-click a commit → Interactively Rebase from Here"
+        },
+        {
+          "name": "Fix an older commit",
+          "cmd": "git commit --fixup={hash} && git rebase -i --autosquash {hash}~1",
+          "vars": [{ "name": "hash", "hint": "the commit being fixed" }]
+        },
+        {
+          "name": "Rebase onto an updated main",
+          "cmd": "git fetch origin && git rebase origin/{branch}",
+          "vars": [{ "name": "branch", "default": "main" }]
+        },
+        {
+          "name": "Copy a commit to this branch",
+          "cmd": "git cherry-pick -x {hash}",
+          "vars": [{ "name": "hash", "hint": "commit to copy" }],
+          "ide": "Log → right-click → Cherry-Pick"
+        },
+        {
+          "name": "Purge a file from all history",
+          "cmd": "git filter-repo --invert-paths --path {path}",
+          "vars": [{ "name": "path", "hint": "secrets.env" }],
+          "note": "Everyone re-clones, every open PR dies, and the leaked credential still has to be rotated."
+        }
+      ]
+    },
+    {
+      "name": "Tags, worktrees, housekeeping",
+      "entries": [
+        {
+          "name": "Annotated tag and push it",
+          "cmd": "git tag -a {tag} -m \"{message}\" && git push origin {tag}",
+          "vars": [
+            { "name": "tag", "hint": "v1.2.0" },
+            { "name": "message", "hint": "release note" }
+          ]
+        },
+        {
+          "name": "Second checkout of another branch",
+          "cmd": "git worktree add {dir} {branch}",
+          "vars": [
+            { "name": "dir", "default": "../review" },
+            { "name": "branch", "hint": "origin/some-branch" }
+          ],
+          "note": "Review a branch without stashing what you are working on. Remove it with git worktree remove."
+        },
+        {
+          "name": "Stop tracking a committed file",
+          "cmd": "git rm --cached {path}",
+          "vars": [{ "name": "path", "hint": "secrets.env" }],
+          "note": "Removes it from future commits only — it stays in history."
+        },
+        {
+          "name": "Why is this file ignored",
+          "cmd": "git check-ignore -v {path}",
+          "vars": [{ "name": "path", "hint": "target/x.class" }]
+        },
+        { "name": "What is making this repo big", "cmd": "git count-objects -vH" },
+        { "name": "Keep the repo fast in the background", "cmd": "git maintenance start" }
+      ]
+    }
+  ]
+}

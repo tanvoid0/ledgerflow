@@ -1,0 +1,39 @@
+{
+  "id": "01",
+  "title": "primitives wrappers math",
+  "goal": "1.1 Use primitives and wrapper classes; Math API; precedence; casting",
+  "tasks": [
+    {
+      "key": "name-all-eight-java-primitive",
+      "do": "Name all eight Java primitive types and their wrapper classes"
+    },
+    {
+      "key": "explain-autoboxing-unboxing-describe-when",
+      "do": "Explain autoboxing and unboxing; describe when `NullPointerException` occurs on unboxing"
+    },
+    {
+      "key": "distinguish-widening-implicit-from-narrowing",
+      "do": "Distinguish widening (implicit) from narrowing (explicit cast) conversions"
+    },
+    {
+      "key": "state-why-byte-b-1",
+      "do": "State why `byte b = 1; b = b + 1;` fails to compile but `b += 1` succeeds"
+    },
+    {
+      "key": "apply-operator-precedence-without-parentheses",
+      "do": "Apply operator precedence without parentheses for `+`, `*`, `/`, `%`, and relational operators"
+    },
+    {
+      "key": "use-math-abs-math-round",
+      "do": "Use `Math.abs`, `Math.round`, `Math.max`, and `Math.min` correctly (note return types)"
+    },
+    {
+      "key": "explain-why-integer-comparison-can",
+      "do": "Explain why `Integer` comparison with `==` can fail for values outside the cache range"
+    },
+    {
+      "key": "evaluate-compound-assignment-expressions-mixed",
+      "do": "Evaluate compound assignment expressions with mixed numeric types"
+    }
+  ]
+}

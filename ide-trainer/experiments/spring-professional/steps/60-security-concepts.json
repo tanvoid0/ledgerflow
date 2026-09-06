@@ -1,0 +1,43 @@
+{
+  "id": "60",
+  "title": "security concepts",
+  "goal": "5.1 Basic security concepts",
+  "tasks": [
+    {
+      "key": "define-authentication-vs-authorization-one",
+      "do": "Define authentication vs authorization in one sentence each."
+    },
+    {
+      "key": "configure-securityfilterchain-bean-not-websecuri",
+      "do": "Configure a `SecurityFilterChain` `@Bean` (not `WebSecurityConfigurerAdapter`)."
+    },
+    {
+      "key": "explain-what-happens-when-define",
+      "do": "Explain what happens when you define your own chain versus Boot defaults."
+    },
+    {
+      "key": "use-permitall-authenticated-denyall-correctly",
+      "do": "Use `permitAll`, `authenticated`, and `denyAll` correctly with anonymous tokens."
+    },
+    {
+      "key": "predict-csrf-behaviour-get-vs",
+      "do": "Predict CSRF behaviour for GET vs POST."
+    },
+    {
+      "key": "use-csrf-mockmvc",
+      "do": "Use `.with(csrf())` in MockMvc."
+    },
+    {
+      "key": "distinguish-401-403-302",
+      "do": "Distinguish 401, 403, and 302."
+    },
+    {
+      "key": "state-why-csrf-enabled-form",
+      "do": "State why CSRF is enabled for form-login apps and often disabled for token APIs."
+    },
+    {
+      "key": "name-securitycontextholder-as-home-current",
+      "do": "Name `SecurityContextHolder` as the home of the current `Authentication`."
+    }
+  ]
+}

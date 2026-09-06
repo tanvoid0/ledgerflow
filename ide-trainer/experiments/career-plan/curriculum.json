@@ -1,0 +1,17 @@
+{
+  "project": "Career Sprint",
+  "stack": "",
+  "stages": [
+    {
+      "letter": "A",
+      "name": "Career Sprint",
+      "steps": [
+        "01-positioning-locked.json",
+        "02-pipeline-running.json",
+        "03-interview-athletics.json",
+        "04-conversion.json",
+        "05-scorecard.json"
+      ]
+    }
+  ]
+}

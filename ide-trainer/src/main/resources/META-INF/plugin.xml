@@ -1,0 +1,38 @@
+<idea-plugin>
+  <id>io.tanvoid0.codecraft</id>
+  <name>Codecraft</name>
+  <vendor>ledgerflow</vendor>
+
+  <description><![CDATA[
+    Teaches coding, right inside the IDE — a curriculum board that verifies
+    each exercise by watching what you actually do, not by asking you to
+    self-report. Curricula are "experiments" — folders under
+    <code>ide-trainer/experiments/</code>. LedgerFlow is the first.
+  ]]></description>
+
+  <depends>com.intellij.modules.platform</depends>
+  <depends>org.jetbrains.plugins.terminal</depends>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <toolWindow id="Trainer" anchor="right" icon="/pluginIcon.svg"
+                factoryClass="io.tanvoid0.codecraft.ui.TrainerToolWindowFactory"/>
+    <notificationGroup id="Codecraft" displayType="BALLOON"/>
+    <applicationConfigurable parentId="tools" id="io.tanvoid0.codecraft.reviewers"
+                             displayName="Codecraft"
+                             instance="io.tanvoid0.codecraft.ui.ReviewerConfigurable"/>
+  </extensions>
+
+  <actions>
+    <action id="io.tanvoid0.codecraft.Open" class="io.tanvoid0.codecraft.OpenTrainerAction"
+            text="Open Codecraft" description="Show the curriculum board and its coding exercises">
+      <add-to-group group-id="ToolsMenu" anchor="last"/>
+    </action>
+    <action id="io.tanvoid0.codecraft.AddSelectionToChat"
+            class="io.tanvoid0.codecraft.AddSelectionToChatAction"
+            text="Add Selection to Chat"
+            description="Send the selected code to the Codecraft chat as context">
+      <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+      <keyboard-shortcut keymap="$default" first-keystroke="control alt L"/>
+    </action>
+  </actions>
+</idea-plugin>

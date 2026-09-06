@@ -1,0 +1,67 @@
+{
+  "project": "DSA Interview Prep",
+  "stack": "",
+  "stages": [
+    {
+      "letter": "A",
+      "name": "Linear scans",
+      "steps": [
+        "01-arrays-hashing.json",
+        "02-two-pointers.json",
+        "03-sliding-window.json"
+      ]
+    },
+    {
+      "letter": "B",
+      "name": "Ordered structures",
+      "steps": [
+        "04-stack.json",
+        "05-binary-search.json",
+        "06-linked-list.json"
+      ]
+    },
+    {
+      "letter": "C",
+      "name": "Trees",
+      "steps": [
+        "07-binary-tree-traversal.json",
+        "08-binary-search-tree.json",
+        "09-tries.json"
+      ]
+    },
+    {
+      "letter": "D",
+      "name": "Heaps and backtracking",
+      "steps": [
+        "10-heap-priority-queue.json",
+        "11-backtracking.json",
+        "12-greedy.json"
+      ]
+    },
+    {
+      "letter": "E",
+      "name": "Graphs",
+      "steps": [
+        "13-graphs-bfs-dfs.json",
+        "14-topological-sort.json",
+        "15-shortest-path.json"
+      ]
+    },
+    {
+      "letter": "F",
+      "name": "Dynamic programming",
+      "steps": [
+        "16-dp-1d.json",
+        "17-dp-2d.json",
+        "18-intervals.json"
+      ]
+    },
+    {
+      "letter": "G",
+      "name": "Interview delivery",
+      "steps": [
+        "19-communication-ritual.json"
+      ]
+    }
+  ]
+}

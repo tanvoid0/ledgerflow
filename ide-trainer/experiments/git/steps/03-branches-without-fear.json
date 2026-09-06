@@ -1,0 +1,118 @@
+{
+  "id": "03",
+  "title": "branches without fear",
+  "estimate": "45 min",
+  "goal": "B1 Create, switch, compare and delete branches",
+  "startWith": "Back in <code>git-lab</code>. Branches are cheap here — break them.",
+  "newIdeas": [
+    {
+      "term": "branch",
+      "plain": "A movable name pointing at a commit. Creating one copies nothing."
+    },
+    {
+      "term": "detached HEAD",
+      "plain": "You are on a commit, not a branch. Commits made here are reachable only by hash."
+    },
+    {
+      "term": "fast-forward",
+      "plain": "A merge with nothing to merge: the branch pointer just slides forward."
+    }
+  ],
+  "tasks": [
+    {
+      "key": "create-branch-commit-on-switch",
+      "do": "Create a branch, commit on it, and switch back",
+      "why": "<code>switch</code> and <code>restore</code> replaced the overloaded <code>checkout</code> for exactly this reason: one verb, one job.",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git switch -c feature/greeting\necho 'hello' > greeting.txt\ngit add -A && git commit -m \"add greeting\"\ngit switch -\nls          # greeting.txt is gone: it lives on the other branch"
+        },
+        {
+          "label": "IntelliJ",
+          "kind": "note",
+          "body": "<b>Ctrl+Shift+`</b> (Git → Branches) is the branch popup: new, switch, compare, delete, all from one list. The current branch also shows bottom-right in the status bar."
+        }
+      ],
+      "check": {
+        "run": "git branch --show-current",
+        "expect": "the branch you switched back to"
+      }
+    },
+    {
+      "key": "list-branches-see-which-are",
+      "do": "List branches, and see which are merged",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git branch -vv\ngit branch --merged\ngit branch --no-merged"
+        }
+      ],
+      "check": {
+        "run": "git branch --format='%(refname:short)'",
+        "expect": "your branches, one per line"
+      }
+    },
+    {
+      "key": "compare-two-branches-before-merging",
+      "do": "Compare two branches before merging either way",
+      "why": "“What would this merge bring in” is a question with an exact answer.",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git log --oneline main..feature/greeting   # in feature, not in main\ngit log --oneline feature/greeting..main   # the other direction\ngit diff main...feature/greeting           # the change the branch makes"
+        },
+        {
+          "label": "IntelliJ",
+          "kind": "note",
+          "body": "Branch popup → the branch → <b>Compare with Current</b> shows exactly these two lists side by side."
+        }
+      ]
+    },
+    {
+      "key": "merge-fast-forward-then-merge",
+      "do": "Merge with a fast-forward, then merge with a real merge commit",
+      "why": "Seeing both makes <code>--no-ff</code> a choice instead of folklore.",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git switch main && git merge feature/greeting          # fast-forward\ngit log --oneline --graph -5\ngit switch -c feature/second && echo x > x.txt && git add -A && git commit -m second\ngit switch main && git merge --no-ff feature/second    # merge commit\ngit log --oneline --graph -5"
+        }
+      ]
+    },
+    {
+      "key": "delete-merged-branch-then-try",
+      "do": "Delete a merged branch, then try to delete an unmerged one",
+      "why": "<code>-d</code> refuses to lose work; <code>-D</code> does not. The refusal is the feature.",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git branch -d feature/greeting\ngit switch -c throwaway && echo y > y.txt && git add -A && git commit -m tmp && git switch main\ngit branch -d throwaway     # refused\ngit branch -D throwaway     # forced — still recoverable from the reflog, step 05"
+        }
+      ]
+    }
+  ],
+  "proof": {
+    "run": "git log --oneline --graph -10",
+    "expect": "a graph with one merge commit in it",
+    "note": "You can read your own history graph."
+  },
+  "doneWhen": "You create a branch per unit of work without thinking about it.",
+  "lessons": [
+    {
+      "id": "03-branches-popup",
+      "title": "Branch popup (Ctrl+Shift+`)",
+      "teach": "<b>Ctrl+Shift+`</b> lists every local and remote branch with search. New branch, switch, rename, compare with current, delete — the whole of step 03 lives in this one popup.",
+      "trigger": {
+        "type": "action",
+        "id": "Git.Branches"
+      },
+      "fallbackTip": "git switch -c <branch> / git branch -vv"
+    }
+  ]
+}

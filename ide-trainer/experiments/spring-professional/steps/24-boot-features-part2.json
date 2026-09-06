@@ -1,0 +1,83 @@
+{
+  "id": "24",
+  "title": "boot features part2",
+  "goal": "6.1.1b Spring Boot features (part 2)",
+  "tasks": [
+    {
+      "key": "name-at-least-six-actuator",
+      "do": "Name at least six Actuator endpoints and what each exposes."
+    },
+    {
+      "key": "state-which-endpoints-are-exposed",
+      "do": "State which endpoints are exposed over HTTP by default."
+    },
+    {
+      "key": "separate-endpoint-exposure-from-endpoint",
+      "do": "Separate endpoint *exposure* from endpoint *security* as two independent concerns."
+    },
+    {
+      "key": "change-actuator-base-path-exposure",
+      "do": "Change the Actuator base path and the exposure list."
+    },
+    {
+      "key": "explain-what-micrometer-how-relates",
+      "do": "Explain what Micrometer is and how it relates to Actuator metrics."
+    },
+    {
+      "key": "describe-how-devtools-achieves-fast",
+      "do": "Describe how DevTools achieves fast restarts, and why it cannot leak into production."
+    },
+    {
+      "key": "add-configuration-processor-explain-what",
+      "do": "Add the configuration processor and explain what it generates."
+    },
+    {
+      "key": "choose-between-springboottest-test-slice",
+      "do": "Choose between `@SpringBootTest` and a test slice for a given test."
+    },
+    {
+      "key": "explain-how-test-context-cache",
+      "do": "Explain how the test context cache works and how to avoid defeating it."
+    },
+    {
+      "key": "package-as-executable-jar-war",
+      "do": "Package as an executable jar, a war, a layered jar, and an OCI image."
+    },
+    {
+      "key": "explain-what-failureanalyzer-contributes-startup",
+      "do": "Explain what a `FailureAnalyzer` contributes to a startup failure."
+    },
+    {
+      "key": "enable-graceful-shutdown-set-its",
+      "do": "Enable graceful shutdown and set its timeout."
+    },
+    {
+      "key": "only-health-exposed-over-http",
+      "do": "Only `health` is exposed over HTTP by default."
+    },
+    {
+      "key": "exposing-endpoint-does-not-secure",
+      "do": "Exposing an endpoint does not secure it."
+    },
+    {
+      "key": "devtools-disables-itself-fully-packaged",
+      "do": "DevTools disables itself in a fully packaged application."
+    },
+    {
+      "key": "springboottest-loads-full-context-slices",
+      "do": "`@SpringBootTest` loads the FULL context — slices do not."
+    },
+    {
+      "key": "varying-properties-per-test-class",
+      "do": "Varying properties per test class multiplies context startups."
+    },
+    {
+      "key": "war-deployment-needs-springbootservletinitialize",
+      "do": "War deployment needs `SpringBootServletInitializer` plus `provided`-scoped server starter."
+    },
+    {
+      "key": "graceful-shutdown-opt",
+      "do": "Graceful shutdown is opt-in."
+    }
+  ]
+}

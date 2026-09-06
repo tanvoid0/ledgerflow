@@ -1,0 +1,39 @@
+{
+  "id": "28",
+  "title": "streams grouping parallel",
+  "goal": "6.2 groupingBy, partitioning, parallel streams",
+  "tasks": [
+    {
+      "key": "use-collectors-groupingby-build-map",
+      "do": "Use `Collectors.groupingBy` to build `Map<K, List<T>>` from a classifier"
+    },
+    {
+      "key": "supply-downstream-collector-counting-summingint",
+      "do": "Supply a downstream collector (`counting`, `summingInt`, `mapping`, nested `groupingBy`)"
+    },
+    {
+      "key": "use-collectors-partitioningby-state-that",
+      "do": "Use `Collectors.partitioningBy` and state that both `true` and `false` keys always exist"
+    },
+    {
+      "key": "contrast-groupingby-groupingbyconcurrent-on-para",
+      "do": "Contrast `groupingBy` with `groupingByConcurrent` on parallel pipelines"
+    },
+    {
+      "key": "create-parallel-stream-parallelstream-parallel",
+      "do": "Create a parallel stream with `parallelStream()` or `parallel()` and name the fork/join pool"
+    },
+    {
+      "key": "explain-why-lambdas-parallel-pipeline",
+      "do": "Explain why lambdas in a parallel pipeline must be stateless (no shared mutable list)"
+    },
+    {
+      "key": "predict-when-encounter-order-lost",
+      "do": "Predict when encounter order is lost (`findAny`, concurrent maps, unordered sources)"
+    },
+    {
+      "key": "avoid-null-classifier-keys-groupingby",
+      "do": "Avoid null classifier keys with `groupingBy`"
+    }
+  ]
+}

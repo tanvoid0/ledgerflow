@@ -1,0 +1,39 @@
+{
+  "id": "04",
+  "title": "if else loops",
+  "goal": "2.1 if/else, loops, break and continue",
+  "tasks": [
+    {
+      "key": "trace-if-else-if-else",
+      "do": "Trace `if` / `else if` / `else` including dangling-else without braces"
+    },
+    {
+      "key": "contrast-while-zero-more-do",
+      "do": "Contrast `while` (zero-or-more) with `do-while` (at-least-once)"
+    },
+    {
+      "key": "write-basic-enhanced-over-arrays",
+      "do": "Write basic `for` and enhanced-for over arrays and `Iterable`"
+    },
+    {
+      "key": "explain-unlabeled-break-vs-continue",
+      "do": "Explain unlabeled `break` vs `continue` in `for` (update still runs)"
+    },
+    {
+      "key": "use-labeled-break-continue-target",
+      "do": "Use a labeled `break` / `continue` to target an outer loop"
+    },
+    {
+      "key": "recognize-unreachable-code-compile-errors",
+      "do": "Recognize unreachable-code compile errors (`while (false)`, code after `return`)"
+    },
+    {
+      "key": "state-that-loop-if-conditions",
+      "do": "State that loop and `if` conditions must be `boolean`"
+    },
+    {
+      "key": "predict-effect-assigning-enhanced-loop",
+      "do": "Predict the effect of assigning to the enhanced-for loop variable"
+    }
+  ]
+}

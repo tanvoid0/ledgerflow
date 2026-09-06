@@ -1,0 +1,39 @@
+{
+  "id": "20",
+  "title": "arrays",
+  "goal": "5.1 Arrays — declare, initialize, iterate",
+  "tasks": [
+    {
+      "key": "declare-allocate-initialize-one-dimensional",
+      "do": "Declare, allocate, and initialize one-dimensional arrays"
+    },
+    {
+      "key": "use-length-as-field-stay",
+      "do": "Use `length` as a field and stay within `0 .. length-1`"
+    },
+    {
+      "key": "read-write-rectangular-ragged-2d",
+      "do": "Read and write rectangular and ragged 2D arrays"
+    },
+    {
+      "key": "apply-arrays-sort-copyof-equals",
+      "do": "Apply `Arrays.sort`, `copyOf`, `equals`, and `fill`"
+    },
+    {
+      "key": "explain-arrayindexoutofboundsexception-vs-arrays",
+      "do": "Explain `ArrayIndexOutOfBoundsException` vs `ArrayStoreException`"
+    },
+    {
+      "key": "describe-array-covariance-string-as",
+      "do": "Describe array covariance (`String[]` as `Object[]`)"
+    },
+    {
+      "key": "state-default-element-values-by",
+      "do": "State default element values by component type"
+    },
+    {
+      "key": "know-that-var-x-1",
+      "do": "Know that `var x = {1, 2}` does not compile"
+    }
+  ]
+}

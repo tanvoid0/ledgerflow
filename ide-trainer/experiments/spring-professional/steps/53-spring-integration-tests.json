@@ -1,0 +1,47 @@
+{
+  "id": "53",
+  "title": "spring integration tests",
+  "goal": "4.1.2 Integration tests with Spring",
+  "tasks": [
+    {
+      "key": "annotate-jupiter-class-extendwith-springextensio",
+      "do": "Annotate a Jupiter class with `@ExtendWith(SpringExtension.class)`."
+    },
+    {
+      "key": "load-java-config-contextconfiguration-classes",
+      "do": "Load Java config with `@ContextConfiguration(classes = …)`."
+    },
+    {
+      "key": "recognize-xml-locations-as-other",
+      "do": "Recognize XML `locations` as the other `@ContextConfiguration` mode."
+    },
+    {
+      "key": "autowired-bean-into-test-class",
+      "do": "`@Autowired` a bean into the test class."
+    },
+    {
+      "key": "autowired-applicationcontext-look-up-same",
+      "do": "`@Autowired` the `ApplicationContext` and look up the same bean."
+    },
+    {
+      "key": "explain-that-context-cached-across",
+      "do": "Explain that the context is cached across tests with the same key."
+    },
+    {
+      "key": "contrast-this-setup-springboottest-no",
+      "do": "Contrast this setup with `@SpringBootTest` (no Boot auto-config here)."
+    },
+    {
+      "key": "map-junit-4-runwith-springrunner",
+      "do": "Map JUnit 4 `@RunWith(SpringRunner.class)` to `SpringExtension`."
+    },
+    {
+      "key": "state-that-pojo-needs-bean",
+      "do": "State that a POJO needs a `@Bean` (or component-scan) to be in the context."
+    },
+    {
+      "key": "keep-mutable-singleton-state-from",
+      "do": "Keep mutable singleton state from leaking across tests (or isolate it)."
+    }
+  ]
+}

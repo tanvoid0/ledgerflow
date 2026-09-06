@@ -1,0 +1,43 @@
+{
+  "id": "59",
+  "title": "slice testing",
+  "goal": "4.2.4 Slice testing",
+  "tasks": [
+    {
+      "key": "name-webmvctest-datajpatest-jsontest-jdbctest",
+      "do": "Name `@WebMvcTest`, `@DataJpaTest`, `@JsonTest`, `@JdbcTest` and what each loads."
+    },
+    {
+      "key": "explain-why-service-absent-on",
+      "do": "Explain why `@Service` is absent on a web slice."
+    },
+    {
+      "key": "use-mockbean-stub-repository-mockmvc",
+      "do": "Use `@MockBean` to stub a repository for `MockMvc`."
+    },
+    {
+      "key": "use-import-when-want-real",
+      "do": "Use `@Import` when you want a real collaborator on a slice."
+    },
+    {
+      "key": "save-query-on-datajpatest-rollback",
+      "do": "Save and query on `@DataJpaTest` with rollback."
+    },
+    {
+      "key": "state-default-test-database-replacement",
+      "do": "State the default test-database replacement behaviour."
+    },
+    {
+      "key": "keep-slices-separate-classes-nested",
+      "do": "Keep slices in separate classes (or `@Nested`)."
+    },
+    {
+      "key": "narrow-controllers-so-other-controllers",
+      "do": "Narrow `controllers =` so other controllers stay out."
+    },
+    {
+      "key": "exclude-security-auto-config-on",
+      "do": "Exclude Security auto-config on non-security slices when Security is on the classpath."
+    }
+  ]
+}

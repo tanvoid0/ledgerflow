@@ -1,0 +1,39 @@
+{
+  "id": "32",
+  "title": "concurrent collections",
+  "goal": "8.3 Concurrent collections and parallel stream processing",
+  "tasks": [
+    {
+      "key": "name-why-hashmap-arraylist-must",
+      "do": "Name why `HashMap` / `ArrayList` must not be shared unsynchronized"
+    },
+    {
+      "key": "use-concurrenthashmap-putifabsent-compute-merge",
+      "do": "Use `ConcurrentHashMap` `putIfAbsent`, `compute`, `merge`"
+    },
+    {
+      "key": "state-that-chm-does-not",
+      "do": "State that CHM does not allow null keys or values"
+    },
+    {
+      "key": "use-copyonwritearraylist-describe-snapshot-itera",
+      "do": "Use `CopyOnWriteArrayList` and describe snapshot iterators"
+    },
+    {
+      "key": "explain-weakly-consistent-iterators-no",
+      "do": "Explain weakly consistent iterators (no `ConcurrentModificationException`)"
+    },
+    {
+      "key": "treat-concurrent-size-as-not",
+      "do": "Treat concurrent `size()` as not a precise snapshot"
+    },
+    {
+      "key": "choose-blocking-queue-producer-consumer",
+      "do": "Choose a blocking queue for producer-consumer"
+    },
+    {
+      "key": "collect-parallel-stream-results-without",
+      "do": "Collect parallel stream results without a shared `ArrayList`"
+    }
+  ]
+}

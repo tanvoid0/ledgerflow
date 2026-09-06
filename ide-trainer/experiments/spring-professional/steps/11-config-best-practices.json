@@ -1,0 +1,71 @@
+{
+  "id": "11",
+  "title": "config best practices",
+  "goal": "1.4.2 Best Practices for Configuration",
+  "tasks": [
+    {
+      "key": "justify-constructor-injection-over-field",
+      "do": "Justify constructor injection over field injection with three concrete arguments."
+    },
+    {
+      "key": "state-when-setter-injection-appropriate",
+      "do": "State when setter injection is the appropriate choice."
+    },
+    {
+      "key": "explain-how-constructor-injection-changes",
+      "do": "Explain how constructor injection changes circular-dependency behaviour."
+    },
+    {
+      "key": "describe-why-configuration-classes-are",
+      "do": "Describe why `@Configuration` classes are CGLIB-proxied."
+    },
+    {
+      "key": "predict-result-one-bean-method",
+      "do": "Predict the result of one `@Bean` method calling another, in `@Configuration` and in `@Component`."
+    },
+    {
+      "key": "explain-what-proxybeanmethods-false-changes",
+      "do": "Explain what `proxyBeanMethods = false` changes and when it is safe."
+    },
+    {
+      "key": "reference-bean-from-another-bean",
+      "do": "Reference a bean from another `@Bean` method without relying on the proxy."
+    },
+    {
+      "key": "choose-between-component-scanning-explicit",
+      "do": "Choose between component scanning and explicit `@Bean` methods for a given class."
+    },
+    {
+      "key": "narrow-component-scan-basepackageclasses-say",
+      "do": "Narrow a component scan with `basePackageClasses` and say why it beats a string."
+    },
+    {
+      "key": "compose-configuration-classes-by-concern",
+      "do": "Compose configuration classes by concern using `@Import`."
+    },
+    {
+      "key": "decide-between-value-configurationproperties-giv",
+      "do": "Decide between `@Value` and `@ConfigurationProperties` for a given prefix."
+    },
+    {
+      "key": "lite-mode-bean-on-component",
+      "do": "Lite mode (`@Bean` on `@Component`) creates a NEW object per call — silently."
+    },
+    {
+      "key": "proxied-configuration-class-must-not",
+      "do": "A proxied `@Configuration` class must not be `final`."
+    },
+    {
+      "key": "proxybeanmethods-false-changes-semantics-not",
+      "do": "`proxyBeanMethods = false` changes semantics, not just startup cost."
+    },
+    {
+      "key": "constructor-injection-surfaces-cycles-at",
+      "do": "Constructor injection surfaces cycles at startup; field injection hides them."
+    },
+    {
+      "key": "setter-injected-dependency-still-unavailable",
+      "do": "A setter-injected dependency is still unavailable inside the constructor."
+    }
+  ]
+}

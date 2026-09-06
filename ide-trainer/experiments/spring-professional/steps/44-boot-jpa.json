@@ -1,0 +1,59 @@
+{
+  "id": "44",
+  "title": "boot jpa",
+  "goal": "2.3.1 Spring JPA app with Boot",
+  "tasks": [
+    {
+      "key": "name-spring-boot-starter-data",
+      "do": "Name `spring-boot-starter-data-jpa` and what it auto-configures."
+    },
+    {
+      "key": "identify-hikaricp-as-default-pool",
+      "do": "Identify HikariCP as the default pool and `spring.datasource.hikari.*` as the tunables."
+    },
+    {
+      "key": "map-entity-entity-id-generatedvalue",
+      "do": "Map an entity with `@Entity`, `@Id`, `@GeneratedValue`, `@Table`."
+    },
+    {
+      "key": "inject-use-entitymanager-persist-find",
+      "do": "Inject and use `EntityManager` (`persist`, `find`)."
+    },
+    {
+      "key": "state-that-persist-needs-transaction",
+      "do": "State that `persist` needs a transaction."
+    },
+    {
+      "key": "contrast-exam-javax-persistence-lab",
+      "do": "Contrast exam `javax.persistence` with lab `jakarta.persistence`."
+    },
+    {
+      "key": "set-spring-jpa-hibernate-ddl",
+      "do": "Set `spring.jpa.hibernate.ddl-auto` and know when `create-drop` is wrong."
+    },
+    {
+      "key": "state-default-spring-jpa-open",
+      "do": "State the default of `spring.jpa.open-in-view`."
+    },
+    {
+      "key": "pool-hikari-not-tomcat-jdbc",
+      "do": "Pool is Hikari, not Tomcat JDBC, on Boot 2.7."
+    },
+    {
+      "key": "exam-package-javax-persistence",
+      "do": "Exam package is `javax.persistence`."
+    },
+    {
+      "key": "find-null-not-emptyresultdataaccessexception",
+      "do": "`find` → `null`; not `EmptyResultDataAccessException`."
+    },
+    {
+      "key": "open-view-defaults-true",
+      "do": "`open-in-view` defaults to true."
+    },
+    {
+      "key": "persist-without-tx-fails",
+      "do": "`persist` without a TX fails."
+    }
+  ]
+}

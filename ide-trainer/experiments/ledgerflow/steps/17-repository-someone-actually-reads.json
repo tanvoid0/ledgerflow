@@ -1,0 +1,119 @@
+{
+  "id": "17",
+  "title": "The repository someone actually reads",
+  "estimate": "3 days",
+  "goal": "Everything up to here was for you. This step is for the person who opens the repository from your CV, gives it forty seconds, and decides whether to read the rest.",
+  "startWith": "A system that runs. This step adds no features.",
+  "services": [
+    "all"
+  ],
+  "infra": [
+    "all"
+  ],
+  "newThisStep": "the front door",
+  "proof": {
+    "run": "git clone <repo> && cd ledgerflow && ./scripts/demo.sh",
+    "expect": "A stranger on a clean machine sees a payment authorised, held, captured and a fraudulent one flagged, without asking you anything.",
+    "note": "Test this on a machine that has never built the project. Your own laptop is the one machine that cannot tell you the truth about it."
+  },
+  "doneWhen": "A clean clone reaches a working demo with one command, the README opens with the problem and the numbers, and three decision records show your reasoning rather than your conclusions.",
+  "tasks": [
+    {
+      "key": "one-command-from-clone-running",
+      "do": "One command from clone to a running system",
+      "why": "A reader who has to assemble your project will not. Every extra step between the clone and something moving costs you most of the people who got as far as opening the page.",
+      "how": "One script: bring up the infrastructure, wait for it properly rather than sleeping, migrate, start the services, seed an account. Fail loudly and early if a port is taken or Docker is not running, because a silent half start is worse than a refusal.",
+      "blocks": [
+        {
+          "label": "scripts/demo.sh",
+          "kind": "shell",
+          "body": "#!/usr/bin/env bash\nset -euo pipefail\n\ndocker compose -f infra/compose/docker-compose.yml up -d --wait\n./mvnw -q -T1C package -DskipTests\n./scripts/start-services.sh\n./scripts/seed.sh\n\n./scripts/scenario-authorize-capture.sh\n./scripts/scenario-insufficient-funds.sh\n./scripts/scenario-fraud-flagged.sh"
+        }
+      ],
+      "check": {
+        "run": "git clone <repo> /tmp/clean && cd /tmp/clean && ./scripts/demo.sh",
+        "expect": "It works on a machine that has never seen the project."
+      }
+    },
+    {
+      "key": "open-readme-problem-numbers",
+      "do": "Open the README with the problem and the numbers",
+      "why": "Most portfolio READMEs open with a stack list, which tells a reader what you have heard of. The problem and the measurement tell them what you can do, and they are the two things another candidate cannot copy.",
+      "how": "One sentence on what the system does. Then the performance table from step 15. Then the three properties a payment system is judged on and where each is enforced in the code, with file paths. The stack list goes near the bottom, where it belongs.",
+      "blocks": [
+        {
+          "label": "README.md, the top of it",
+          "kind": "paste",
+          "body": "# LedgerFlow\n\nA double-entry payment ledger with authorisation holds, capture and refund,\nrun across services that communicate by events. No distributed transaction\nanywhere, and no path by which the risk model can move money.\n\n## Measured\n\n[the table from step 15]\n\n## The three properties, and where they are enforced\n\n| Property | Enforced by | Proved by |\n|---|---|---|\n| No payment applies twice | idempotency key, unique index | `AuthorizeConcurrencyTest` |\n| Every posting set sums to zero | domain invariant | `LedgerInvariantTest` |\n| No event lost between database and broker | outbox in the same transaction | `OutboxCrashTest` |"
+        }
+      ],
+      "check": {
+        "run": "head -40 README.md",
+        "expect": "Forty seconds is enough to know whether you can do the job."
+      }
+    },
+    {
+      "key": "write-three-decision-records-include",
+      "do": "Write three decision records, and include one you would now do differently",
+      "why": "Anyone can list what they built. A record of what you rejected and why is the only artefact that shows judgement, and an honest reversal is more convincing than three confident decisions, because it is the thing nobody fabricates.",
+      "how": "Short records, one page each. Outbox against change data capture. Choreography against orchestration for the capture flow. Where the risk model sits. Each one states the context, the options, the choice and the consequence. Add a line to one of them recording what you would change now that you have run it.",
+      "blocks": [
+        {
+          "label": "docs/adr/0001-outbox-over-cdc.md",
+          "kind": "paste",
+          "body": "# Outbox rather than change data capture\n\n## Context\nStep 10 proved the dual write loses events in both orderings.\n\n## Options\nPolling outbox table. Debezium reading the write-ahead log.\n\n## Decision\nPolling outbox.\n\n## Consequence\nOne fewer component to operate, at the cost of poll latency and a table\nthat needs pruning. Measured at step 15: the batch claim took the poll\ncost off the critical path.\n\n## What I would revisit\nAbove roughly 5k events per second the poll starts costing more than\nDebezium would. That is the point to change, and it has not been reached."
+        }
+      ],
+      "check": {
+        "run": "ls docs/adr",
+        "expect": "Three records, and one of them admits something."
+      }
+    },
+    {
+      "key": "make-continuous-integration-run-tests",
+      "do": "Make continuous integration run the tests that would actually catch a bug",
+      "why": "A green badge that only runs unit tests is decoration. The concurrency test, the crash test and the architecture test are the ones that fail when the system is genuinely broken, and running them is what makes the badge mean anything.",
+      "how": "One workflow: build, run the Testcontainers integration tests, run the architecture test. Keep it under ten minutes so it stays useful. Do not add a coverage gate, because the number it produces is not the number anyone reading this repository cares about.",
+      "blocks": [
+        {
+          "label": ".github/workflows/ci.yml",
+          "kind": "paste",
+          "body": "name: ci\non: [push, pull_request]\n\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/setup-java@v4\n        with:\n          java-version: 25\n          distribution: temurin\n          cache: maven\n      # Testcontainers needs a real Docker daemon, which this runner has.\n      - run: ./mvnw -B -T1C verify"
+        }
+      ],
+      "check": {
+        "run": "gh run list --limit 1",
+        "expect": "Green, and green for a reason."
+      }
+    },
+    {
+      "key": "record-ninety-second-walkthrough",
+      "do": "Record the ninety second walkthrough",
+      "why": "Some readers will never run it. A short screen recording puts the working system in front of them at no cost, and it is what gets forwarded to the person who did not open the repository at all.",
+      "how": "Terminal on one side, Grafana on the other. Authorise a payment, watch it move through the services in the trace, capture it, then send the burst that trips the risk score and show the case note. No voice needed. Link it from the top of the README.",
+      "blocks": [
+        {
+          "label": "What to show, in order",
+          "kind": "shell",
+          "body": "# 1. one command, system up\n./scripts/demo.sh\n\n# 2. one authorisation, followed across services in the trace\n# 3. capture, and the ledger balancing to zero\n# 4. the burst that trips the score, and the generated case note"
+        }
+      ],
+      "check": {
+        "run": "grep -c \"walkthrough\" README.md",
+        "expect": "Linked from the top, not buried at the bottom."
+      }
+    }
+  ],
+  "lessons": [
+    {
+      "id": "17-annotate",
+      "title": "Annotate (git blame in the gutter)",
+      "teach": "Right-click the editor gutter → <b>Annotate with Git Blame</b>. Writing a README someone reads means explaining decisions; annotate is how you find the commit where each one was made.",
+      "trigger": {
+        "type": "action",
+        "id": "Annotate"
+      },
+      "fallbackTip": "git log -p --follow <file>"
+    }
+  ]
+}

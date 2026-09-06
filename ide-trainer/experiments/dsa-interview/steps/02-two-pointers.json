@@ -1,0 +1,43 @@
+{
+  "id": "02",
+  "title": "two pointers",
+  "goal": "P1.2 Converging and same-direction pointers on sorted or symmetric data",
+  "tasks": [
+    {
+      "key": "recognise-sorted-symmetric-input-as",
+      "do": "Recognise sorted or symmetric input as the trigger for two pointers"
+    },
+    {
+      "key": "state-move-rule-why-discarded",
+      "do": "State the move rule and *why* the discarded side can never be better"
+    },
+    {
+      "key": "choose-converging-vs-same-direction",
+      "do": "Choose converging vs same-direction pointers deliberately"
+    },
+    {
+      "key": "skip-duplicates-correctly-when-collecting",
+      "do": "Skip duplicates correctly when collecting unique results"
+    },
+    {
+      "key": "compare-o-1-space-two",
+      "do": "Compare the O(1)-space two-pointer solution against the O(n)-space hash solution out loud"
+    },
+    {
+      "key": "solve-all-four-exercises-inside",
+      "do": "Solve all four exercises inside their target times"
+    },
+    {
+      "key": "justify-each-pointer-move-before",
+      "do": "Justify each pointer move before writing the loop body"
+    },
+    {
+      "key": "name-invariant-that-holds-at",
+      "do": "Name the invariant that holds at the top of every iteration"
+    },
+    {
+      "key": "dry-run-4-element-input",
+      "do": "Dry-run a 4-element input by hand before claiming it works"
+    }
+  ]
+}

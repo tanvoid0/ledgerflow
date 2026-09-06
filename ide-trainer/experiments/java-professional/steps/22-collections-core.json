@@ -1,0 +1,39 @@
+{
+  "id": "22",
+  "title": "collections core",
+  "goal": "5.1 List, Set, Map, Deque — add, remove, update, retrieve",
+  "tasks": [
+    {
+      "key": "choose-arraylist-vs-linkedlist-index",
+      "do": "Choose `ArrayList` vs `LinkedList` for index get vs end inserts"
+    },
+    {
+      "key": "add-remove-get-on-list",
+      "do": "Add/remove/get on `List` by index and by value"
+    },
+    {
+      "key": "explain-set-uniqueness-via-equals",
+      "do": "Explain `Set` uniqueness via `equals`/`hashCode`"
+    },
+    {
+      "key": "put-get-remove-on-map",
+      "do": "`put`/`get`/`remove` on `Map`, including `get` returning `null`"
+    },
+    {
+      "key": "contrast-hashmap-vs-treemap-null",
+      "do": "Contrast `HashMap` vs `TreeMap` null-key rules"
+    },
+    {
+      "key": "use-arraydeque-as-queue-offer",
+      "do": "Use `ArrayDeque` as a queue (`offer`/`poll`) and as a stack"
+    },
+    {
+      "key": "predict-concurrentmodificationexception-on-fail",
+      "do": "Predict `ConcurrentModificationException` on fail-fast iterators"
+    },
+    {
+      "key": "know-list-set-map-are",
+      "do": "Know `List.of` / `Set.of` / `Map.of` are unmodifiable and reject nulls"
+    }
+  ]
+}

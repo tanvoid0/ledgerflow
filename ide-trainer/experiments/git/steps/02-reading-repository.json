@@ -1,0 +1,129 @@
+{
+  "id": "02",
+  "title": "reading a repository",
+  "estimate": "40 min",
+  "goal": "A2 Answer “what changed, when, and by whom” without opening a browser",
+  "startWith": "Clone something real and large enough to have history worth reading.",
+  "newIdeas": [
+    {
+      "term": "HEAD",
+      "plain": "The commit you are standing on. Almost every command is relative to it."
+    },
+    {
+      "term": "ref",
+      "plain": "A name pointing at a commit: a branch, a tag, <code>HEAD</code>, <code>origin/main</code>."
+    },
+    {
+      "term": "revision range",
+      "plain": "<code>A..B</code> means “commits in B that are not in A”."
+    }
+  ],
+  "tasks": [
+    {
+      "key": "clone-repository-read-its-shape",
+      "do": "Clone a repository and read its shape",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git clone https://github.com/junit-team/junit5.git\ncd junit5\ngit log --oneline -20\ngit log --graph --oneline --decorate -20"
+        },
+        {
+          "label": "IntelliJ",
+          "kind": "note",
+          "body": "File → New → <b>Project from Version Control</b>. Same clone, and it opens the project afterwards."
+        }
+      ]
+    },
+    {
+      "key": "diff-three-pairs-that-matter",
+      "do": "Diff the three pairs that matter: working tree, index, and a commit",
+      "why": "<code>git diff</code> with no arguments does not show staged changes. That surprise costs people a commit.",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git diff                # working tree vs index\ngit diff --staged       # index vs HEAD: what a commit would contain\ngit diff HEAD~5 HEAD    # between two commits"
+        },
+        {
+          "label": "IntelliJ",
+          "kind": "note",
+          "body": "<b>Ctrl+D</b> on two selected files, or select two commits in the Log and right-click → <b>Compare Versions</b>."
+        }
+      ]
+    },
+    {
+      "key": "filter-history-by-file-author",
+      "do": "Filter history by file, author, message and date",
+      "why": "“When did this get like that” is a search, and git indexes its own history.",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git log --oneline -- README.md\ngit log --author=\"@\" --since=\"3 months ago\" --oneline\ngit log --grep=\"fix\" --oneline -10\ngit log -p -1 -- README.md"
+        }
+      ],
+      "check": {
+        "run": "git log --oneline -5 -- .",
+        "expect": "up to five commits touching this folder"
+      }
+    },
+    {
+      "key": "blame-file-jump-from-line",
+      "do": "Blame a file and jump from a line to the commit that wrote it",
+      "why": "Blame answers “why is this here” faster than any comment.",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git blame -L 1,20 README.md\ngit show <paste-a-hash-from-blame>"
+        },
+        {
+          "label": "IntelliJ",
+          "kind": "note",
+          "body": "Right-click the editor gutter → <b>Annotate with Git Blame</b>. Click an annotation to open the commit, hover for the message. The single most useful git feature in the IDE."
+        }
+      ]
+    },
+    {
+      "key": "search-history-string-that-no",
+      "do": "Search history for a string that no longer exists",
+      "why": "<code>-S</code> (the “pickaxe”) finds the commit that added or removed a piece of text — how you find deleted code.",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git log -S\"someFunctionName\" --oneline\ngit log -G\"some.*regex\" --oneline"
+        }
+      ]
+    }
+  ],
+  "proof": {
+    "run": "git log --oneline -5 -- .",
+    "expect": "commits touching this folder",
+    "note": "You found who last changed a specific file, and why."
+  },
+  "doneWhen": "Given a line of code, you can name its commit, author and message in under a minute.",
+  "lessons": [
+    {
+      "id": "02-annotate",
+      "title": "Annotate — blame in the gutter",
+      "teach": "Right-click the editor gutter → <b>Annotate with Git Blame</b>. Each line gets its commit; click one to open it, hover for the message. This is <code>git blame</code> without leaving the line you were reading.",
+      "trigger": {
+        "type": "action",
+        "id": "Annotate"
+      },
+      "fallbackTip": "git blame -L 1,40 <file>"
+    },
+    {
+      "id": "02-file-history",
+      "title": "History for one file",
+      "teach": "Right-click a file → <b>Git → Show History</b>. Every commit that touched it, with the diff for each — <code>git log -p -- &lt;file&gt;</code>, browsable.",
+      "trigger": {
+        "type": "action",
+        "id": "Vcs.ShowTabbedFileHistory"
+      },
+      "fallbackTip": "git log -p --follow -- <file>"
+    }
+  ]
+}

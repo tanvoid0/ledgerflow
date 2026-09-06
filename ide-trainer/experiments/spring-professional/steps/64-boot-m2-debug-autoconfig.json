@@ -1,0 +1,67 @@
+{
+  "id": "64",
+  "title": "boot m2 debug autoconfig",
+  "goal": "BOOT-M2 Debug auto-configuration",
+  "tasks": [
+    {
+      "key": "start-application-debug-locate-condition",
+      "do": "Start an application with `--debug` and locate the condition evaluation report on stdout."
+    },
+    {
+      "key": "distinguish-debug-debug-true-from",
+      "do": "Distinguish `--debug` / `debug=true` from `logging.level.root=DEBUG`."
+    },
+    {
+      "key": "obtain-conditionevaluationreport-from-configurab",
+      "do": "Obtain `ConditionEvaluationReport` from a `ConfigurableListableBeanFactory`."
+    },
+    {
+      "key": "explain-positive-matches-vs-negative",
+      "do": "Explain positive matches vs negative matches vs exclusions vs unconditional classes."
+    },
+    {
+      "key": "read-conditionalonclass-negative-match-name",
+      "do": "Read a `@ConditionalOnClass` negative match and name the missing class."
+    },
+    {
+      "key": "recognise-conditionalonmissingbean-back-off-as",
+      "do": "Recognise a `@ConditionalOnMissingBean` back-off as \"user bean won\"."
+    },
+    {
+      "key": "find-method-level-source-named",
+      "do": "Find a method-level source named `ClassName#method` in the report."
+    },
+    {
+      "key": "expose-actuator-conditions-relate-console",
+      "do": "Expose `/actuator/conditions` and relate it to the console report."
+    },
+    {
+      "key": "predict-whether-given-starter-s",
+      "do": "Predict whether a given starter's auto-configuration will be a positive or negative match from the classpath alone."
+    },
+    {
+      "key": "state-that-boot-2-7",
+      "do": "State that Boot 2.7 (exam) still documents `spring.factories` while Boot 3 uses `AutoConfiguration.imports` — the report format stays the same."
+    },
+    {
+      "key": "debug-not-logback-configuration",
+      "do": "`--debug` is not a Logback configuration."
+    },
+    {
+      "key": "excluded-classes-do-not-appear",
+      "do": "Excluded classes do not appear as negative matches."
+    },
+    {
+      "key": "most-auto-configurations-are-supposed",
+      "do": "Most auto-configurations are *supposed* to be negative matches."
+    },
+    {
+      "key": "actuator-conditions-needs-exposure-debug",
+      "do": "`/actuator/conditions` needs exposure; `--debug` does not need Actuator."
+    },
+    {
+      "key": "jdbc-types-remain-javax-sql",
+      "do": "JDBC types remain `javax.sql` on Boot 3; servlet/JPA messages say `jakarta.*`."
+    }
+  ]
+}

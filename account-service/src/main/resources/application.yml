@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: account-service
+  datasource:
+    url: jdbc:postgresql://localhost:5433/account
+    username: ledgerflow
+    password: ledgerflow
+  jpa:
+    hibernate:
+      ddl-auto: validate      # never 'update'. not even locally.
+    open-in-view: false
+  flyway:
+    enabled: true
+
+ledgerflow:
+  account:
+    display-name: LedgerFlow Account
+    max-wallets-per-account: 500
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always

@@ -1,0 +1,83 @@
+{
+  "id": "30",
+  "title": "conditional annotations",
+  "goal": "6.2.2b Conditional annotations",
+  "tasks": [
+    {
+      "key": "describe-conditional-base-mechanism-condition",
+      "do": "Describe the `@Conditional` base mechanism and the `Condition` interface."
+    },
+    {
+      "key": "name-at-least-eight-boot",
+      "do": "Name at least eight Boot condition annotations and what each tests."
+    },
+    {
+      "key": "explain-why-classpath-conditions-are",
+      "do": "Explain why classpath conditions are cheap and stable."
+    },
+    {
+      "key": "explain-why-bean-conditions-are",
+      "do": "Explain why bean conditions are order-sensitive."
+    },
+    {
+      "key": "state-why-bean-conditions-belong",
+      "do": "State why bean conditions belong in auto-configuration, not application code."
+    },
+    {
+      "key": "use-every-attribute-conditionalonproperty-includ",
+      "do": "Use every attribute of `@ConditionalOnProperty`, including `matchIfMissing`."
+    },
+    {
+      "key": "predict-conditionalonproperty-behaviour-when-pro",
+      "do": "Predict `@ConditionalOnProperty` behaviour when the property is absent."
+    },
+    {
+      "key": "explain-what-conditionalonmissingbean-infers-whe",
+      "do": "Explain what `@ConditionalOnMissingBean` infers when given no attributes."
+    },
+    {
+      "key": "predict-effect-failed-condition-on",
+      "do": "Predict the effect of a failed condition on a `@Configuration` class versus a `@Bean` method."
+    },
+    {
+      "key": "combine-conditions-state-combining-semantics",
+      "do": "Combine conditions and state the combining semantics."
+    },
+    {
+      "key": "achieve-semantics-anynestedcondition-custom-cond",
+      "do": "Achieve OR semantics with `AnyNestedCondition` or a custom condition."
+    },
+    {
+      "key": "write-custom-condition-using-conditioncontext",
+      "do": "Write a custom `Condition` using `ConditionContext`."
+    },
+    {
+      "key": "multiple-conditions-are-anded-there",
+      "do": "Multiple conditions are ANDed — there is no built-in OR annotation."
+    },
+    {
+      "key": "conditionalonproperty-does-not-match-missing",
+      "do": "`@ConditionalOnProperty` does NOT match a missing property without `matchIfMissing = true`."
+    },
+    {
+      "key": "conditionalonmissingbean-no-attributes-infers-me",
+      "do": "`@ConditionalOnMissingBean` with no attributes infers the method's return type."
+    },
+    {
+      "key": "failed-class-level-condition-skips",
+      "do": "A failed class-level condition skips every `@Bean` in that class."
+    },
+    {
+      "key": "conditionalonclass-never-loads-class-names",
+      "do": "`@ConditionalOnClass` never loads the class it names."
+    },
+    {
+      "key": "profile-itself-condition",
+      "do": "`@Profile` is itself a condition."
+    },
+    {
+      "key": "conditions-are-evaluated-once-at",
+      "do": "Conditions are evaluated once, at startup."
+    }
+  ]
+}

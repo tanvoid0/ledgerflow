@@ -1,0 +1,43 @@
+{
+  "id": "18",
+  "title": "intervals",
+  "goal": "P6.3 Sort key first, then one scan",
+  "tasks": [
+    {
+      "key": "choose-sort-key-first-start",
+      "do": "Choose the sort key first — start for merging, end for keeping, both for concurrency"
+    },
+    {
+      "key": "ask-whether-touching-endpoints-count",
+      "do": "Ask whether touching endpoints count as overlapping"
+    },
+    {
+      "key": "extend-merged-interval-max-never",
+      "do": "Extend a merged interval with `max`, never the incoming end"
+    },
+    {
+      "key": "give-exchange-argument-sorting-by",
+      "do": "Give the exchange argument for sorting by end"
+    },
+    {
+      "key": "say-whether-caller-s-array",
+      "do": "Say whether the caller's array is being mutated"
+    },
+    {
+      "key": "solve-all-four-exercises-inside",
+      "do": "Solve all four exercises inside their target times"
+    },
+    {
+      "key": "state-sort-key-reason-before",
+      "do": "State the sort key and the reason before writing the scan"
+    },
+    {
+      "key": "give-complexity-as-o-n",
+      "do": "Give complexity as O(n log n) dominated by the sort"
+    },
+    {
+      "key": "name-input-that-breaks-wrong",
+      "do": "Name the input that breaks the wrong sort key"
+    }
+  ]
+}

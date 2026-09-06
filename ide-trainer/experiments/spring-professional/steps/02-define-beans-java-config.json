@@ -1,0 +1,39 @@
+{
+  "id": "02",
+  "title": "define beans java config",
+  "goal": "1.2.1 Define Spring Beans using Java code",
+  "tasks": [
+    {
+      "key": "explain-what-configuration-does-why",
+      "do": "Explain what `@Configuration` does and why it is meta-annotated with `@Component`"
+    },
+    {
+      "key": "define-bean-using-bean-method",
+      "do": "Define a bean using a `@Bean` method on a `@Configuration` class"
+    },
+    {
+      "key": "state-default-bean-name-bean",
+      "do": "State the default bean name for a `@Bean` method (method name vs return type)"
+    },
+    {
+      "key": "override-bean-name-bean-explicitname",
+      "do": "Override a bean name with `@Bean(\"explicitName\")`"
+    },
+    {
+      "key": "wire-beans-by-declaring-dependencies",
+      "do": "Wire beans by declaring dependencies as parameters on `@Bean` methods"
+    },
+    {
+      "key": "explain-why-configuration-proxy-semantics",
+      "do": "Explain why `@Configuration` proxy semantics matter when one `@Bean` method calls another"
+    },
+    {
+      "key": "distinguish-java-config-configuration-bean",
+      "do": "Distinguish Java config (`@Configuration` / `@Bean`) from component scanning (`@Component`)"
+    },
+    {
+      "key": "retrieve-bean-by-name-getbean",
+      "do": "Retrieve a bean by name (`getBean(\"name\")`) and by type (`getBean(Class)`) from `ApplicationContext`"
+    }
+  ]
+}

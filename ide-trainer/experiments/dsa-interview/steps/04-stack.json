@@ -1,0 +1,43 @@
+{
+  "id": "04",
+  "title": "stack",
+  "goal": "P2.1 Monotonic stacks and matched-pair parsing",
+  "tasks": [
+    {
+      "key": "recognise-most-recent-unresolved-item",
+      "do": "Recognise \"most recent unresolved item\" as the stack trigger"
+    },
+    {
+      "key": "reach-arraydeque-not-java-util",
+      "do": "Reach for `ArrayDeque`, not `java.util.Stack`, and say why"
+    },
+    {
+      "key": "build-monotonic-stack-indices-when",
+      "do": "Build a monotonic stack of indices when the answer needs a position or distance"
+    },
+    {
+      "key": "justify-amortised-o-n-stack",
+      "do": "Justify amortised O(n) for a stack scan with an inner `while`"
+    },
+    {
+      "key": "carry-auxiliary-state-on-stack",
+      "do": "Carry auxiliary state on the stack when a query must stay O(1)"
+    },
+    {
+      "key": "solve-all-four-exercises-inside",
+      "do": "Solve all four exercises inside their target times"
+    },
+    {
+      "key": "state-what-stack-holds-what",
+      "do": "State what the stack holds and what invariant its ordering has"
+    },
+    {
+      "key": "name-pop-condition-before-writing",
+      "do": "Name the pop condition before writing the loop"
+    },
+    {
+      "key": "trace-input-where-one-step",
+      "do": "Trace an input where one step pops more than once"
+    }
+  ]
+}

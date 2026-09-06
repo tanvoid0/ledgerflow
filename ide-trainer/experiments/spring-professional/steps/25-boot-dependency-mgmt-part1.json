@@ -1,0 +1,75 @@
+{
+  "id": "25",
+  "title": "boot dependency mgmt part1",
+  "goal": "6.1.2a Dependency management (part 1)",
+  "tasks": [
+    {
+      "key": "state-problem-dependency-management-solves",
+      "do": "State the problem dependency management solves, in terms of runtime failure."
+    },
+    {
+      "key": "define-starter-say-what-contains",
+      "do": "Define a starter and say what it contains."
+    },
+    {
+      "key": "define-bom-say-what-spring",
+      "do": "Define a BOM and say what `spring-boot-dependencies` manages."
+    },
+    {
+      "key": "distinguish-starter-s-job-from",
+      "do": "Distinguish the starter's job from the BOM's job."
+    },
+    {
+      "key": "list-what-spring-boot-starter",
+      "do": "List what `spring-boot-starter-parent` adds beyond the BOM."
+    },
+    {
+      "key": "explain-how-maven-resolves-version",
+      "do": "Explain how Maven resolves a version through the parent chain."
+    },
+    {
+      "key": "name-contents-spring-boot-starter",
+      "do": "Name the contents of `spring-boot-starter-test`."
+    },
+    {
+      "key": "distinguish-spring-boot-starter-from",
+      "do": "Distinguish `spring-boot-starter` from `spring-boot-starter-web`."
+    },
+    {
+      "key": "state-naming-convention-third-party",
+      "do": "State the naming convention for third-party starters."
+    },
+    {
+      "key": "explain-why-parent-s-resource",
+      "do": "Explain why the parent's resource filtering uses `@...@`."
+    },
+    {
+      "key": "inspect-resolved-versions-dependency-tree",
+      "do": "Inspect resolved versions with `dependency:tree` and `help:effective-pom`."
+    },
+    {
+      "key": "starters-contain-no-code-pom",
+      "do": "Starters contain NO code — POM-only aggregations."
+    },
+    {
+      "key": "bom-manages-versions-adds-no",
+      "do": "The BOM manages versions; it adds no dependencies."
+    },
+    {
+      "key": "spring-boot-starter-parent-optional",
+      "do": "`spring-boot-starter-parent` is optional."
+    },
+    {
+      "key": "third-party-starters-xyz-spring",
+      "do": "Third-party starters: `xyz-spring-boot-starter`, not `spring-boot-starter-xyz`."
+    },
+    {
+      "key": "explicit-silently-overrides-managed-one",
+      "do": "An explicit `<version>` silently overrides the managed one."
+    },
+    {
+      "key": "bom-manages-non-spring-libraries",
+      "do": "The BOM manages non-Spring libraries too — Jackson, Hibernate, Postgres, Kafka."
+    }
+  ]
+}

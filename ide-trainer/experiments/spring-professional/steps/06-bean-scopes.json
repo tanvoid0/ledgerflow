@@ -1,0 +1,51 @@
+{
+  "id": "06",
+  "title": "bean scopes",
+  "goal": "1.2.5 Explain and define Bean Scopes",
+  "tasks": [
+    {
+      "key": "explain-difference-between-singleton-prototype",
+      "do": "Explain the difference between Singleton and Prototype scope."
+    },
+    {
+      "key": "identify-default-scope-spring-bean",
+      "do": "Identify the default scope of a Spring bean."
+    },
+    {
+      "key": "describe-behavior-request-session-scopes",
+      "do": "Describe the behavior of the Request and Session scopes in web apps."
+    },
+    {
+      "key": "explain-why-predestroy-not-called",
+      "do": "Explain why `@PreDestroy` is not called for Prototype beans."
+    },
+    {
+      "key": "determine-when-scopedproxymode-required-injectio",
+      "do": "Determine when a `ScopedProxyMode` is required for injection."
+    },
+    {
+      "key": "understand-prototype-singleton-injection-problem",
+      "do": "Understand the \"Prototype in Singleton\" injection problem."
+    },
+    {
+      "key": "describe-application-scope-its-relationship",
+      "do": "Describe the Application scope and its relationship to `ServletContext`."
+    },
+    {
+      "key": "correctly-apply-scope-annotation-configuration",
+      "do": "Correctly apply the `@Scope` annotation to a configuration class."
+    },
+    {
+      "key": "spring-singleton-java-singleton-per",
+      "do": "\"Spring Singleton != Java Singleton\" (per-container vs per-JVM)."
+    },
+    {
+      "key": "prototype-beans-injected-into-singletons",
+      "do": "Prototype beans injected into Singletons are only injected once."
+    },
+    {
+      "key": "web-scopes-request-session-require",
+      "do": "Web scopes (Request/Session) require a web-aware context."
+    }
+  ]
+}

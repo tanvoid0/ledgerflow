@@ -1,0 +1,55 @@
+{
+  "id": "38",
+  "title": "jdbc callbacks",
+  "goal": "2.1.2 Query callbacks",
+  "tasks": [
+    {
+      "key": "implement-rowmapper-maprow-use-query",
+      "do": "Implement `RowMapper.mapRow` and use it with `query` / `queryForObject`."
+    },
+    {
+      "key": "explain-when-beanpropertyrowmapper-enough-when",
+      "do": "Explain when `BeanPropertyRowMapper` is enough and when a hand-written mapper is clearer."
+    },
+    {
+      "key": "implement-resultsetextractor-aggregate-that-not",
+      "do": "Implement `ResultSetExtractor` for an aggregate that is not a `List` of rows."
+    },
+    {
+      "key": "contrast-rowcallbackhandler-void-per-row",
+      "do": "Contrast `RowCallbackHandler` (void, per row) with `RowMapper` (value, per row)."
+    },
+    {
+      "key": "bind-parameters-preparedstatementsetter-using-1",
+      "do": "Bind parameters with `PreparedStatementSetter` using 1-based indexes."
+    },
+    {
+      "key": "explain-why-generated-keys-need",
+      "do": "Explain why generated keys need `PreparedStatementCreator` (and usually a `KeyHolder`)."
+    },
+    {
+      "key": "state-that-callbacks-must-not",
+      "do": "State that callbacks must not close JDBC resources Spring created."
+    },
+    {
+      "key": "state-that-sqlexception-from-callback",
+      "do": "State that `SQLException` from a callback is translated by `JdbcTemplate`."
+    },
+    {
+      "key": "rowmapper-template-iterates-resultsetextractor-i",
+      "do": "`RowMapper`: template iterates. `ResultSetExtractor`: you iterate (call `rs.next()`)."
+    },
+    {
+      "key": "rownum-0-based-preparedstatement-indexes",
+      "do": "`rowNum` is 0-based; `PreparedStatement` indexes are 1-based."
+    },
+    {
+      "key": "do-not-close-resultset-connection",
+      "do": "Do not close `ResultSet` / `Connection` in the callback."
+    },
+    {
+      "key": "rowcallbackhandler-cannot-return-mapped-list",
+      "do": "`RowCallbackHandler` cannot return the mapped list."
+    }
+  ]
+}

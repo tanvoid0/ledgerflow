@@ -1,0 +1,4 @@
+{
+  "name": "LedgerFlow",
+  "_note": "Lessons are keyed to the curriculum step the feature first pays off in. Action ids come from Help > Find Action with 'include disabled' on; verify them against your IDE build before trusting a detector. Every lesson can be skipped — a detector that cannot fire must never block the curriculum."
+}

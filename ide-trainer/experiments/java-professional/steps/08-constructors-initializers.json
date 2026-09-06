@@ -1,0 +1,39 @@
+{
+  "id": "08",
+  "title": "constructors initializers",
+  "goal": "3.2 Constructors and static/instance initializers",
+  "tasks": [
+    {
+      "key": "explain-when-default-constructor-exists",
+      "do": "Explain when the default constructor exists and what it does"
+    },
+    {
+      "key": "chain-this-super-state-they",
+      "do": "Chain with `this()` and `super()` and state they must be first"
+    },
+    {
+      "key": "order-static-initializers-vs-instance",
+      "do": "Order static initializers vs instance initializers vs constructor bodies"
+    },
+    {
+      "key": "state-that-static-initializers-run",
+      "do": "State that static initializers run once per class initialization"
+    },
+    {
+      "key": "predict-instance-initializer-runs-this",
+      "do": "Predict instance-initializer runs with `this()` chaining (once, after `super()`)"
+    },
+    {
+      "key": "assign-blank-final-instance-fields",
+      "do": "Assign blank `final` instance fields on every constructor path"
+    },
+    {
+      "key": "recognize-that-any-user-constructor",
+      "do": "Recognize that any user constructor removes the default constructor"
+    },
+    {
+      "key": "trace-parent-child-construction-print",
+      "do": "Trace a parent/child construction print-order question"
+    }
+  ]
+}

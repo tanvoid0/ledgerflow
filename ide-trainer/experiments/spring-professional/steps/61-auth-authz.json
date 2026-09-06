@@ -1,0 +1,43 @@
+{
+  "id": "61",
+  "title": "auth and authz",
+  "goal": "5.2 Authentication & Authorization",
+  "tasks": [
+    {
+      "key": "write-securityfilterchain-bean-authorizehttprequ",
+      "do": "Write a `SecurityFilterChain` `@Bean` with `authorizeHttpRequests` and `formLogin`."
+    },
+    {
+      "key": "put-specific-matchers-before-anyrequest",
+      "do": "Put specific matchers before `anyRequest()`."
+    },
+    {
+      "key": "use-hasrole-hasanyrole-without-embedding",
+      "do": "Use `hasRole` / `hasAnyRole` without embedding `ROLE_` in the role name."
+    },
+    {
+      "key": "explain-hasrole-vs-hasauthority",
+      "do": "Explain `hasRole` vs `hasAuthority`."
+    },
+    {
+      "key": "configure-inmemoryuserdetailsmanager-encoded-pas",
+      "do": "Configure `InMemoryUserDetailsManager` with encoded passwords (`{noop}` or BCrypt)."
+    },
+    {
+      "key": "predict-401-anonymous-vs-403",
+      "do": "Predict 401 (anonymous) vs 403 (wrong role)."
+    },
+    {
+      "key": "use-withmockuser-authorization-tests-formlogin",
+      "do": "Use `@WithMockUser` for authorization tests and `formLogin()` for login tests."
+    },
+    {
+      "key": "keep-csrf-enabled-form-login",
+      "do": "Keep CSRF enabled with form login."
+    },
+    {
+      "key": "add-http-basic-401-entry",
+      "do": "Add HTTP Basic (or a 401 entry point) so APIs do not 302 to HTML login."
+    }
+  ]
+}

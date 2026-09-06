@@ -1,0 +1,27 @@
+{
+  "id": "05",
+  "title": "scorecard",
+  "goal": "O5 Week 8 pass line",
+  "tasks": [
+    {
+      "key": "cold-apply-faang-spring-shop",
+      "do": "Cold-apply a FAANG or Spring-shop role in under 30 minutes"
+    },
+    {
+      "key": "dsa-track-consistent-solve-recover",
+      "do": "DSA track: consistent solve-or-recover with communication"
+    },
+    {
+      "key": "one-polished-system-design-rate",
+      "do": "One polished system design (rate limiter or feed) drawable cold"
+    },
+    {
+      "key": "tracker-shows-continuous-outbound-6",
+      "do": "Tracker shows continuous outbound for 6+ weeks"
+    },
+    {
+      "key": "active-late-stage-interviews-documented",
+      "do": "Active late-stage interviews OR a documented gap list + 4-week extension plan"
+    }
+  ]
+}

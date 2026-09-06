@@ -1,0 +1,39 @@
+{
+  "id": "07",
+  "title": "classes fields methods",
+  "goal": "3.2 Classes: instance/static fields and methods",
+  "tasks": [
+    {
+      "key": "contrast-instance-fields-static-fields",
+      "do": "Contrast instance fields with `static` fields (per-object vs shared)"
+    },
+    {
+      "key": "state-when-this-legal-what",
+      "do": "State when `this` is legal and what it refers to"
+    },
+    {
+      "key": "list-four-access-levels-who",
+      "do": "List the four access levels and who can see each"
+    },
+    {
+      "key": "define-method-signature-name-parameter",
+      "do": "Define a method signature (name + parameter types only)"
+    },
+    {
+      "key": "call-instance-members-from-static",
+      "do": "Call instance members from static code only through an instance"
+    },
+    {
+      "key": "use-this-field-when-parameter",
+      "do": "Use `this.field` when a parameter hides a field"
+    },
+    {
+      "key": "recall-default-values-uninitialized-instance",
+      "do": "Recall default values of uninitialized instance/static fields"
+    },
+    {
+      "key": "recognize-that-fields-hide-subclasses",
+      "do": "Recognize that fields hide in subclasses; instance methods override"
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "id": "23",
+  "title": "sorting collections",
+  "goal": "5.1 Sort collections with Comparable and Comparator",
+  "tasks": [
+    {
+      "key": "implement-comparable-compareto-integer-compare",
+      "do": "Implement `Comparable.compareTo` with `Integer.compare` (or equivalent)"
+    },
+    {
+      "key": "sort-list-collections-sort-list",
+      "do": "Sort a list with `Collections.sort` / `List.sort` using natural order"
+    },
+    {
+      "key": "write-comparator-as-lambda-method",
+      "do": "Write a `Comparator` as a lambda or method reference"
+    },
+    {
+      "key": "chain-comparing-thencomparing-reversed",
+      "do": "Chain `comparing` / `thenComparing` / `reversed`"
+    },
+    {
+      "key": "state-why-compareto-should-be",
+      "do": "State why `compareTo` should be consistent with `equals` for `TreeSet`/`TreeMap`"
+    },
+    {
+      "key": "avoid-int-subtraction-overflow-comparisons",
+      "do": "Avoid `int` subtraction overflow in comparisons"
+    },
+    {
+      "key": "contrast-natural-order-vs-one",
+      "do": "Contrast natural order vs a one-off comparator"
+    },
+    {
+      "key": "predict-npe-when-inserting-null",
+      "do": "Predict NPE when inserting `null` into a natural-order `TreeSet`"
+    }
+  ]
+}

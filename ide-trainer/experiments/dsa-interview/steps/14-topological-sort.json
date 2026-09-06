@@ -1,0 +1,43 @@
+{
+  "id": "14",
+  "title": "topological sort",
+  "goal": "P5.2 Dependency ordering and cycle detection",
+  "tasks": [
+    {
+      "key": "state-edge-direction-prerequisite-points",
+      "do": "State the edge direction — prerequisite points to dependent — before building anything"
+    },
+    {
+      "key": "write-kahn-s-algorithm-from",
+      "do": "Write Kahn's algorithm from memory: in-degrees, ready queue, decrement, enqueue"
+    },
+    {
+      "key": "detect-cycle-by-counting-emitted",
+      "do": "Detect a cycle by counting emitted nodes against `n`"
+    },
+    {
+      "key": "count-parallel-rounds-level-snapshot",
+      "do": "Count parallel rounds with a level snapshot on the ready queue"
+    },
+    {
+      "key": "treat-any-valid-order-as",
+      "do": "Treat any valid order as correct, not one specific order"
+    },
+    {
+      "key": "solve-all-three-exercises-inside",
+      "do": "Solve all three exercises inside their target times"
+    },
+    {
+      "key": "say-direction-every-edge-as",
+      "do": "Say the direction of every edge as you add it"
+    },
+    {
+      "key": "give-complexity-as-o-v",
+      "do": "Give complexity as O(V + E)"
+    },
+    {
+      "key": "name-what-short-output-means",
+      "do": "Name what a short output means before you write the return"
+    }
+  ]
+}

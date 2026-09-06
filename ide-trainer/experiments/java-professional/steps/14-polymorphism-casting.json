@@ -1,0 +1,39 @@
+{
+  "id": "14",
+  "title": "polymorphism casting",
+  "goal": "3.5 Polymorphism, reference vs object type, casting",
+  "tasks": [
+    {
+      "key": "separate-reference-type-from-object",
+      "do": "Separate reference type from object type in a snippet"
+    },
+    {
+      "key": "predict-which-overridden-instance-method",
+      "do": "Predict which overridden instance method runs"
+    },
+    {
+      "key": "upcast-implicitly-downcast-explicitly",
+      "do": "Upcast implicitly and downcast explicitly"
+    },
+    {
+      "key": "state-when-classcastexception-thrown",
+      "do": "State when `ClassCastException` is thrown"
+    },
+    {
+      "key": "explain-that-casting-null-yields",
+      "do": "Explain that casting `null` yields `null`"
+    },
+    {
+      "key": "use-instanceof-false-null-before",
+      "do": "Use `instanceof` (false for `null`) before a downcast"
+    },
+    {
+      "key": "call-subclass-only-members-only",
+      "do": "Call subclass-only members only after a successful downcast"
+    },
+    {
+      "key": "contrast-method-dispatch-field-static",
+      "do": "Contrast method dispatch with field/static hiding"
+    }
+  ]
+}

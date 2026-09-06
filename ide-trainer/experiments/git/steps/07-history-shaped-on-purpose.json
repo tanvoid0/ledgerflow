@@ -1,0 +1,117 @@
+{
+  "id": "07",
+  "title": "history you shaped on purpose",
+  "estimate": "50 min",
+  "goal": "C1 Interactive rebase: squash, reword, split, drop",
+  "startWith": "In <code>git-lab</code>, make five sloppy commits (“wip”, “fix”, “typo”) and clean them into two honest ones.",
+  "newIdeas": [
+    {
+      "term": "interactive rebase",
+      "plain": "Replay a list of commits, deciding for each one: keep, reword, squash, edit, drop."
+    },
+    {
+      "term": "fixup / autosquash",
+      "plain": "Mark a commit as “belongs to that one” and let rebase fold it in automatically."
+    },
+    {
+      "term": "the golden rule",
+      "plain": "Rewrite only history nobody else has pulled."
+    }
+  ],
+  "tasks": [
+    {
+      "key": "make-five-throwaway-commits-then",
+      "do": "Make five throwaway commits, then rebase them interactively",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "for i in 1 2 3 4 5; do echo $i >> notes.txt; git add -A; git commit -m \"wip $i\"; done\ngit rebase -i HEAD~5\n# in the editor: pick / reword / squash / fixup / drop. Top line is the oldest commit."
+        },
+        {
+          "label": "IntelliJ",
+          "kind": "note",
+          "body": "Log tab → right-click a commit → <b>Interactively Rebase from Here</b>. A real dialog instead of an editor full of comments — the friendliest interactive rebase there is."
+        }
+      ]
+    },
+    {
+      "key": "amend-previous-commit-without-changing",
+      "do": "Amend the previous commit, with and without changing the message",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git commit --amend\ngit commit --amend --no-edit"
+        },
+        {
+          "label": "IntelliJ",
+          "kind": "note",
+          "body": "The Commit dialog has an <b>Amend</b> checkbox; ticking it loads the last message."
+        }
+      ]
+    },
+    {
+      "key": "use-fixup-autosquash-review-comment",
+      "do": "Use fixup and autosquash for a review comment",
+      "why": "A reviewer says “line 12 is wrong” three commits back. This puts the fix where it belongs with no manual reordering.",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git add -p\ngit commit --fixup=<hash-of-the-commit-it-fixes>\ngit rebase -i --autosquash <hash>~1\ngit config --global rebase.autosquash true    # make it the default"
+        }
+      ],
+      "check": {
+        "run": "git config --get rebase.autosquash",
+        "expect": "true"
+      }
+    },
+    {
+      "key": "stage-part-file-add-p",
+      "do": "Stage part of a file with <code>add -p</code>",
+      "why": "Two unrelated changes in one file should be two commits. This is how.",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git add -p        # y / n / s to split the hunk / e to edit it"
+        },
+        {
+          "label": "IntelliJ",
+          "kind": "note",
+          "body": "In the Commit dialog's diff, select lines and right-click → <b>Include into commit</b>. Per-line staging with a mouse."
+        }
+      ]
+    },
+    {
+      "key": "rebase-branch-onto-updated-main",
+      "do": "Rebase your branch onto an updated main, then push it safely",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git fetch origin\ngit rebase origin/main\n# resolve conflicts, then one of:\ngit rebase --continue\ngit rebase --skip\ngit rebase --abort\ngit push --force-with-lease"
+        }
+      ]
+    }
+  ],
+  "proof": {
+    "run": "git log --oneline -3",
+    "expect": "clean, deliberate subjects",
+    "note": "Five wip commits became a history you would show someone."
+  },
+  "doneWhen": "Your branch arrives at review as a readable sequence, not a diary.",
+  "lessons": [
+    {
+      "id": "07-interactive-rebase",
+      "title": "Interactively rebase from a commit",
+      "teach": "In the Log, right-click a commit → <b>Interactively Rebase from Here</b>. Squash, reword, drop and reorder in a dialog with the diffs beside it — the same rebase, without the editor full of comment lines.",
+      "trigger": {
+        "type": "action",
+        "id": "Git.Interactive.Rebase"
+      },
+      "fallbackTip": "git rebase -i <hash>~1"
+    }
+  ]
+}

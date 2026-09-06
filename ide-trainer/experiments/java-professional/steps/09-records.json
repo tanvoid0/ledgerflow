@@ -1,0 +1,39 @@
+{
+  "id": "09",
+  "title": "records",
+  "goal": "3.2 Records as compact data carriers",
+  "tasks": [
+    {
+      "key": "declare-record-name-its-components",
+      "do": "Declare a record and name its components"
+    },
+    {
+      "key": "call-accessors-component-rather-than",
+      "do": "Call accessors `component()` rather than `getComponent()`"
+    },
+    {
+      "key": "write-compact-constructor-validation-normalizati",
+      "do": "Write a compact constructor for validation and normalization"
+    },
+    {
+      "key": "state-that-records-are-implicitly",
+      "do": "State that records are implicitly final and extend `java.lang.Record`"
+    },
+    {
+      "key": "list-generated-members-canonical-constructor",
+      "do": "List generated members: canonical constructor, accessors, `equals`/`hashCode`/`toString`"
+    },
+    {
+      "key": "implement-interface-on-record",
+      "do": "Implement an interface on a record"
+    },
+    {
+      "key": "avoid-extra-instance-fields-use",
+      "do": "Avoid extra instance fields; use static fields or methods instead"
+    },
+    {
+      "key": "use-component-equals-vs-reference",
+      "do": "Use component `equals` vs reference `==`"
+    }
+  ]
+}

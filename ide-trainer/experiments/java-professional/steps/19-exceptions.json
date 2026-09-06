@@ -1,0 +1,39 @@
+{
+  "id": "19",
+  "title": "exceptions",
+  "goal": "4.1 try/catch/finally, try-with-resources, multi-catch, custom exceptions",
+  "tasks": [
+    {
+      "key": "distinguish-checked-runtimeexception-error",
+      "do": "Distinguish checked, `RuntimeException`, and `Error`"
+    },
+    {
+      "key": "order-catch-blocks-from-most",
+      "do": "Order `catch` blocks from most specific to most general"
+    },
+    {
+      "key": "write-multi-catch-disjoint-types",
+      "do": "Write multi-catch with disjoint types and an effectively final parameter"
+    },
+    {
+      "key": "predict-that-finally-runs-after",
+      "do": "Predict that `finally` runs after `return` in `try` or `catch`"
+    },
+    {
+      "key": "open-resources-try-resources-autocloseable",
+      "do": "Open resources with try-with-resources (`AutoCloseable`)"
+    },
+    {
+      "key": "state-reverse-close-order-suppressed",
+      "do": "State reverse close order and suppressed exceptions"
+    },
+    {
+      "key": "declare-custom-checked-exception-message",
+      "do": "Declare a custom checked exception with a message/cause constructor"
+    },
+    {
+      "key": "know-that-method-throwing-checked",
+      "do": "Know that a method throwing checked exceptions must catch or declare them"
+    }
+  ]
+}

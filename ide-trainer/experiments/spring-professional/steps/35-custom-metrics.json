@@ -1,0 +1,95 @@
+{
+  "id": "35",
+  "title": "custom metrics",
+  "goal": "6.3.3 Define custom metrics",
+  "tasks": [
+    {
+      "key": "explain-what-micrometer-how-relates",
+      "do": "Explain what Micrometer is and how it relates to Actuator and to backends."
+    },
+    {
+      "key": "inject-meterregistry-register-meter",
+      "do": "Inject a `MeterRegistry` and register a meter."
+    },
+    {
+      "key": "choose-correctly-between-counter-timer",
+      "do": "Choose correctly between `Counter`, `Timer`, `Gauge`, `DistributionSummary`, and `LongTaskTimer`."
+    },
+    {
+      "key": "explain-why-counter-cannot-decrease",
+      "do": "Explain why a `Counter` cannot decrease."
+    },
+    {
+      "key": "explain-how-gauge-sampled-why",
+      "do": "Explain how a `Gauge` is sampled and why it holds a weak reference."
+    },
+    {
+      "key": "explain-when-longtasktimer-only-meter",
+      "do": "Explain when `LongTaskTimer` is the only meter that answers the question."
+    },
+    {
+      "key": "add-tags-explain-how-they",
+      "do": "Add tags and explain how they define separate time series."
+    },
+    {
+      "key": "estimate-series-count-given-set",
+      "do": "Estimate the series count for a given set of tags."
+    },
+    {
+      "key": "name-three-tag-values-that",
+      "do": "Name three tag values that must never be used."
+    },
+    {
+      "key": "use-timed-state-bean-requires",
+      "do": "Use `@Timed`, and state the bean it requires."
+    },
+    {
+      "key": "explain-proxy-limitations-that-apply",
+      "do": "Explain the proxy limitations that apply to `@Timed`."
+    },
+    {
+      "key": "group-meters-meterbinder",
+      "do": "Group meters with a `MeterBinder`."
+    },
+    {
+      "key": "add-common-tags-meterregistrycustomizer",
+      "do": "Add common tags with a `MeterRegistryCustomizer`."
+    },
+    {
+      "key": "deny-cap-meters-meterfilter",
+      "do": "Deny or cap meters with a `MeterFilter`."
+    },
+    {
+      "key": "expose-metrics-prometheus",
+      "do": "Expose metrics to Prometheus."
+    },
+    {
+      "key": "timed-does-nothing-without-timedaspect",
+      "do": "`@Timed` does nothing without a `TimedAspect` bean."
+    },
+    {
+      "key": "timed-proxy-based-self-invocation",
+      "do": "`@Timed` is proxy-based — self-invocation is not timed."
+    },
+    {
+      "key": "meter-identified-by-name-tags",
+      "do": "A meter is identified by NAME + TAGS together."
+    },
+    {
+      "key": "gauges-report-nan-once-their",
+      "do": "Gauges report `NaN` once their weakly-held target is collected."
+    },
+    {
+      "key": "counter-monotonic-use-gauge-values",
+      "do": "`Counter` is monotonic; use a `Gauge` for values that fall."
+    },
+    {
+      "key": "high-cardinality-tags-break-backend",
+      "do": "High-cardinality tags break the backend, not the application."
+    },
+    {
+      "key": "meterfilter-applies-at-registration-time",
+      "do": "`MeterFilter` applies at registration time only."
+    }
+  ]
+}

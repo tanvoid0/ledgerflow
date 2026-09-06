@@ -1,0 +1,131 @@
+{
+  "id": "04",
+  "title": "remotes and the daily loop",
+  "estimate": "45 min",
+  "goal": "B2 fetch, pull and push — and knowing which one you meant",
+  "startWith": "Use a remote you can push to: a scratch repo on GitHub, or a bare repo on disk (<code>git init --bare ../lab-remote.git</code>).",
+  "newIdeas": [
+    {
+      "term": "remote",
+      "plain": "A named URL. <code>origin</code> is a convention, not a keyword."
+    },
+    {
+      "term": "tracking branch",
+      "plain": "<code>origin/main</code> is your last-known copy of the remote's branch. Only fetch updates it."
+    },
+    {
+      "term": "pull",
+      "plain": "fetch plus merge (or rebase). Two operations wearing one name."
+    }
+  ],
+  "tasks": [
+    {
+      "key": "add-remote-push-branch-upstream",
+      "do": "Add a remote and push a branch with upstream tracking",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git remote add origin <url>\ngit remote -v\ngit push -u origin main"
+        },
+        {
+          "label": "IntelliJ",
+          "kind": "note",
+          "body": "<b>Ctrl+Shift+K</b> is Push. The dialog shows exactly what will go and lets you pick the remote branch."
+        }
+      ],
+      "check": {
+        "run": "git remote -v",
+        "expect": "at least one remote listed"
+      }
+    },
+    {
+      "key": "fetch-then-look-before-merge",
+      "do": "Fetch, then look before you merge",
+      "why": "<code>fetch</code> is always safe — it changes no file you are working on. <code>pull</code> is fetch plus a merge you did not read first.",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git fetch origin\ngit log --oneline HEAD..origin/main    # what would come in\ngit diff HEAD origin/main --stat\ngit merge origin/main"
+        }
+      ]
+    },
+    {
+      "key": "configure-pull-rebase-understand-what",
+      "do": "Configure pull to rebase, and understand what you just chose",
+      "why": "Merge-pull litters shared history with “Merge branch main of …” commits nobody wrote on purpose.",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git config --global pull.rebase true\ngit config --global rebase.autoStash true\ngit config --get pull.rebase"
+        },
+        {
+          "label": "IntelliJ",
+          "kind": "note",
+          "body": "<b>Ctrl+T</b> (Update Project) asks merge or rebase the first time and remembers. Change it in Settings → Version Control → Git → <i>Update method</i>."
+        }
+      ],
+      "check": {
+        "run": "git config --get pull.rebase",
+        "expect": "true"
+      }
+    },
+    {
+      "key": "amend-pushed-commit-push-again",
+      "do": "Amend a pushed commit and push it again safely",
+      "why": "<code>--force-with-lease</code> refuses when someone else pushed in the meantime; <code>--force</code> does not care.",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git commit --amend -m \"better message\"\ngit push --force-with-lease"
+        }
+      ],
+      "check": {
+        "run": "# never force-push a shared branch without telling people first",
+        "expect": "you can say what force-with-lease protects"
+      }
+    },
+    {
+      "key": "prune-remote-branches-that-no",
+      "do": "Prune remote branches that no longer exist",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git fetch --prune\ngit remote prune origin --dry-run"
+        }
+      ]
+    }
+  ],
+  "proof": {
+    "run": "git status -sb",
+    "expect": "a line like ## main...origin/main",
+    "note": "Your branch knows its upstream and you can read the ahead/behind counts."
+  },
+  "doneWhen": "You never type <code>git pull</code> without knowing whether it will merge or rebase.",
+  "lessons": [
+    {
+      "id": "04-update-project",
+      "title": "Update Project (Ctrl+T)",
+      "teach": "<b>Ctrl+T</b> is fetch + integrate. The first run asks merge or rebase and then remembers, so make that choice deliberately — it is the <code>pull.rebase</code> setting you just configured.",
+      "trigger": {
+        "type": "action",
+        "id": "Vcs.UpdateProject"
+      },
+      "fallbackTip": "git fetch && git rebase origin/main"
+    },
+    {
+      "id": "04-push",
+      "title": "Push (Ctrl+Shift+K)",
+      "teach": "<b>Ctrl+Shift+K</b> shows exactly which commits will go and to which remote branch — the confirmation the terminal makes you build yourself with <code>git log HEAD..origin/main</code>. Force push is in the dropdown next to the button, and IntelliJ uses <code>--force-with-lease</code>.",
+      "trigger": {
+        "type": "action",
+        "id": "Vcs.Push"
+      },
+      "fallbackTip": "git push -u origin HEAD"
+    }
+  ]
+}

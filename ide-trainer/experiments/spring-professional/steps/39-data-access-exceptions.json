@@ -1,0 +1,55 @@
+{
+  "id": "39",
+  "title": "data access exceptions",
+  "goal": "2.1.3 Data access exceptions",
+  "tasks": [
+    {
+      "key": "name-dataaccessexception-as-unchecked-root",
+      "do": "Name `DataAccessException` as the unchecked root."
+    },
+    {
+      "key": "split-transient-vs-non-transient",
+      "do": "Split transient vs non-transient and give one example of each."
+    },
+    {
+      "key": "map-duplicate-unique-key-duplicatekeyexception",
+      "do": "Map duplicate unique key → `DuplicateKeyException`."
+    },
+    {
+      "key": "map-queryforobject-0-rows-emptyresultdataaccesse",
+      "do": "Map `queryForObject` / 0 rows → `EmptyResultDataAccessException`."
+    },
+    {
+      "key": "map-invalid-sql-badsqlgrammarexception",
+      "do": "Map invalid SQL → `BadSqlGrammarException`."
+    },
+    {
+      "key": "explain-sqlexceptiontranslator-that-jdbctemplate",
+      "do": "Explain `SQLExceptionTranslator` and that `JdbcTemplate` uses one by default."
+    },
+    {
+      "key": "explain-repository-exception-translation-jpa",
+      "do": "Explain `@Repository` exception translation for JPA vs built-in translation in `JdbcTemplate`."
+    },
+    {
+      "key": "state-that-do-not-catch",
+      "do": "State that you do not catch `SQLException` around `JdbcTemplate`."
+    },
+    {
+      "key": "sqlexception-does-not-escape-jdbctemplate",
+      "do": "`SQLException` does not escape `JdbcTemplate`."
+    },
+    {
+      "key": "empty-queryforobject-exception-not-null",
+      "do": "Empty `queryForObject` is an exception, not `null`."
+    },
+    {
+      "key": "repository-matters-jpa-translation-jdbctemplate",
+      "do": "`@Repository` matters for JPA translation; `JdbcTemplate` already translates."
+    },
+    {
+      "key": "exam-jpa-package-javax-persistence",
+      "do": "Exam JPA package is `javax.persistence`; lab is `jakarta.persistence`."
+    }
+  ]
+}

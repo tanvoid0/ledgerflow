@@ -1,0 +1,67 @@
+{
+  "id": "71",
+  "title": "boot m9 multiple datasources",
+  "goal": "BOOT-M9 Boot + multiple datasources",
+  "tasks": [
+    {
+      "key": "exclude-datasourceautoconfiguration-when-declari",
+      "do": "Exclude `DataSourceAutoConfiguration` when declaring two explicit sources."
+    },
+    {
+      "key": "register-two-datasource-beans-distinct",
+      "do": "Register two `DataSource` beans with distinct names."
+    },
+    {
+      "key": "mark-default-source-primary",
+      "do": "Mark the default source `@Primary`."
+    },
+    {
+      "key": "inject-secondary-source-qualifier",
+      "do": "Inject the secondary source with `@Qualifier`."
+    },
+    {
+      "key": "create-one-jdbctemplate-emf-per",
+      "do": "Create one `JdbcTemplate` (or EMF) per DataSource."
+    },
+    {
+      "key": "predict-getbean-datasource-class-vs",
+      "do": "Predict `getBean(DataSource.class)` vs `getBean(\"name\", DataSource.class)`."
+    },
+    {
+      "key": "explain-conditionalonsinglecandidate-backing-off",
+      "do": "Explain `@ConditionalOnSingleCandidate` backing off `JdbcTemplate` auto-config."
+    },
+    {
+      "key": "state-that-javax-sql-datasource",
+      "do": "State that `javax.sql.DataSource` is unchanged on Boot 3."
+    },
+    {
+      "key": "avoid-one-entitymanagerfactory-spanning-two",
+      "do": "Avoid one `EntityManagerFactory` spanning two databases."
+    },
+    {
+      "key": "know-that-transactional-defaults-primary",
+      "do": "Know that `@Transactional` defaults to the primary transaction manager."
+    },
+    {
+      "key": "two-beans-without-primary-fail",
+      "do": "Two beans without `@Primary` fail *injection by type*, not necessarily context refresh."
+    },
+    {
+      "key": "primary-does-not-remove-other",
+      "do": "`@Primary` does not remove the other DataSource."
+    },
+    {
+      "key": "spring-datasource-url-does-not",
+      "do": "`spring.datasource.url` does not configure both sources."
+    },
+    {
+      "key": "excluding-auto-config-does-not",
+      "do": "Excluding auto-config does not exclude the JDBC driver."
+    },
+    {
+      "key": "datajpatest-one-database",
+      "do": "`@DataJpaTest` is one-database."
+    }
+  ]
+}

@@ -1,0 +1,71 @@
+{
+  "id": "13",
+  "title": "stereotype annotations",
+  "goal": "1.4.4 Stereotype Annotations",
+  "tasks": [
+    {
+      "key": "name-four-core-stereotypes-layer",
+      "do": "Name the four core stereotypes and the layer each denotes."
+    },
+    {
+      "key": "explain-how-component-scanning-finds",
+      "do": "Explain how component scanning finds `@Service` when it searches for `@Component`."
+    },
+    {
+      "key": "state-exactly-which-stereotypes-add",
+      "do": "State exactly which stereotypes add runtime behaviour, and what that behaviour is."
+    },
+    {
+      "key": "describe-what-persistenceexceptiontranslationpos",
+      "do": "Describe what `PersistenceExceptionTranslationPostProcessor` does to a `@Repository` bean."
+    },
+    {
+      "key": "name-three-concrete-subclasses-dataaccessexcepti",
+      "do": "Name three concrete subclasses of `DataAccessException` and what triggers them."
+    },
+    {
+      "key": "explain-why-exception-translation-improves",
+      "do": "Explain why exception translation improves portability."
+    },
+    {
+      "key": "state-difference-between-controller-restcontroll",
+      "do": "State the difference between `@Controller` and `@RestController`."
+    },
+    {
+      "key": "predict-what-happens-when-getmapping",
+      "do": "Predict what happens when `@GetMapping` methods live on a plain `@Component`."
+    },
+    {
+      "key": "override-bean-s-generated-name",
+      "do": "Override a bean's generated name via the stereotype's `value` attribute."
+    },
+    {
+      "key": "build-composed-stereotype-annotation-own",
+      "do": "Build a composed stereotype annotation of your own."
+    },
+    {
+      "key": "service-adds-no-runtime-behaviour",
+      "do": "`@Service` adds NO runtime behaviour — it does not enable transactions."
+    },
+    {
+      "key": "repository-does-add-behaviour-exception",
+      "do": "`@Repository` DOES add behaviour — exception translation via a proxy."
+    },
+    {
+      "key": "restcontroller-controller-responsebody-not-reque",
+      "do": "`@RestController` = `@Controller` + `@ResponseBody`, not + `@RequestMapping`."
+    },
+    {
+      "key": "spring-data-repository-interfaces-do",
+      "do": "Spring Data repository interfaces do not need `@Repository`."
+    },
+    {
+      "key": "configuration-itself-meta-annotated-component",
+      "do": "`@Configuration` is itself meta-annotated with `@Component`."
+    },
+    {
+      "key": "stereotype-on-interface-registers-nothing",
+      "do": "A stereotype on an interface registers nothing."
+    }
+  ]
+}

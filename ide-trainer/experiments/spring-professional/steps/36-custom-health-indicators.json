@@ -1,0 +1,95 @@
+{
+  "id": "36",
+  "title": "custom health indicators",
+  "goal": "6.3.4 Define custom health indicators",
+  "tasks": [
+    {
+      "key": "implement-healthindicator-return-each-four",
+      "do": "Implement `HealthIndicator` and return each of the four built-in statuses."
+    },
+    {
+      "key": "use-abstracthealthindicator-explain-what-handles",
+      "do": "Use `AbstractHealthIndicator` and explain what it handles for you."
+    },
+    {
+      "key": "add-details-health-response-explain",
+      "do": "Add details to a health response and explain when they are visible."
+    },
+    {
+      "key": "predict-key-given-indicator-bean",
+      "do": "Predict the key a given indicator bean name produces."
+    },
+    {
+      "key": "state-aggregation-rule-default-severity",
+      "do": "State the aggregation rule and the default severity order."
+    },
+    {
+      "key": "map-statuses-http-codes-including",
+      "do": "Map statuses to HTTP codes, including a custom status."
+    },
+    {
+      "key": "group-indicators-serve-group-on",
+      "do": "Group indicators and serve a group on its own sub-path."
+    },
+    {
+      "key": "enable-liveness-readiness-probes",
+      "do": "Enable liveness and readiness probes."
+    },
+    {
+      "key": "state-what-failed-liveness-probe",
+      "do": "State what a failed liveness probe causes, and what a failed readiness probe causes."
+    },
+    {
+      "key": "decide-correctly-whether-given-dependency",
+      "do": "Decide correctly whether a given dependency belongs in liveness, readiness, or neither."
+    },
+    {
+      "key": "explain-why-untimed-check-availability",
+      "do": "Explain why an untimed check is an availability risk."
+    },
+    {
+      "key": "cache-expensive-checks-cache-time",
+      "do": "Cache expensive checks with `cache.time-to-live`."
+    },
+    {
+      "key": "disable-built-indicator",
+      "do": "Disable a built-in indicator."
+    },
+    {
+      "key": "build-compositehealthcontributor",
+      "do": "Build a `CompositeHealthContributor`."
+    },
+    {
+      "key": "worst-status-wins-aggregation",
+      "do": "The WORST status wins in aggregation."
+    },
+    {
+      "key": "default-order-down-out-service",
+      "do": "Default order: `DOWN`, `OUT_OF_SERVICE`, `UP`, `UNKNOWN` — `UNKNOWN` is least severe."
+    },
+    {
+      "key": "down-maps-http-503-not",
+      "do": "`DOWN` maps to HTTP 503, not 500."
+    },
+    {
+      "key": "bean-name-minus-healthindicator-becomes",
+      "do": "The bean name minus `HealthIndicator` becomes the key."
+    },
+    {
+      "key": "show-details-defaults-never",
+      "do": "`show-details` defaults to `never`."
+    },
+    {
+      "key": "liveness-must-not-depend-on",
+      "do": "Liveness must NOT depend on external systems."
+    },
+    {
+      "key": "every-indicator-runs-on-every",
+      "do": "Every indicator runs on every request unless cached."
+    },
+    {
+      "key": "custom-status-without-http-mapping",
+      "do": "A custom status without an HTTP mapping returns 200."
+    }
+  ]
+}

@@ -1,0 +1,117 @@
+{
+  "id": "08",
+  "title": "archaeology and recovery",
+  "estimate": "45 min",
+  "goal": "C2 Find the commit that broke it, and get back anything you lost",
+  "startWith": "Use the cloned real repository from step 02 — it has enough history for these to be interesting.",
+  "newIdeas": [
+    {
+      "term": "bisect",
+      "plain": "Binary search over commits, driven by a test you can run."
+    },
+    {
+      "term": "reflog",
+      "plain": "A local log of every position each ref held. Your undo of last resort."
+    },
+    {
+      "term": "cherry-pick",
+      "plain": "Copy one commit onto another branch."
+    }
+  ],
+  "tasks": [
+    {
+      "key": "bisect-bug-down-one-commit",
+      "do": "Bisect a bug down to one commit",
+      "why": "Twelve steps over 4000 commits beats reading any of them.",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git bisect start\ngit bisect bad                  # the current commit is broken\ngit bisect good <old-hash>      # this one worked\n# git checks out a midpoint; test it, then say good or bad\ngit bisect reset"
+        },
+        {
+          "label": "terminal (automated)",
+          "kind": "shell",
+          "body": "git bisect start HEAD <old-hash>\ngit bisect run ./mvnw -q test -Dtest=TheFailingTest"
+        }
+      ]
+    },
+    {
+      "key": "cherry-pick-fix-onto-release",
+      "do": "Cherry-pick a fix onto a release branch",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git switch release/1.x\ngit cherry-pick <hash>\ngit cherry-pick -x <hash>    # records where it came from"
+        },
+        {
+          "label": "IntelliJ",
+          "kind": "note",
+          "body": "Log → right-click a commit → <b>Cherry-Pick</b>. Switch to the target branch first from the branch popup."
+        }
+      ]
+    },
+    {
+      "key": "find-deleted-file-restore",
+      "do": "Find a deleted file and restore it",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git log --diff-filter=D --oneline -- path/to/gone.txt\ngit restore --source=<hash>~1 -- path/to/gone.txt"
+        }
+      ]
+    },
+    {
+      "key": "recover-branch-deleted",
+      "do": "Recover a branch you deleted",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git reflog | grep <branch-name>\ngit switch -c <branch-name> <hash>"
+        },
+        {
+          "label": "IntelliJ",
+          "kind": "note",
+          "body": "<b>Local History</b> recovers files git never saw at all — the safety net under the safety net."
+        }
+      ]
+    },
+    {
+      "key": "use-worktree-look-at-another",
+      "do": "Use a worktree to look at another branch without stashing",
+      "why": "A second checkout sharing one object store. Reviewing a branch stops costing you your working state.",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git worktree add ../lab-review origin/some-branch\ngit worktree list\ngit worktree remove ../lab-review"
+        }
+      ],
+      "check": {
+        "run": "git worktree list",
+        "expect": "at least the main worktree"
+      }
+    }
+  ],
+  "proof": {
+    "run": "git reflog -10",
+    "expect": "your recent moves, including the recovery",
+    "note": "You located a commit by search, not by reading."
+  },
+  "doneWhen": "Losing work is no longer a category of problem you worry about.",
+  "lessons": [
+    {
+      "id": "08-cherry-pick",
+      "title": "Cherry-pick from the Log",
+      "teach": "Switch to the target branch, then right-click the commit in the Log → <b>Cherry-Pick</b>. Multi-select works, and the order you pick is the order they land.",
+      "trigger": {
+        "type": "action",
+        "id": "Git.CherryPick"
+      },
+      "fallbackTip": "git cherry-pick -x <hash>"
+    }
+  ]
+}

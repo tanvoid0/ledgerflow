@@ -1,0 +1,39 @@
+{
+  "id": "16",
+  "title": "pattern matching",
+  "goal": "3.5 Pattern matching with instanceof and switch",
+  "tasks": [
+    {
+      "key": "rewrite-cast-after-instanceof-using",
+      "do": "Rewrite a cast-after-`instanceof` using a type pattern binding"
+    },
+    {
+      "key": "state-scope-pattern-variable-that",
+      "do": "State the scope of a pattern variable (and that it is effectively final)"
+    },
+    {
+      "key": "explain-that-null-instanceof-type",
+      "do": "Explain that `null instanceof Type` is false and does not throw"
+    },
+    {
+      "key": "deconstruct-record-record-pattern-including",
+      "do": "Deconstruct a record with a record pattern, including nested records"
+    },
+    {
+      "key": "write-pattern-switch-type-cases",
+      "do": "Write a pattern switch with type cases, a guard (`when`), and `default`"
+    },
+    {
+      "key": "handle-null-selectors-case-null",
+      "do": "Handle `null` selectors with `case null` (and know `default` is not enough)"
+    },
+    {
+      "key": "order-cases-so-more-specific",
+      "do": "Order cases so a more specific pattern is not dominated by a wider type"
+    },
+    {
+      "key": "nest-record-patterns-deconstruct-components",
+      "do": "Nest record patterns to deconstruct components of components"
+    }
+  ]
+}

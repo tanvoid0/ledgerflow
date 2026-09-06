@@ -1,0 +1,149 @@
+{
+  "project": "Git, terminal and IntelliJ",
+  "stack": "git 2.40+, GitHub CLI (optional), IntelliJ IDEA",
+  "setup": {
+    "intro": "Every step is done twice: once in the terminal, once through IntelliJ. The terminal teaches you what git does; the IDE is where you will do it on a Tuesday afternoon.",
+    "shell": "Git Bash on Windows, any POSIX shell elsewhere. Commands assume you are inside the repository the step names.",
+    "tools": [
+      {
+        "name": "git",
+        "why": "Everything here.",
+        "check": "git --version",
+        "install": "https://git-scm.com/downloads"
+      },
+      {
+        "name": "gh",
+        "why": "Pull requests from the terminal in stage C. Optional.",
+        "check": "gh --version",
+        "install": "https://cli.github.com"
+      },
+      {
+        "name": "git-filter-repo",
+        "why": "History rewriting in step 11. Optional until then.",
+        "check": "git filter-repo --version",
+        "install": "pip install git-filter-repo"
+      },
+      {
+        "name": "a throwaway repo",
+        "why": "Stages A, B and D rewrite history. Do not practise on real work.",
+        "check": "test -d git-lab && echo present",
+        "install": "mkdir git-lab && cd git-lab && git init"
+      }
+    ],
+    "notes": [
+      {
+        "h": "switch and restore, not checkout",
+        "b": "<code>checkout</code> still works and still does both jobs. This curriculum uses the newer verbs because half of “git ate my changes” is a <code>checkout</code> that meant the other thing."
+      },
+      {
+        "h": "The golden rule",
+        "b": "Rewrite history freely while it is only yours. Once pushed to a branch other people build on, revert instead."
+      },
+      {
+        "h": "The IDE is not a lesser git",
+        "b": "Blame annotations, the three-pane merge tool, the interactive rebase dialog and per-line staging are all better in IntelliJ than in a terminal. The terminal wins on scripting, bisect, and anything ending in <code>--force-with-lease</code>."
+      }
+    ]
+  },
+  "stages": [
+    {
+      "letter": "A",
+      "name": "Foundations",
+      "blurb": "What a repository is, and how to read one.",
+      "youWillLearn": [
+        "The three areas: working tree, index, HEAD",
+        "Commits that say why",
+        "Reading history: log, diff, blame, pickaxe"
+      ],
+      "steps": [
+        "01-identity-first-repo.json",
+        "02-reading-repository.json"
+      ]
+    },
+    {
+      "letter": "B",
+      "name": "The daily loop",
+      "blurb": "Branch, sync, undo, resolve — the four things you do every day.",
+      "youWillLearn": [
+        "Branching as a free operation",
+        "fetch vs pull, and pushing safely",
+        "restore / reset / revert, chosen deliberately",
+        "Conflicts and stashing"
+      ],
+      "steps": [
+        "03-branches-without-fear.json",
+        "04-remotes-daily-loop.json",
+        "05-undo-at-every-level.json",
+        "06-conflicts-stashing.json"
+      ]
+    },
+    {
+      "letter": "C",
+      "name": "History and people",
+      "blurb": "Shaping a branch for review, and finding things in the past.",
+      "youWillLearn": [
+        "Interactive rebase, fixup, autosquash, add -p",
+        "bisect, cherry-pick, reflog, worktrees",
+        "A PR flow that keeps reviewers sane"
+      ],
+      "steps": [
+        "07-history-shaped-on-purpose.json",
+        "08-archaeology-recovery.json",
+        "09-working-other-people.json"
+      ]
+    },
+    {
+      "letter": "D",
+      "name": "Mastery",
+      "blurb": "Configure git to fit you, and rewrite a repository when you must.",
+      "youWillLearn": [
+        "Aliases, hooks, ignore layers, useful defaults",
+        "Repository size, LFS, partial clones",
+        "Purging secrets with filter-repo, and its limits"
+      ],
+      "steps": [
+        "10-configure-git-fit-hands.json",
+        "11-when-history-itself-problem.json"
+      ]
+    }
+  ],
+  "plan": {
+    "milestones": [
+      {
+        "id": "M1",
+        "name": "Reads a repository confidently",
+        "steps": [
+          "01",
+          "02"
+        ]
+      },
+      {
+        "id": "M2",
+        "name": "Runs the daily loop without fear",
+        "steps": [
+          "03",
+          "04",
+          "05",
+          "06"
+        ]
+      },
+      {
+        "id": "M3",
+        "name": "Shapes history and collaborates",
+        "steps": [
+          "07",
+          "08",
+          "09"
+        ]
+      },
+      {
+        "id": "M4",
+        "name": "Owns the tool",
+        "steps": [
+          "10",
+          "11"
+        ]
+      }
+    ]
+  }
+}

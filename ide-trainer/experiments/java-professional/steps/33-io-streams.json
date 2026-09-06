@@ -1,0 +1,39 @@
+{
+  "id": "33",
+  "title": "io streams",
+  "goal": "9.1 Console and file I/O streams",
+  "tasks": [
+    {
+      "key": "distinguish-byte-streams-from-character",
+      "do": "Distinguish byte streams from character streams"
+    },
+    {
+      "key": "close-resources-try-resources-reverse",
+      "do": "Close resources with try-with-resources (reverse close order)"
+    },
+    {
+      "key": "wrap-buffered-decorator-around-raw",
+      "do": "Wrap a buffered decorator around the raw file/socket stream"
+    },
+    {
+      "key": "copy-bytes-loop-transferto",
+      "do": "Copy bytes with a loop or `transferTo`"
+    },
+    {
+      "key": "read-write-utf-8-text",
+      "do": "Read/write UTF-8 text with an explicit charset"
+    },
+    {
+      "key": "recognize-read-returning-1-at",
+      "do": "Recognize `read()` returning `-1` at EOF"
+    },
+    {
+      "key": "flush-output-before-relying-on",
+      "do": "Flush output before relying on file contents if not yet closed"
+    },
+    {
+      "key": "avoid-closing-system-system-out",
+      "do": "Avoid closing `System.in` / `System.out`"
+    }
+  ]
+}

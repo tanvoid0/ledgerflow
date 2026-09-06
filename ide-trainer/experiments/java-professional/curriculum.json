@@ -1,0 +1,105 @@
+{
+  "project": "Java Professional",
+  "stack": "",
+  "stages": [
+    {
+      "letter": "A",
+      "name": "Primitives, text, and math",
+      "steps": [
+        "01-primitives-wrappers-math.json",
+        "02-strings-textblocks.json",
+        "03-operators-precedence.json"
+      ]
+    },
+    {
+      "letter": "B",
+      "name": "Control flow",
+      "steps": [
+        "04-if-else-loops.json",
+        "05-switch-patterns.json"
+      ]
+    },
+    {
+      "letter": "C",
+      "name": "OOP foundations",
+      "steps": [
+        "06-object-lifecycle-gc.json",
+        "07-classes-fields-methods.json",
+        "08-constructors-initializers.json",
+        "09-records.json",
+        "10-method-overloading-varargs.json",
+        "11-encapsulation-immutability.json",
+        "12-nested-classes.json"
+      ]
+    },
+    {
+      "letter": "D",
+      "name": "Inheritance and types",
+      "steps": [
+        "13-inheritance-override.json",
+        "14-polymorphism-casting.json",
+        "15-sealed-abstract.json",
+        "16-pattern-matching.json",
+        "17-interfaces.json",
+        "18-enums.json"
+      ]
+    },
+    {
+      "letter": "E",
+      "name": "Exceptions",
+      "steps": [
+        "19-exceptions.json"
+      ]
+    },
+    {
+      "letter": "F",
+      "name": "Arrays, generics, collections",
+      "steps": [
+        "20-arrays.json",
+        "21-generics-wildcards.json",
+        "22-collections-core.json",
+        "23-sorting-collections.json"
+      ]
+    },
+    {
+      "letter": "G",
+      "name": "Lambdas and streams",
+      "steps": [
+        "24-lambda-expressions.json",
+        "25-functional-interfaces.json",
+        "26-streams-basics.json",
+        "27-streams-collect-reduce.json",
+        "28-streams-grouping-parallel.json"
+      ]
+    },
+    {
+      "letter": "H",
+      "name": "Concurrency",
+      "steps": [
+        "29-platform-virtual-threads.json",
+        "30-executor-callable.json",
+        "31-locking-thread-safety.json",
+        "32-concurrent-collections.json"
+      ]
+    },
+    {
+      "letter": "I",
+      "name": "I/O and serialization",
+      "steps": [
+        "33-io-streams.json",
+        "34-serialization.json",
+        "35-nio-files-path.json"
+      ]
+    },
+    {
+      "letter": "J",
+      "name": "Modules, datetime, localization",
+      "steps": [
+        "36-modules-basics.json",
+        "37-module-services-jlink.json",
+        "38-datetime-api.json",
+        "39-localization-formatting.json"
+      ]
+    }
+  ]
+}

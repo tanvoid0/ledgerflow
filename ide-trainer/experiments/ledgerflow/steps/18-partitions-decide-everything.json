@@ -1,0 +1,129 @@
+{
+  "id": "18",
+  "title": "Partitions decide everything",
+  "estimate": "1 day",
+  "goal": "A topic is not one queue — it is N independent ordered logs, and the key decides which log an event lands in. That single decision fixes your ordering guarantee, your parallelism ceiling and where the backlog piles up. Choose it deliberately, then remove it and watch ordering disappear on your own machine.",
+  "startWith": "Step 09 finished: consumers that survive a restart without losing a message.",
+  "newIdeas": [
+    {
+      "term": "Partition",
+      "plain": "One of the N ordered logs behind a topic. Kafka guarantees order <em>within</em> a partition and nothing across them. Everything else in this stage follows from that sentence."
+    },
+    {
+      "term": "Partition key",
+      "plain": "<code>hash(key) % partitions</code> picks the log. Same key, same partition, strict order. No key means round-robin — fine for load, fatal for anything whose history must replay in sequence."
+    },
+    {
+      "term": "Hot partition",
+      "plain": "One busy key sends all its traffic to one partition. The other partitions idle while that one holds the whole backlog — and adding consumers cannot help, because a partition has at most one consumer per group."
+    },
+    {
+      "term": "Adding partitions changes the mapping",
+      "plain": "<code>hash % N</code> changes when N does. Old events for a wallet stay where they landed; new ones may go elsewhere, so ordering across the resize is broken for every in-flight key. Pick partition counts up front, generously."
+    }
+  ],
+  "tasks": [
+    {
+      "key": "see-how-events-are-spread",
+      "do": "See how your events are spread today",
+      "why": "The topic got a partition count nobody chose. Before changing anything, look at what the default gave you and where your events actually land.",
+      "how": "Describe the topic, then consume with a format string that prints the partition and key next to each value. Place holds for two different wallets and watch which partitions they land in.",
+      "blocks": [
+        {
+          "label": "Partition count and configs",
+          "kind": "shell",
+          "body": "docker exec -it lf-redpanda rpk topic describe ledgerflow.ledger.wallet-hold.events.v1"
+        },
+        {
+          "label": "Partition and key per record",
+          "kind": "shell",
+          "body": "docker exec -it lf-redpanda rpk topic consume \\\n  ledgerflow.ledger.wallet-hold.events.v1 -o start -f '%p  key=%k  %v\\n'"
+        }
+      ],
+      "check": {
+        "run": "docker exec -it lf-redpanda rpk topic consume ledgerflow.ledger.wallet-hold.events.v1 -o start -f '%p %k\\n' | sort | uniq -c",
+        "expect": "If the producer is unkeyed you will see the same key (empty) spread across partitions — that is the bug the next task fixes."
+      }
+    },
+    {
+      "key": "key-producer-so-order-follows",
+      "do": "Key the producer so order follows the money",
+      "why": "A release consumed before its hold is money wrong in a way step 11's idempotency cannot fix — idempotency dedupes, it does not reorder.",
+      "how": "Pass the aggregate id as the record key. The key is <em>the thing whose history must stay in order</em> — the wallet, not the account. Keying by account would work, but it is coarser than the guarantee you need and makes the busiest customer a hot partition for every wallet they own.",
+      "blocks": [
+        {
+          "label": "ledger: publish with a key",
+          "kind": "paste",
+          "body": "// before: kafkaTemplate.send(topic, envelope)\nkafkaTemplate.send(topic, envelope.aggregateId(), envelope);\n// aggregateId is the wallet id: every event about one wallet\n// now shares a partition, and therefore an order."
+        }
+      ],
+      "check": {
+        "run": "docker exec -it lf-redpanda rpk topic consume ledgerflow.ledger.wallet-hold.events.v1 -f '%p  key=%k\\n'",
+        "expect": "Every event for the same wallet id shows the same partition number, every time."
+      }
+    },
+    {
+      "key": "break-ordering-on-purpose",
+      "do": "Break ordering on purpose",
+      "why": "The guarantee only feels real once you have watched it fail. This is step 06's lesson applied to the broker.",
+      "how": "Comment the key back out, restart ledger-service, then place a hold and release it immediately, several times. Watch the pairs land in different partitions and the consumer log occasionally print the release first. Put the key back and the interleaving is gone.",
+      "blocks": [
+        {
+          "label": "Hold and release, back to back",
+          "kind": "shell",
+          "body": "for i in $(seq 1 5); do\n  curl -s -X POST localhost:8081/api/v1/holds \\\n    -H 'content-type: application/json' \\\n    -d '{\"accountId\":\"11111111-1111-1111-1111-111111111111\",\"wallets\":[\"A-1\"]}' \\\n  | jq -r .holdId | xargs -I{} curl -s -X POST localhost:8081/api/v1/holds/{}/release\ndone"
+        },
+        {
+          "label": "What you are looking for",
+          "kind": "note",
+          "body": "With no key, hold and release for the same wallet hash to different partitions and the consumer reads whichever log it polls first. This is not a bug in your consumer — it is the absence of a promise you never asked for."
+        }
+      ]
+    },
+    {
+      "key": "measure-skew-before-production-does",
+      "do": "Measure the skew before production does",
+      "why": "A hot partition is a keying-granularity problem. Finding out from a script now is cheaper than finding out from a lag alert with a customer attached.",
+      "how": "Per-partition high-water marks are a good-enough proxy for how evenly your keys spread. Big differences mean one key dominates — reconsider the key, not the consumer count.",
+      "blocks": [
+        {
+          "label": "scripts/partition-skew.sh",
+          "kind": "file",
+          "body": "mkdir -p scripts && cat > scripts/partition-skew.sh << 'EOF'\n#!/usr/bin/env bash\n# High-water mark per partition. Skew here is a keying problem,\n# not a consumer-count problem.\nset -euo pipefail\ndocker exec lf-redpanda rpk topic describe \"${1:?usage: partition-skew.sh <topic>}\" -p\nEOF\nchmod +x scripts/partition-skew.sh"
+        }
+      ],
+      "check": {
+        "run": "./scripts/partition-skew.sh ledgerflow.ledger.wallet-hold.events.v1",
+        "expect": "Offsets roughly even across partitions once events are keyed by wallet."
+      }
+    }
+  ],
+  "proof": {
+    "run": "docker exec -it lf-redpanda rpk topic consume ledgerflow.ledger.wallet-hold.events.v1 -o start -f '%p  key=%k\\n'",
+    "expect": "The same wallet id never appears against two different partition numbers.",
+    "note": "If it does, something is still publishing unkeyed — grep for a send() with two arguments."
+  },
+  "doneWhen": "Events for one wallet always share a partition and arrive in order; with the key removed you watched that guarantee disappear, and you put it back.",
+  "services": [
+    "account-service",
+    "ledger-service",
+    "notification-service"
+  ],
+  "infra": [
+    "postgres",
+    "redpanda",
+    "schema registry"
+  ],
+  "lessons": [
+    {
+      "id": "18-find-in-path",
+      "title": "Find in Files (Ctrl+Shift+F)",
+      "teach": "Step 18's proof note says 'grep for a send() with two arguments' — that is <b>Ctrl+Shift+F</b>. Scope it to the ledger module, and the structural search cousin (<b>Search Structurally</b>) can match the call shape itself when plain text matches too much.",
+      "trigger": {
+        "type": "action",
+        "id": "FindInPath"
+      },
+      "fallbackTip": "grep -rn 'kafkaTemplate.send' services/"
+    }
+  ]
+}

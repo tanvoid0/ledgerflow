@@ -1,0 +1,67 @@
+{
+  "id": "72",
+  "title": "boot m10 capstone",
+  "goal": "BOOT-M10 Boot integration capstone",
+  "tasks": [
+    {
+      "key": "start-isolated-springbootapplication-that-scans",
+      "do": "Start an isolated `@SpringBootApplication` that scans only the capstone package."
+    },
+    {
+      "key": "persist-entity-jparepository-hibernate-ddl",
+      "do": "Persist an entity with `JpaRepository` and Hibernate DDL."
+    },
+    {
+      "key": "expose-restcontroller-get-that-reads",
+      "do": "Expose a `@RestController` GET that reads that entity."
+    },
+    {
+      "key": "return-json-view-not-necessarily",
+      "do": "Return a JSON view (not necessarily the entity itself)."
+    },
+    {
+      "key": "implement-healthindicator-that-reports-up",
+      "do": "Implement a `HealthIndicator` that reports `UP` with a yard/fleet detail."
+    },
+    {
+      "key": "implement-infocontributor-matching-yard-name",
+      "do": "Implement an `InfoContributor` with a matching yard name."
+    },
+    {
+      "key": "expose-health-info-without-using",
+      "do": "Expose `health` and `info` without using `*`."
+    },
+    {
+      "key": "keep-security-auto-configuration-excluded",
+      "do": "Keep Security auto-configuration excluded in the lab test (or configure a chain in a real app)."
+    },
+    {
+      "key": "use-jakarta-persistence-this-lab",
+      "do": "Use `jakarta.persistence` in this lab; recognise `javax.persistence` on the exam."
+    },
+    {
+      "key": "explain-why-webmvctest-alone-would",
+      "do": "Explain why `@WebMvcTest` alone would not prove this module."
+    },
+    {
+      "key": "starters-on-classpath-are-configuration",
+      "do": "Starters on the classpath *are* configuration."
+    },
+    {
+      "key": "health-aggregation-still-uses-worst",
+      "do": "Health aggregation still uses worst status wins."
+    },
+    {
+      "key": "empty-info-not-actuator-defect",
+      "do": "Empty info is not an Actuator defect."
+    },
+    {
+      "key": "one-entitymanagerfactory-one-primary-datasource",
+      "do": "One `EntityManagerFactory` / one primary DataSource is enough here."
+    },
+    {
+      "key": "boot-3-exam-packages-persistence",
+      "do": "Boot 3 ≠ exam packages for persistence and servlet APIs."
+    }
+  ]
+}

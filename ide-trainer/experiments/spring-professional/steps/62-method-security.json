@@ -1,0 +1,43 @@
+{
+  "id": "62",
+  "title": "method security",
+  "goal": "5.3 Method-level security",
+  "tasks": [
+    {
+      "key": "enable-method-security-enablemethodsecurity",
+      "do": "Enable method security with `@EnableMethodSecurity`."
+    },
+    {
+      "key": "contrast-defaults-enableglobalmethodsecurity-vs",
+      "do": "Contrast defaults of `@EnableGlobalMethodSecurity` vs `@EnableMethodSecurity`."
+    },
+    {
+      "key": "write-preauthorize-hasrole-correct-role",
+      "do": "Write `@PreAuthorize(\"hasRole('…')\")` with correct role spelling."
+    },
+    {
+      "key": "know-when-use-postauthorize-returnobject",
+      "do": "Know when to use `@PostAuthorize` and `returnObject`."
+    },
+    {
+      "key": "enable-use-secured-rolesallowed-if",
+      "do": "Enable and use `@Secured` / `@RolesAllowed` if asked."
+    },
+    {
+      "key": "predict-accessdeniedexception-wrong-role",
+      "do": "Predict `AccessDeniedException` for a wrong role."
+    },
+    {
+      "key": "use-withmockuser-on-service-tests",
+      "do": "Use `@WithMockUser` on service tests."
+    },
+    {
+      "key": "explain-why-self-invocation-skips",
+      "do": "Explain why self-invocation skips method security."
+    },
+    {
+      "key": "combine-url-rules-method-rules",
+      "do": "Combine URL rules and method rules as defence in depth."
+    }
+  ]
+}

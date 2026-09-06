@@ -1,0 +1,130 @@
+{
+  "id": "06",
+  "title": "conflicts and stashing",
+  "estimate": "40 min",
+  "goal": "B4 Resolve a conflict deliberately, and park work you are not ready to commit",
+  "startWith": "Create a conflict on purpose: two branches editing the same line.",
+  "newIdeas": [
+    {
+      "term": "conflict",
+      "plain": "Both sides changed the same region. Git stops and hands you both versions."
+    },
+    {
+      "term": "ours / theirs",
+      "plain": "In a merge, <i>ours</i> is the branch you are on. In a rebase they swap — that reversal is the whole trap."
+    },
+    {
+      "term": "stash",
+      "plain": "A stack of uncommitted changes, stored off to the side."
+    }
+  ],
+  "tasks": [
+    {
+      "key": "manufacture-conflict-read-markers-resolve",
+      "do": "Manufacture a conflict, read the markers, resolve it by hand",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git switch -c a && echo 'from a' > conflict.txt && git add -A && git commit -m a\ngit switch main && git switch -c b && echo 'from b' > conflict.txt && git add -A && git commit -m b\ngit switch main && git merge a && git merge b    # the second one conflicts\ngit status\ngit diff --diff-filter=U"
+        },
+        {
+          "label": "IntelliJ",
+          "kind": "note",
+          "body": "The conflict dialog's <b>Merge…</b> button opens the three-pane merge tool: theirs, result, yours. Materially better than editing markers by hand — press <i>Apply non-conflicting changes</i> first."
+        }
+      ]
+    },
+    {
+      "key": "finish-merge-abandon",
+      "do": "Finish the merge, or abandon it",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git add conflict.txt && git commit    # finish\ngit merge --abort                     # or: back to before the merge"
+        }
+      ],
+      "check": {
+        "run": "git ls-files -u",
+        "expect": "empty — no unresolved paths left"
+      }
+    },
+    {
+      "key": "take-one-whole-side-without",
+      "do": "Take one whole side without editing",
+      "why": "For generated files (lock files, snapshots) the answer is “all of theirs”, and hand-merging them is wasted time.",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git checkout --ours package-lock.json\ngit checkout --theirs package-lock.json\ngit add package-lock.json"
+        }
+      ]
+    },
+    {
+      "key": "stash-work-progress-switch-branch",
+      "do": "Stash work in progress, switch branch, bring it back",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git stash push -m \"half-done parser\"\ngit stash list\ngit switch main\ngit stash pop              # apply and drop\ngit stash apply stash@{0}  # apply and keep"
+        },
+        {
+          "label": "IntelliJ",
+          "kind": "note",
+          "body": "Git → <b>Shelve Changes</b> is the IDE's own version, with a diff in the <i>Shelf</i> tab. Git → Uncommitted Changes → <b>Stash</b> uses real git stash when you need it visible from the terminal."
+        }
+      ],
+      "check": {
+        "run": "git stash list",
+        "expect": "the command runs (an empty list is fine)"
+      }
+    },
+    {
+      "key": "turn-on-rerere-so-resolve",
+      "do": "Turn on rerere so you resolve the same conflict once",
+      "why": "Long-lived branches hit identical conflicts on every rebase. <code>rerere</code> replays your recorded resolution.",
+      "blocks": [
+        {
+          "label": "terminal",
+          "kind": "shell",
+          "body": "git config --global rerere.enabled true"
+        }
+      ],
+      "check": {
+        "run": "git config --get rerere.enabled",
+        "expect": "true"
+      }
+    }
+  ],
+  "proof": {
+    "run": "git log --oneline --graph -8",
+    "expect": "a merge you resolved by hand",
+    "note": "A conflict is a task, not an emergency."
+  },
+  "doneWhen": "You reach for the IDE merge tool automatically, and never commit a file containing <code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code>.",
+  "lessons": [
+    {
+      "id": "06-shelve",
+      "title": "Shelve — the IDE's stash",
+      "teach": "Git → <b>Shelve Changes</b> parks your work with a name and a diff you can browse in the <i>Shelf</i> tab. Use real <code>git stash</code> (Git → Uncommitted Changes → Stash) only when the terminal needs to see it too.",
+      "trigger": {
+        "type": "action",
+        "id": "ChangesView.Shelve"
+      },
+      "fallbackTip": "git stash push -m \"wip\""
+    },
+    {
+      "id": "06-merge-tool",
+      "title": "The three-pane merge tool",
+      "teach": "On a conflict, press <b>Merge…</b> rather than editing markers. Left is theirs, right is yours, the middle is the result you are building — and <i>Apply non-conflicting changes</i> clears the noise so only the real disagreement is left.",
+      "trigger": {
+        "type": "action",
+        "id": "Vcs.ShowMergeDialog"
+      },
+      "fallbackTip": "git mergetool, or edit the <<<<<<< markers by hand."
+    }
+  ]
+}

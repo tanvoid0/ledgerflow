@@ -1,0 +1,187 @@
+{
+  "id": "01",
+  "title": "A service that runs",
+  "estimate": "half a day",
+  "goal": "One Spring Boot application, one pom.xml, one endpoint that returns JSON. Nothing distributed, no database, no Docker. You should be able to curl a response within the hour.",
+  "startWith": "An empty folder and the tools from the Setup tab installed.",
+  "newIdeas": [
+    {
+      "term": "Starter",
+      "plain": "A Maven dependency whose only job is to pull in a coherent set of libraries. <code>spring-boot-starter-webmvc</code> pulls in Tomcat, Jackson and Spring MVC together, at versions known to work with each other."
+    },
+    {
+      "term": "Parent POM",
+      "plain": "A pom.xml your pom.xml inherits from. <code>spring-boot-starter-parent</code> supplies the version number for every Spring library, so you never write versions yourself. That is the only pom you need until step 04."
+    },
+    {
+      "term": "Record",
+      "plain": "A Java class declared in one line: <code>record Wallet(UUID id, String label) {}</code>. You get the constructor, getters, <code>equals</code>, <code>hashCode</code> and <code>toString</code> for free, and the fields cannot change after construction."
+    },
+    {
+      "term": "Hexagonal layout (ports and adapters)",
+      "plain": "A folder convention: <code>domain/</code> holds your business rules as plain Java, <code>adapter/in/</code> holds the ways the outside world calls you (HTTP controllers), <code>adapter/out/</code> holds the ways you call the outside world (database, other services). The rule is one-directional: <code>domain</code> imports nothing from the others."
+    }
+  ],
+  "tasks": [
+    {
+      "key": "generate-project-from-start-spring",
+      "do": "Generate the project from start.spring.io",
+      "why": "You want the exact Maven and Java versions this project assumes, not whatever your IDE defaults to.",
+      "how": "Run this from the folder that will hold the project. It downloads a zip and unpacks it into <code>account-service/</code>. If you would rather use the website, choose Maven, Java 25, Spring Boot 4.1.1, group <code>io.ledgerflow</code>, artifact <code>account-service</code>, and add the <b>Spring Web</b> and <b>Spring Boot Actuator</b> dependencies only.",
+      "blocks": [
+        {
+          "label": "Run this in Git Bash, in the folder above where the project should live",
+          "kind": "shell",
+          "body": "curl -s https://start.spring.io/starter.zip \\\n  -d type=maven-project -d language=java -d javaVersion=25 \\\n  -d bootVersion=4.1.1 -d packaging=jar \\\n  -d groupId=io.ledgerflow -d artifactId=account-service \\\n  -d name=account-service -d packageName=io.ledgerflow.account \\\n  -d dependencies=web,actuator \\\n  -o account-service.zip\n\nunzip -q account-service.zip -d account-service && rm account-service.zip\ncd account-service"
+        }
+      ],
+      "check": {
+        "run": "ls",
+        "expect": "You see mvnw, pom.xml and src/. Every command from here until step 04 runs from inside account-service/."
+      }
+    },
+    {
+      "key": "read-pom-xml-confirm-single",
+      "do": "Read your pom.xml and confirm it is a single, parentless-but-for-Boot file",
+      "why": "Half the confusion in Maven projects comes from not knowing which pom.xml is in charge. Right now there is exactly one, and it is this one.",
+      "how": "Open <code>pom.xml</code>. The <code>&lt;parent&gt;</code> block points at <code>spring-boot-starter-parent</code> with <code>&lt;relativePath/&gt;</code> empty — that empty tag means \"do not look on disk for the parent, fetch it from Maven Central\". There is no aggregator pom, no <code>&lt;modules&gt;</code>, and no root pom above this folder. You do not need one until step 04, when there are two services to build together.",
+      "blocks": [
+        {
+          "label": "This is the whole build file — nothing else is required today",
+          "kind": "note",
+          "body": "<project>\n  <parent>\n    <groupId>org.springframework.boot</groupId>\n    <artifactId>spring-boot-starter-parent</artifactId>\n    <version>4.1.1</version>\n    <relativePath/>            <!-- empty = resolve from Maven Central -->\n  </parent>\n\n  <groupId>io.ledgerflow</groupId>\n  <artifactId>account-service</artifactId>\n  <version>0.0.1-SNAPSHOT</version>\n\n  <properties><java.version>25</java.version></properties>\n\n  <dependencies>\n    <!-- Boot 4 renamed this: it is webmvc, not web -->\n    <dependency>\n      <groupId>org.springframework.boot</groupId>\n      <artifactId>spring-boot-starter-webmvc</artifactId>\n    </dependency>\n    <dependency>\n      <groupId>org.springframework.boot</groupId>\n      <artifactId>spring-boot-starter-actuator</artifactId>\n    </dependency>\n  </dependencies>\n\n  <build><plugins><plugin>\n    <groupId>org.springframework.boot</groupId>\n    <artifactId>spring-boot-maven-plugin</artifactId>\n  </plugin></plugins></build>\n</project>"
+        }
+      ],
+      "check": {
+        "run": "./mvnw -q dependency:tree | head -20",
+        "expect": "Dependencies resolve and no version numbers of your own appear anywhere in the file."
+      }
+    },
+    {
+      "key": "create-package-folders",
+      "do": "Create the package folders",
+      "why": "Deciding where code goes now costs one command. Deciding it in step 12, across six services, costs a week.",
+      "how": "The layout separates <b>what the business does</b> from <b>how it talks to the world</b>. <code>domain/</code> is plain Java: no Spring imports, no JPA annotations, no Jackson. <code>adapter/in/web</code> is where HTTP arrives. <code>adapter/out/persistence</code> is where the database lives (empty until step 02). <code>application/</code> holds use cases that orchestrate the domain. You will feel the benefit at step 02, when the database arrives and your business types do not have to change.",
+      "blocks": [
+        {
+          "label": "One command creates all of them",
+          "kind": "shell",
+          "body": "mkdir -p src/main/java/io/ledgerflow/account/{domain/model,domain/event,application,adapter/in/web,adapter/out/persistence,config}"
+        }
+      ],
+      "check": {
+        "run": "find src/main/java -type d",
+        "expect": "Six new folders under io/ledgerflow/account."
+      }
+    },
+    {
+      "key": "write-account-wallet-as-plain",
+      "do": "Write Account and Wallet as plain records in domain/model",
+      "why": "These are the two things this service is about. They should be readable by someone who has never used Spring.",
+      "how": "This is the answer to \"what model am I building?\" — it is a <b>domain model</b>: ordinary Java types describing the business, with no framework in them. Later steps add a second, different model for the database (step 02) and a third for events (step 08). Keeping them separate is deliberate; the notes in step 02 explain what it buys you.",
+      "blocks": [
+        {
+          "label": "src/main/java/io/ledgerflow/account/domain/model/Wallet.java",
+          "kind": "file",
+          "body": "package io.ledgerflow.account.domain.model;\n\nimport java.util.UUID;\n\n/** One wallet in an account. \"GBP\" is the code a human reads on the wallet. */\npublic record Wallet(UUID id, String label) {}"
+        },
+        {
+          "label": "src/main/java/io/ledgerflow/account/domain/model/Account.java",
+          "kind": "file",
+          "body": "package io.ledgerflow.account.domain.model;\n\nimport java.util.List;\nimport java.util.UUID;\n\n/** A place with wallets in it. No annotations: nothing here knows about HTTP or SQL. */\npublic record Account(UUID id, String name, List<Wallet> wallets) {\n\n    public boolean hasWallet(String label) {\n        return wallets.stream().anyMatch(s -> s.label().equals(label));\n    }\n}"
+        }
+      ],
+      "check": {
+        "run": "grep -r 'import org.springframework' src/main/java/io/ledgerflow/account/domain/ || echo 'clean'",
+        "expect": "Prints 'clean'. If it prints an import, a framework has leaked into your domain."
+      }
+    },
+    {
+      "key": "serve-get-api-v1-accounts",
+      "do": "Serve GET /api/v1/accounts from a hardcoded list",
+      "why": "One endpoint proves the whole chain works — Maven, Boot, Tomcat, Jackson — before a database can confuse the diagnosis.",
+      "how": "<code>@RestController</code> tells Spring this class handles HTTP and that return values become the response body. Jackson turns the records into JSON with no configuration. Note the fixed account id: <b>every curl command in this project uses that UUID</b>, so use exactly this one.",
+      "blocks": [
+        {
+          "label": "src/main/java/io/ledgerflow/account/adapter/in/web/AccountController.java",
+          "kind": "file",
+          "body": "package io.ledgerflow.account.adapter.in.web;\n\nimport io.ledgerflow.account.domain.model.Wallet;\nimport io.ledgerflow.account.domain.model.Account;\nimport org.springframework.web.bind.annotation.GetMapping;\nimport org.springframework.web.bind.annotation.RequestMapping;\nimport org.springframework.web.bind.annotation.RestController;\n\nimport java.util.List;\nimport java.util.UUID;\nimport java.util.stream.IntStream;\n\n@RestController\n@RequestMapping(\"/api/v1/accounts\")\npublic class AccountController {\n\n    /** Pinned on purpose: every curl in this project refers to this account. */\n    static final UUID DEMO_ARENA = UUID.fromString(\"11111111-1111-1111-1111-111111111111\");\n\n    private static final Account HARDCODED = new Account(DEMO_ARENA, \"Demo Arena\",\n            IntStream.rangeClosed(1, 20)\n                     .mapToObj(i -> new Wallet(UUID.randomUUID(), \"A-\" + i))\n                     .toList());\n\n    @GetMapping\n    public List<Account> all() {\n        return List.of(HARDCODED);\n    }\n}"
+        }
+      ],
+      "check": {
+        "run": "./mvnw -q compile",
+        "expect": "Compiles with no errors."
+      }
+    },
+    {
+      "key": "run-curl",
+      "do": "Run it and curl it",
+      "why": "A service that has never served a request is not a service yet.",
+      "how": "<code>spring-boot:run</code> starts the app in the foreground; leave it running and use a second terminal for curl. Stop it with Ctrl-C. If port 8080 is busy, something else is using it — the Setup tab shows how to find and stop it on Windows.",
+      "blocks": [
+        {
+          "label": "Terminal 1 — start the app, leave it running",
+          "kind": "shell",
+          "body": "./mvnw spring-boot:run"
+        },
+        {
+          "label": "Terminal 2 — call it",
+          "kind": "shell",
+          "body": "curl -s localhost:8080/api/v1/accounts | jq"
+        },
+        {
+          "label": "If the endpoint 404s, check the app booted at all",
+          "kind": "shell",
+          "body": "curl -s localhost:8080/actuator/health"
+        }
+      ],
+      "check": {
+        "run": "curl -s localhost:8080/api/v1/accounts | jq '.[0].name'",
+        "expect": "\"Demo Arena\""
+      }
+    }
+  ],
+  "proof": {
+    "run": "./mvnw spring-boot:run\ncurl -s localhost:8080/api/v1/accounts | jq",
+    "expect": "A JSON array with one account and twenty wallets.",
+    "note": "If this works you have a running service. Resist adding anything else — no database, no second module, no Docker. The next step adds exactly one thing."
+  },
+  "doneWhen": "The endpoint returns JSON, and you have written zero infrastructure code.",
+  "services": [
+    "account-service"
+  ],
+  "infra": [],
+  "newThisStep": "account-service",
+  "lessons": [
+    {
+      "id": "01-search-everywhere",
+      "title": "Search Everywhere — double Shift",
+      "teach": "Press <b>Shift</b> twice. One box finds classes, files, actions and settings. It is the only navigation shortcut you have to learn; the rest are shortcuts to parts of this one.",
+      "trigger": {
+        "type": "action",
+        "id": "SearchEverywhere"
+      },
+      "fallbackTip": "Double Shift opens Search Everywhere."
+    },
+    {
+      "id": "01-goto-class",
+      "title": "Navigate → Class (Ctrl+N)",
+      "teach": "You are about to open <code>Wallet.java</code>. Don't hunt in the project tree — <b>Ctrl+N</b>, type <code>Wallet</code>, Enter. It matches camel humps, so <code>WA</code> finds <code>WalletApplication</code>.",
+      "trigger": {
+        "type": "action",
+        "id": "GotoClass"
+      },
+      "fallbackTip": "Ctrl+N (Navigate → Class), type the class name."
+    },
+    {
+      "id": "01-run",
+      "title": "Run from the gutter",
+      "teach": "Click the green ▶ next to <code>main</code> instead of the terminal. IntelliJ writes a run configuration for you; every later step reuses it.",
+      "trigger": {
+        "type": "run",
+        "id": "Run"
+      },
+      "fallbackTip": "./mvnw spring-boot:run"
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "id": "17",
+  "title": "dp 2d",
+  "goal": "P6.2 Grids, subsequences, knapsack shapes",
+  "tasks": [
+    {
+      "key": "say-what-dp-i-j",
+      "do": "Say what `dp[i][j]` means in one sentence before writing anything"
+    },
+    {
+      "key": "recognise-two-sequence-position-plus",
+      "do": "Recognise the two-sequence, position-plus-budget, and grid shapes"
+    },
+    {
+      "key": "size-table-n-1-m",
+      "do": "Size the table `(n + 1) × (m + 1)` and fill the base row and column first"
+    },
+    {
+      "key": "write-index-mapping-between-table",
+      "do": "Write the index mapping between table position and string position"
+    },
+    {
+      "key": "iterate-capacity-downwards-space-reduced",
+      "do": "Iterate capacity downwards in a space-reduced 0/1 knapsack"
+    },
+    {
+      "key": "solve-all-four-exercises-inside",
+      "do": "Solve all four exercises inside their target times"
+    },
+    {
+      "key": "draw-small-table-by-hand",
+      "do": "Draw the small table by hand for a 2 × 2 input before coding"
+    },
+    {
+      "key": "give-complexity-as-states-work",
+      "do": "Give complexity as states × work per state"
+    },
+    {
+      "key": "mention-space-reduced-version-even",
+      "do": "Mention the space-reduced version even if you keep the full table"
+    }
+  ]
+}

@@ -1,0 +1,118 @@
+{
+  "id": "13",
+  "title": "Read models and CQRS",
+  "estimate": "4 days",
+  "goal": "Available balance is read millions of times and written thousands of times. Those two jobs want different shapes, and one table cannot be good at both.",
+  "startWith": "Step 12 finished, or at least step 11 — you need reliable events for a projection to be trustworthy.",
+  "newIdeas": [
+    {
+      "term": "CQRS",
+      "plain": "Command Query Responsibility Segregation: separate the model you write through from the model you read through. It does not require event sourcing, two databases, or any framework — it is a shape, not a product."
+    },
+    {
+      "term": "Projection / read model",
+      "plain": "A denormalised copy of data, built by consuming events, shaped for one specific query. It owns no source of truth, which is what makes it safe to delete."
+    },
+    {
+      "term": "Read-your-own-writes",
+      "plain": "The user holds a wallet and immediately reloads the balance view. If the projection has not caught up, their own action appears not to have happened. You must choose a strategy — read the write model for that one user, wait for the version they just produced, or show it optimistically — and write down which."
+    },
+    {
+      "term": "Rebuild from earliest",
+      "plain": "Delete the read model, rewind the consumer group to the start of the topic, and let it rebuild from the events. Being able to do this at will is what makes a projection safe to iterate on: get the shape wrong, change the code, rebuild."
+    }
+  ],
+  "tasks": [
+    {
+      "key": "add-balance-service-projection-that",
+      "do": "Add balance-service, a projection that owns no source of truth",
+      "why": "Separating it makes the ownership obvious: if it disagrees with ledger, ledger wins and you rebuild.",
+      "how": "Same scaffolding as before, on port 8083. It consumes wallet events and maintains a balance view per account. Use Redis for the read model — it is the right tool for something disposable and read-heavy.",
+      "blocks": [
+        {
+          "label": "Add Redis to Compose",
+          "kind": "file",
+          "body": "cat >> infra/compose/docker-compose.yml << 'EOF'\n\n  redis:\n    image: redis:7-alpine\n    container_name: lf-redis\n    ports: [\"6379:6379\"]\nEOF\ndocker compose -f infra/compose/docker-compose.yml up -d redis"
+        },
+        {
+          "label": "balance: consume the three wallet events",
+          "kind": "paste",
+          "body": "@KafkaListener(topics = {\n    \"ledgerflow.ledger.wallet-hold.events.v1\",\n    \"ledgerflow.ledger.wallet-release.events.v1\",\n    \"ledgerflow.ledger.wallet-sale.events.v1\" })\n@Transactional\nvoid onWalletEvent(EventEnvelope<?> e, Acknowledgment ack) {\n    if (!processed.markProcessed(e.eventId(), GROUP)) { ack.acknowledge(); return; }\n    walletMap.apply(e);            // idempotent, exactly as step 11 taught you\n    ack.acknowledge();\n}"
+        }
+      ]
+    },
+    {
+      "key": "pick-read-own-writes-strategy",
+      "do": "Pick a read-your-own-writes strategy and write it down",
+      "why": "This is the one part of CQRS that users notice, and the decision is a product decision as much as a technical one.",
+      "how": "Three usual options: route that user's next read to the write model for a few seconds; have the client pass the aggregate version it expects and wait briefly for the projection to reach it; or show the change optimistically in the UI and let the projection catch up. Choose, and record the reasoning in an ADR — the point of the exercise is the written decision.",
+      "blocks": [
+        {
+          "label": "docs/adr/0002-read-your-own-writes.md",
+          "kind": "file",
+          "body": "cat > docs/adr/0002-read-your-own-writes.md << 'EOF'\n# ADR 0002: read-your-own-writes for the balance view\n\nContext:\n  The balance view is served from a projection that lags the write model by\n  tens to hundreds of milliseconds.\n\nOptions considered:\n  1. Sticky read to the write model for N seconds after a user's write.\n  2. Client sends the aggregate version it expects; the API waits (bounded)\n     for the projection to reach it.\n  3. Optimistic UI - the client shows its own change immediately.\n\nDecision:\n\nConsequences:\nEOF"
+        }
+      ]
+    },
+    {
+      "key": "implement-rebuild-from-earliest-time",
+      "do": "Implement rebuild-from-earliest and time it",
+      "why": "A projection you cannot rebuild is a source of truth wearing a disguise.",
+      "how": "The script stops the projection, wipes the read model, rewinds the consumer group and starts it again. Note the ordering: a consumer group can only be rewound while no member is connected. Time it — the number tells you how large a projection you can safely operate this way.",
+      "blocks": [
+        {
+          "label": "scripts/rebuild-balance.sh",
+          "kind": "file",
+          "body": "mkdir -p scripts && cat > scripts/rebuild-balance.sh << 'EOF'\n#!/usr/bin/env bash\nset -euo pipefail\n\necho \"stopping the projection (it runs on the host until step 16)...\"\nkill $(lsof -ti:8083) 2>/dev/null || true\nsleep 2\n\necho \"dropping the read model...\"\ndocker exec lf-redis redis-cli FLUSHDB\n\necho \"rewinding the consumer group...\"\ndocker exec lf-redpanda rpk group seek balance-service --to start\n\necho \"restarting - it will rebuild from the log...\"\n./mvnw -pl services/balance-service spring-boot:run\nEOF\nchmod +x scripts/rebuild-balance.sh"
+        },
+        {
+          "label": "Time a full rebuild",
+          "kind": "shell",
+          "body": "time ./scripts/rebuild-balance.sh"
+        },
+        {
+          "label": "Watch it catch up",
+          "kind": "shell",
+          "body": "watch -n1 \"docker exec lf-redpanda rpk group describe balance-service | grep -E 'LAG|TOPIC'\""
+        },
+        {
+          "label": "Check the rebuilt read model",
+          "kind": "shell",
+          "body": "docker exec -it lf-redis redis-cli --scan --pattern 'walletmap:*' | head"
+        }
+      ],
+      "check": {
+        "run": "time ./scripts/rebuild-balance.sh",
+        "expect": "The read model is gone and then fully rebuilt, in under a minute."
+      }
+    }
+  ],
+  "proof": {
+    "run": "./scripts/rebuild-balance.sh",
+    "expect": "Delete the entire read model and rebuild it from Kafka in under a minute.",
+    "note": "Being able to rebuild a projection at will is what makes CQRS safe to iterate on."
+  },
+  "doneWhen": "You can delete the whole read model and rebuild it from the log in under a minute, and your read-your-own-writes decision is written down.",
+  "services": [
+    "+ balance-service"
+  ],
+  "infra": [
+    "postgres",
+    "redpanda",
+    "schema registry",
+    "redis"
+  ],
+  "newThisStep": "balance-service",
+  "lessons": [
+    {
+      "id": "13-query-read-model",
+      "title": "Query the read model directly",
+      "teach": "Open a query console on the read-model schema and compare it against the ledger. CQRS bugs are almost always visible as a divergence between two tables, before they are visible in an API.",
+      "trigger": {
+        "type": "toolWindow",
+        "id": "Database"
+      },
+      "fallbackTip": "psql, one query per side."
+    }
+  ]
+}

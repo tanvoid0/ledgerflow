@@ -1,0 +1,67 @@
+{
+  "id": "70",
+  "title": "boot m8 actuator info env",
+  "goal": "BOOT-M8 Actuator info & env endpoints",
+  "tasks": [
+    {
+      "key": "implement-infocontributor-add-named-detail",
+      "do": "Implement `InfoContributor` and add a named detail map."
+    },
+    {
+      "key": "enable-info-via-management-info",
+      "do": "Enable `info.*` via `management.info.env.enabled`."
+    },
+    {
+      "key": "expose-info-env-without-using",
+      "do": "Expose `info` and `env` without using `*`."
+    },
+    {
+      "key": "state-default-http-exposure-set",
+      "do": "State the default HTTP exposure set still starts at `health`."
+    },
+    {
+      "key": "explain-management-endpoint-env-show",
+      "do": "Explain `management.endpoint.env.show-values`."
+    },
+    {
+      "key": "list-default-sanitizer-key-fragments",
+      "do": "List default sanitizer key fragments (`password`, `secret`, `token`, …)."
+    },
+    {
+      "key": "write-sanitizingfunction-key-defaults-do",
+      "do": "Write a `SanitizingFunction` for a key the defaults do not mask."
+    },
+    {
+      "key": "contrast-boot-2-7-keys",
+      "do": "Contrast Boot 2.7 `keys-to-sanitize` with Boot 3 functions."
+    },
+    {
+      "key": "avoid-putting-secrets-info",
+      "do": "Avoid putting secrets in `info`."
+    },
+    {
+      "key": "remember-configprops-sibling-leak-if",
+      "do": "Remember `configprops` is a sibling leak if exposed."
+    },
+    {
+      "key": "empty-info-not-misconfiguration-actuator",
+      "do": "Empty `info` is not a misconfiguration of Actuator — it has no contributors."
+    },
+    {
+      "key": "masking-security",
+      "do": "Masking ≠ security."
+    },
+    {
+      "key": "key-name-badge-not-sanitized",
+      "do": "Key name `badge` is not sanitized by default."
+    },
+    {
+      "key": "show-values-never-hides-values",
+      "do": "`show-values=never` hides values even from you."
+    },
+    {
+      "key": "exam-property-management-endpoint-env",
+      "do": "Exam property: `management.endpoint.env.keys-to-sanitize`."
+    }
+  ]
+}

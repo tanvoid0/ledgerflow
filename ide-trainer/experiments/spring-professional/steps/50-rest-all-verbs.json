@@ -1,0 +1,47 @@
+{
+  "id": "50",
+  "title": "rest all verbs",
+  "goal": "3.2.1 REST endpoints (all verbs)",
+  "tasks": [
+    {
+      "key": "map-post-put-delete-composed",
+      "do": "Map POST, PUT, and DELETE with the composed mapping annotations."
+    },
+    {
+      "key": "read-json-requestbody",
+      "do": "Read JSON with `@RequestBody`."
+    },
+    {
+      "key": "return-201-successful-create",
+      "do": "Return 201 for a successful create."
+    },
+    {
+      "key": "return-204-successful-delete-no",
+      "do": "Return 204 for a successful delete with no body."
+    },
+    {
+      "key": "replace-resource-put-using-pathvariable",
+      "do": "Replace a resource with PUT using `@PathVariable` + `@RequestBody`."
+    },
+    {
+      "key": "enable-bean-validation-valid-on",
+      "do": "Enable Bean Validation with `@Valid` on the body."
+    },
+    {
+      "key": "predict-400-valid-constraint-failures",
+      "do": "Predict 400 for `@Valid` constraint failures."
+    },
+    {
+      "key": "contrast-put-replace-patch-partial",
+      "do": "Contrast PUT (replace) with PATCH (partial) and POST (create)."
+    },
+    {
+      "key": "explain-415-vs-400-vs",
+      "do": "Explain 415 vs 400 vs 406 for media types vs validation vs Accept."
+    },
+    {
+      "key": "use-responseentity-when-need-location",
+      "do": "Use `ResponseEntity` when you need a `Location` header."
+    }
+  ]
+}

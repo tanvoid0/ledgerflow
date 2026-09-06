@@ -1,0 +1,408 @@
+{
+  "project": "LedgerFlow",
+  "stack": "Java 25 · Spring Boot 4.1.x · Maven · PostgreSQL 17 · Kafka (Redpanda) · Gatling · ONNX Runtime",
+  "setup": {
+    "intro": "Fifteen minutes here saves a day later. Everything in this project assumes these five tools and one shell.",
+    "shell": "Every shell command in this project is <b>bash</b>. On Windows that means <b>Git Bash</b>, not PowerShell and not cmd: PowerShell has no <code>\\</code> line continuation, no heredocs (<code>cat &gt; file &lt;&lt; 'EOF'</code>) and no <code>mkdir -p</code>, so multi-line blocks fall apart into errors like <code>-d: not recognized</code>. If you prefer to live in PowerShell, add this to your profile once — then copy a block and type <code>bashx</code> to run it through bash without leaving PowerShell:<br><code>function bashx { Get-Clipboard -Raw | bash.exe }</code><br>Maven, Docker and git commands run fine natively either way.",
+    "tools": [
+      {
+        "name": "Java 25 (JDK)",
+        "why": "The whole project is built on it. Spring Boot 4.1 needs Java 17 as a minimum; this project uses 25.",
+        "check": "java -version",
+        "install": "https://adoptium.net or: winget install EclipseAdoptium.Temurin.25.JDK"
+      },
+      {
+        "name": "Docker Desktop",
+        "why": "Postgres, the broker, the schema registry and every test container run here. Start it before any step from 02 onward.",
+        "check": "docker run --rm hello-world",
+        "install": "https://docs.docker.com/desktop/"
+      },
+      {
+        "name": "Git Bash",
+        "why": "The shell every command block in this project is written for.",
+        "check": "echo $BASH_VERSION",
+        "install": "https://git-scm.com/downloads (Windows only; macOS and Linux already have bash)"
+      },
+      {
+        "name": "curl and jq",
+        "why": "curl calls your services; jq makes the JSON readable. Both are used constantly.",
+        "check": "curl --version && jq --version",
+        "install": "Git Bash ships curl. jq: winget install jqlang.jq"
+      },
+      {
+        "name": "A load generator (from step 06)",
+        "why": "You cannot claim a resilience fix worked without a before and after number.",
+        "check": "hey -h || k6 version",
+        "install": "go install github.com/rakyll/hey@latest, or winget install k6 --source winget"
+      }
+    ],
+    "notes": [
+      {
+        "h": "Which folder am I in?",
+        "b": "Steps 01 to 03 run from inside <code>account-service/</code>. From step 04 onward everything runs from the repository root, <code>ledgerflow/</code>, and services are addressed with <code>-pl services/&lt;name&gt;</code>. Each step's first command block says which."
+      },
+      {
+        "h": "Ports are pinned, not incidental",
+        "b": "Half the commands in this project assume them. account 8080, ledger 8081, notification 8082, balance 8083, payment 8085, issuer 8086, settlement 8087, gateway 8090. Postgres 5432, Redpanda 9092, Schema Registry 18081, Grafana 3000, Keycloak 8180."
+      },
+      {
+        "h": "Every service runs on the host until step 16",
+        "b": "<code>./mvnw spring-boot:run</code>, one terminal each. That means <code>docker stop &lt;service&gt;</code> will not work on them — commands that need to stop or freeze a service use its PID instead. Only the infrastructure lives in Docker until Kubernetes arrives."
+      },
+      {
+        "h": "Something is already using port 8080",
+        "b": "Git Bash: <code>lsof -ti:8080</code> then <code>kill &lt;pid&gt;</code>. PowerShell: <code>Get-NetTCPConnection -LocalPort 8080 -State Listen</code> then <code>Stop-Process -Id &lt;pid&gt;</code>."
+      },
+      {
+        "h": "Start clean if the database gets confused",
+        "b": "<code>docker compose -f infra/compose/docker-compose.yml down -v</code>. The <code>-v</code> drops the volume, so migrations re-run from scratch. That is the fix for almost every Flyway complaint."
+      },
+      {
+        "h": "How to use this board",
+        "b": "Work top to bottom. Tick a task when it is genuinely done — the board is a memory, not a score. Every step ends with something that runs; if you stop mid-step, note where you were in the check line of the task you were on."
+      }
+    ]
+  },
+  "stages": [
+    {
+      "letter": "A",
+      "name": "The money is correct",
+      "blurb": "No microservices, no Kafka, no second process. One ordinary Spring Boot service, running today, holding a double-entry ledger that stays balanced when two requests hit the same account at the same instant. Every distributed pattern later in this project is an answer to a problem you will first meet here, inside one application.",
+      "youWillLearn": [
+        "How a Spring Boot project is laid out and what each folder is for",
+        "Why money is a long of minor units and never a double",
+        "Why every posting set has to sum to zero, and how to assert it",
+        "How an idempotency key and an optimistic lock stop the same payment landing twice"
+      ],
+      "steps": [
+        "01-service-that-runs.json",
+        "02-give-real-database.json",
+        "03-production-shape.json"
+      ]
+    },
+    {
+      "letter": "B",
+      "name": "Two services, and the events between them",
+      "blurb": "Now, and only now, do you need multi-module Maven, an HTTP client and resilience. Each arrives because the previous step created the problem it solves. You break your own system on purpose, measure what happens, and then replace the synchronous call with an event nobody has to be awake to receive.",
+      "youWillLearn": [
+        "How a multi-module Maven build is wired, and which pom owns what",
+        "What a cascading failure looks like on your own machine",
+        "Why a timeout is the highest-value line of configuration in this whole project",
+        "Why an event is an API, and what a published contract has to contain"
+      ],
+      "steps": [
+        "04-two-services-pom-xml-problem.json",
+        "05-make-them-talk.json",
+        "06-break-on-purpose.json",
+        "07-first-event.json",
+        "08-turn-into-contract.json",
+        "09-consumers-that-survive.json"
+      ]
+    },
+    {
+      "letter": "C",
+      "name": "Exactly once, or the money is wrong",
+      "blurb": "Everything so far works on a good day. These three steps are about the bad day, which in a payment system is the only day anyone remembers. Each one starts by reproducing a real bug in your own code, because a fix you have never watched fail is a fix you cannot judge. This is the stage a fintech interview will spend most of its time on.",
+      "youWillLearn": [
+        "Why writing to a database and a broker in the same method can never be made safe",
+        "What the outbox pattern actually is, and why it is boring on purpose",
+        "Why every consumer you will ever write must be idempotent",
+        "How to run an authorise, capture and refund workflow with no distributed transaction anywhere"
+      ],
+      "steps": [
+        "10-dual-write-bug.json",
+        "11-at-least-once-means-duplicates.json",
+        "12-workflow-across-services.json"
+      ]
+    },
+    {
+      "letter": "D",
+      "name": "Numbers, and a model that never touches the ledger",
+      "blurb": "The system is correct. This stage is what turns a correct system into a repository somebody reads to the end: a projection you can throw away and rebuild, one trace across the whole authorisation, a measured before and after on latency, and a risk model that scores every payment without being able to move a penny.",
+      "youWillLearn": [
+        "How to build a read model you can delete and rebuild on demand",
+        "How to follow one authorisation across every service and both broker hops",
+        "How to find a bottleneck by measuring rather than by guessing",
+        "How to put a model in a payment flow without letting it near the money"
+      ],
+      "steps": [
+        "13-read-models-cqrs.json",
+        "14-observability.json",
+        "15-make-fast-prove.json",
+        "16-model-that-never-touches-ledger.json",
+        "17-repository-someone-actually-reads.json"
+      ]
+    },
+    {
+      "letter": "E",
+      "name": "What the broker actually promises",
+      "blurb": "Steps 07 to 11 taught you to produce and consume without losing money. This stage goes under the floorboards: how work is spread across partitions, what a consumer group does when its membership changes, how long the log keeps your events, and what a replicated write survives. Every guarantee you have leaned on so far has a mechanism — here you watch each one work, and then break it on purpose.",
+      "youWillLearn": [
+        "Why the partition key decides your ordering guarantee, your parallelism ceiling and your hot spots — all with one line",
+        "What a rebalance actually does to a running consumer group, and how to make one cheap",
+        "When a topic should forget (retention) and when it should remember only the latest value per key (compaction)",
+        "What acks=all really buys you, proven by killing a broker mid-stream"
+      ],
+      "steps": [
+        "18-partitions-decide-everything.json",
+        "19-group-cost-changing.json",
+        "20-topics-that-forget-topics-that.json",
+        "21-kill-broker.json"
+      ]
+    }
+  ],
+  "plan": {
+    "intro": "This turns skill-gaps.md (the market data: what 125 real adverts ask for) and the twenty-one steps in the Build log into one sequenced plan with four milestones. Progress here is derived from the ticks in the Build log; this tab only says what order, what deadline, and what each unlock is worth on the CV.",
+    "ruleZero": {
+      "title": "Rule zero: applying never waits on learning",
+      "body": "You apply from day one with the record as it is (GCP, RabbitMQ, Kubernetes daily use are already real and already in it). Each milestone ends in a <b>CV unlock</b>: a claim that becomes true, goes into the record, gets published, and rides on the next batch of applications. Learning improves the applications; it never gates them."
+    },
+    "rules": [
+      {
+        "tag": "daily",
+        "tone": "t1",
+        "title": "First hour of any working day: the pipeline",
+        "body": "Sourcer, screener, assessor, apply to the top of the shortlist. Before any LedgerFlow work, every day, no exceptions. A day where you applied and built nothing is fine. A day where you built and applied to nothing is the failure mode."
+      },
+      {
+        "tag": "day off",
+        "tone": "t1",
+        "title": "Rest of a day off: build",
+        "body": "Steps are the unit. Never start a task you cannot finish in the sitting; the tasks are sized for that."
+      },
+      {
+        "tag": "evening",
+        "tone": "t2",
+        "title": "Work-day evenings: one or two tasks, not a step",
+        "body": "60 to 90 minutes. Progress is ticked per task, so a five-task step across three evenings still shows movement every night."
+      },
+      {
+        "tag": "overrun",
+        "tone": "t3",
+        "title": "2x the box means cut scope and move on",
+        "body": "Every step ends with something runnable; a step abandoned at 80% with its test passing beats a step polished at the cost of the next one."
+      }
+    ],
+    "milestones": [
+      {
+        "id": "m1",
+        "name": "Essentials",
+        "when": "the 3 days off, steps 01 to 09",
+        "steps": [
+          "01",
+          "02",
+          "03",
+          "04",
+          "05",
+          "06",
+          "07",
+          "08",
+          "09"
+        ],
+        "blurb": "Stages “The money is correct” and “Two services, and the events between them”. The aggressive part of the plan, placed on the days off because it is the only stretch that needs long uninterrupted blocks.",
+        "head": [
+          "Day",
+          "Steps",
+          "Note"
+        ],
+        "rows": [
+          [
+            "Off day 1",
+            "01, 02, 03",
+            "01 is partly done already (account-service scaffold, Account and Wallet domain models exist). Your daily bread: Spring service, Postgres, production shape. Push through it; the value is in what it enables."
+          ],
+          [
+            "Off day 2",
+            "04, 05, 06",
+            "Multi-module Maven, HTTP between services, then break it on purpose and measure the cascade. Step 04 is the Tier 2 Maven material made real: reactor, BOM, dependency mediation."
+          ],
+          [
+            "Off day 3",
+            "07, 08, 09",
+            "Redpanda up, first event, published contract, consumers that survive redelivery. The Kafka unlock."
+          ]
+        ],
+        "note": "Morning of each off day still starts with the pipeline hour.",
+        "unlock": "Kafka (via Redpanda), event contracts, consumer groups, event-driven architecture across services with a measured failure that motivated it. Closes the Tier 1 Kafka gap (<b>23% of adverts</b>). Update the record, publish, then re-run the assessor over every parked row that named Kafka.",
+        "rider": "While step 04 is fresh, the Maven checklist in skill-gaps.md Tier 2: nearest-wins mediation, BOM imports, Surefire versus Failsafe, phases versus goals. While step 02 is fresh, the PostgreSQL items: EXPLAIN ANALYZE, index choice. The rider is for lunch breaks and commutes; it never takes a build slot.",
+        "riderLabel": "interview rider · reading only, no code"
+      },
+      {
+        "id": "m2",
+        "name": "Advanced",
+        "when": "work-week evenings, roughly 2 weeks, steps 10 to 14",
+        "steps": [
+          "10",
+          "11",
+          "12",
+          "13",
+          "14"
+        ],
+        "blurb": "Stage “Exactly once, or the money is wrong”, plus the read model and observability. One step per two evenings is the honest pace; 12 is the big one (8 tasks) and gets three.",
+        "head": [
+          "Order",
+          "Step",
+          "Why it is here"
+        ],
+        "rows": [
+          [
+            "1",
+            "10 The dual-write bug",
+            "Reproduces the exact scenario in skill-gaps.md Tier 2 (Spring Boot and JPA: the dual-write problem) and fixes it with an outbox. The single best interview story in the plan: a bug you caused, measured, and fixed with the standard pattern."
+          ],
+          [
+            "2",
+            "11 At-least-once means duplicates",
+            "Idempotent consumers. Pairs with the Kafka model questions from milestone 1."
+          ],
+          [
+            "3",
+            "12 A workflow across services",
+            "Authorise to capture with compensation, no distributed transaction. The saga answer, built rather than recited."
+          ],
+          [
+            "4",
+            "13 Read models and CQRS",
+            "Small step (3 tasks), one evening."
+          ],
+          [
+            "5",
+            "14 Observability",
+            "OpenTelemetry traces, one span per upstream call, Prometheus and Grafana in Compose. The second biggest Tier 1 gap (40% of adverts), closed directly."
+          ]
+        ],
+        "unlock": "OpenTelemetry, Prometheus, Grafana, distributed tracing, transactional outbox, saga with compensation. Closes the Tier 1 observability gap. Update the record, publish, re-run the assessor over parked observability rows.",
+        "rider": "With step 10 fresh, the <code>@Transactional</code> proxy and propagation items. With step 14 fresh, the vocabulary block: metric versus log versus span, cardinality, RED versus USE, SLOs and error budgets. Also start the Kubernetes operational items here (probes, requests versus limits, OOMKilled); they map to no step, so they are pure reading, one item per lunch.",
+        "riderLabel": "interview rider"
+      },
+      {
+        "id": "m3",
+        "name": "Pro",
+        "when": "weekends, roughly weeks 3 to 5",
+        "steps": [
+          "15",
+          "16",
+          "17"
+        ],
+        "blurb": "Steps 15 to 17, then one extension the curriculum deliberately leaves out, because the skill-gap data says it is the largest gap of all.",
+        "head": [
+          "Order",
+          "Work",
+          "Why"
+        ],
+        "rows": [
+          [
+            "1",
+            "15 Make it fast, and prove it",
+            "Gatling, a measured before and after on p99. Pairs with the HikariCP pool-sizing rider item."
+          ],
+          [
+            "2",
+            "16 A model that never touches the ledger",
+            "The fraud score, advisory by construction, with the test that fails if it ever gets a write path."
+          ],
+          [
+            "3",
+            "17 The repository someone actually reads",
+            "The front door. This step is what makes the whole project legible to a recruiter in ninety seconds."
+          ]
+        ],
+        "extras": [
+          {
+            "id": "aws-ecs",
+            "label": "Deploy account-service to ECS Fargate with RDS Postgres",
+            "why": "One service is enough; the claim being made is “has deployed to AWS and declared it as code”, not “runs production on AWS”."
+          },
+          {
+            "id": "aws-tf",
+            "label": "Express the whole deployment as Terraform in <code>infra/</code>",
+            "why": "Closes the infrastructure-as-code gap (26% of adverts) with the same work."
+          },
+          {
+            "id": "aws-state",
+            "label": "Do the state exercise: remote state in S3 with locking, one deliberate <code>terraform plan</code> that shows a replace",
+            "why": "Then stop there. State is the part interviews actually probe."
+          }
+        ],
+        "extrasLabel": "AWS + Terraform extension — no curriculum step, tick it here",
+        "note": "The AWS extension closes the two remaining Tier 1 gaps in one move: AWS (51% of adverts, and 33 adverts that name AWS and never GCP) and infrastructure as code (26%). It is last not because it matters least but because milestones 1 and 2 build the thing worth deploying.",
+        "unlock": "AWS (ECS Fargate, RDS, IAM, VPC basics), Terraform, load testing with Gatling, measured p99 improvement. Update the record, publish, and re-run the assessor over the AWS-only pool, the single largest set of currently invisible adverts.",
+        "rider": "Two certifications, same rule for both: exam prep, not building, so they only start once applications are flowing and interviews are landing. <b>AWS Solutions Architect Associate</b> closes the largest Tier 1 gap and the empty certifications section together. <b>Claude Certified Developer</b> (Anthropic Academy, launched 2026, ~$125) turns the agent-platform work into a named credential for the agent-shaped Applied AI adverts; the exam covers the Messages API, tool use and agents, which is agent-platform's daily material, so prep cost is low.",
+        "riderLabel": "after · optional, not scheduled"
+      },
+      {
+        "id": "m4",
+        "name": "Broker internals",
+        "when": "weekends, week 6 onward, steps 18 to 21",
+        "steps": [
+          "18",
+          "19",
+          "20",
+          "21"
+        ],
+        "blurb": "Stage “What the broker actually promises”. Steps 07 to 11 taught you to produce and consume without losing money; these four go under the floorboards and show you the mechanism behind each guarantee you leaned on. Last in the plan, not least — it is the stage that turns “I have used Kafka” into an answer that survives a follow-up question.",
+        "head": [
+          "Order",
+          "Step",
+          "Why it is here"
+        ],
+        "rows": [
+          [
+            "1",
+            "18 Partitions decide everything",
+            "The partition key sets your ordering guarantee, your parallelism ceiling and your hot spots in one line. Needs step 09 only, so it can be pulled forward if an interview lands early."
+          ],
+          [
+            "2",
+            "19 The group, and the cost of changing it",
+            "Three consumers, one topic, and a rebalance you watch happen. Cooperative assignment and static membership are the two settings that make a deploy stop hurting."
+          ],
+          [
+            "3",
+            "20 Topics that forget, topics that remember",
+            "Retention and compaction as decisions rather than defaults. Needs step 13 — it gives balance-service a snapshot topic so the rebuild stops growing with history."
+          ],
+          [
+            "4",
+            "21 Kill a broker",
+            "What acks=all actually bought you, proven on a three-node cluster: a broker dies mid-stream and in equals out, then the margin comes off and the producer refuses instead of losing quietly."
+          ]
+        ],
+        "note": "Prerequisites are steps 09 and 13, not step 17 — the stage sits last because it is depth rather than progress, and any of it can be brought forward when an advert or an interview asks for it.",
+        "unlock": "Partitioning and key design, consumer group mechanics, cooperative rebalancing and static membership, retention and log compaction, replication with acks=all and min.insync.replicas — each one measured or broken on purpose rather than read about. This is the depth behind the milestone 1 Kafka claim: same line on the record, a different conversation in the room.",
+        "rider": "With step 18 fresh, the partition-count sizing question: how many, why, and what it costs to change later. With step 21 fresh, the ISR items — what NotEnoughReplicas means to a caller, and why unclean leader election stays off for money.",
+        "riderLabel": "interview rider · reading only, no code"
+      }
+    ],
+    "cadence": {
+      "head": [
+        "When",
+        "Build",
+        "Apply"
+      ],
+      "rows": [
+        [
+          "Days off 1 to 3",
+          "Steps 01 to 09",
+          "Pipeline hour every morning, with the current record"
+        ],
+        [
+          "Week 1 to 2 evenings",
+          "Steps 10 to 14",
+          "Pipeline hour daily; record now says Kafka"
+        ],
+        [
+          "Weekends 3 to 5",
+          "Steps 15 to 17, AWS + Terraform",
+          "Pipeline hour daily; record now says observability, then AWS"
+        ],
+        [
+          "Week 6 onward",
+          "Steps 18 to 21",
+          "Pipeline hour daily; record now says Kafka internals"
+        ]
+      ],
+      "close": "Four record updates, four publishes, four assessor re-runs over parked rows. Every unlock widens the funnel while the next one is being built."
+    }
+  }
+}

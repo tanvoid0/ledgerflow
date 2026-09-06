@@ -1,0 +1,75 @@
+{
+  "id": "29",
+  "title": "auto configuration",
+  "goal": "6.2.2a Utilize auto-configuration",
+  "tasks": [
+    {
+      "key": "explain-auto-configuration-as-ordinary",
+      "do": "Explain auto-configuration as ordinary conditional `@Configuration` classes."
+    },
+    {
+      "key": "name-metadata-file-that-registers",
+      "do": "Name the metadata file that registers auto-configuration classes in Boot 3."
+    },
+    {
+      "key": "explain-what-deferred-import-selector",
+      "do": "Explain what \"deferred import selector\" means and why it matters."
+    },
+    {
+      "key": "state-why-user-configuration-processed",
+      "do": "State why user configuration is processed before auto-configuration."
+    },
+    {
+      "key": "explain-two-layer-condition-pattern",
+      "do": "Explain the two-layer condition pattern: class-level trigger, method-level backing off."
+    },
+    {
+      "key": "explain-how-conditionalonclass-avoids-loading",
+      "do": "Explain how `@ConditionalOnClass` avoids loading absent classes."
+    },
+    {
+      "key": "order-auto-configurations-before-after",
+      "do": "Order auto-configurations with `before` / `after`, and say what that does *not* order."
+    },
+    {
+      "key": "state-what-autoconfiguration-implies-about",
+      "do": "State what `@AutoConfiguration` implies about bean-method proxying."
+    },
+    {
+      "key": "read-condition-evaluation-report-from",
+      "do": "Read the condition evaluation report from `--debug` and `/actuator/conditions`."
+    },
+    {
+      "key": "override-auto-configured-bean-by",
+      "do": "Override an auto-configured bean by simply defining your own."
+    },
+    {
+      "key": "write-minimal-auto-configuration-class",
+      "do": "Write a minimal auto-configuration class and register it."
+    },
+    {
+      "key": "registration-file-autoconfiguration-imports-not",
+      "do": "Registration file is `AutoConfiguration.imports`, not `spring.factories`."
+    },
+    {
+      "key": "auto-configuration-runs-after-configuration",
+      "do": "Auto-configuration runs AFTER your configuration — that is the whole backing-off mechanism."
+    },
+    {
+      "key": "autoconfiguration-implies-proxybeanmethods-false",
+      "do": "`@AutoConfiguration` implies `proxyBeanMethods = false` — use parameter injection."
+    },
+    {
+      "key": "autoconfigureafter-orders-classes-not-bean",
+      "do": "`@AutoConfigureAfter` orders CLASSES, not bean creation."
+    },
+    {
+      "key": "adding-dependency-configuration-change",
+      "do": "Adding a dependency is a configuration change."
+    },
+    {
+      "key": "debug-prints-condition-report-does",
+      "do": "`--debug` prints the condition report; it does not raise your log levels."
+    }
+  ]
+}

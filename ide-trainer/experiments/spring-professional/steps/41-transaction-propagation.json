@@ -1,0 +1,59 @@
+{
+  "id": "41",
+  "title": "transaction propagation",
+  "goal": "2.2.2 Transaction Propagation",
+  "tasks": [
+    {
+      "key": "name-all-seven-propagation-values",
+      "do": "Name all seven `Propagation` values."
+    },
+    {
+      "key": "describe-required-join-create-rollback",
+      "do": "Describe `REQUIRED` join-or-create and rollback-only sharing."
+    },
+    {
+      "key": "describe-requires-new-suspend-commit",
+      "do": "Describe `REQUIRES_NEW` suspend-and-commit independence."
+    },
+    {
+      "key": "describe-nested-savepoints-vs-requires",
+      "do": "Describe `NESTED` savepoints vs `REQUIRES_NEW`."
+    },
+    {
+      "key": "describe-mandatory-never-including-illegaltransa",
+      "do": "Describe `MANDATORY` and `NEVER` including `IllegalTransactionStateException`."
+    },
+    {
+      "key": "describe-supports-not-supported",
+      "do": "Describe `SUPPORTS` and `NOT_SUPPORTED`."
+    },
+    {
+      "key": "explain-why-propagation-needs-two",
+      "do": "Explain why propagation needs two Spring beans (proxy / no self-invocation)."
+    },
+    {
+      "key": "predict-unexpectedrollbackexception-after-catchi",
+      "do": "Predict `UnexpectedRollbackException` after catching an inner `REQUIRED` failure."
+    },
+    {
+      "key": "requires-new-nested",
+      "do": "`REQUIRES_NEW` ≠ `NESTED`."
+    },
+    {
+      "key": "mandatory-never-starts-transaction",
+      "do": "`MANDATORY` never starts a transaction."
+    },
+    {
+      "key": "never-throws-inside-transaction-does",
+      "do": "`NEVER` throws inside a transaction; it does not suspend."
+    },
+    {
+      "key": "same-class-this-calls-ignore",
+      "do": "Same-class `this` calls ignore all seven."
+    },
+    {
+      "key": "catching-inner-required-exception-does",
+      "do": "Catching an inner `REQUIRED` exception does not save the outer commit."
+    }
+  ]
+}
