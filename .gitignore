@@ -16,6 +16,15 @@ out/
 # clone; the SQLite mirrors are derived and machine-local.
 *.db
 
+# Claude Code session files & config
+.claude/
+.claude.*
+claude_*.log
+
 # os
 Thumbs.db
 .DS_Store
+.vscode/
+*.swp
+*.swo
+*~
