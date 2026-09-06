@@ -16,6 +16,12 @@ ledgerflow:
   account:
     display-name: LedgerFlow Account
     max-wallets-per-account: 500
+logging:
+  structured:
+    format:
+      console: ecs        # ecs | logstash | gelf
+  level:
+    io.ledgerflow: DEBUG
 management:
   endpoints:
     web:
