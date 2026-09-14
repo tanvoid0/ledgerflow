@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.ledgerflow</groupId>
+        <artifactId>ledgerflow</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>ledgerflow-starter-messaging</artifactId>
+    <name>ledgerflow-starter-messaging</name>
+    <description>The outbox (steps 10) and the inbox (step 11), once: a poller that publishes, a dedupe that claims, retry topics named after the consumer group.</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.ledgerflow</groupId>
+            <artifactId>ledgerflow-events</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-autoconfigure</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-kafka</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jdbc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-jackson</artifactId>
+        </dependency>
+    </dependencies>
+    <!-- a library: no spring-boot-maven-plugin. The service owns the outbox and processed_events tables (Flyway is per database). -->
+</project>

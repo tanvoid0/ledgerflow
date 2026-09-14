@@ -22,6 +22,10 @@
             <groupId>io.ledgerflow</groupId>
             <artifactId>ledgerflow-starter-web</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.ledgerflow</groupId>
+            <artifactId>ledgerflow-starter-messaging</artifactId>
+        </dependency>
 
         <!-- web only for actuator: health is how anything will know this service is alive -->
         <dependency>
@@ -32,16 +36,8 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-kafka</artifactId>
-        </dependency>
 
         <!-- persistence: what was sent, and (step 11) which events were already handled -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-jdbc</artifactId>
-        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-flyway</artifactId>

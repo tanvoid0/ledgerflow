@@ -3,76 +3,31 @@ package io.ledgerflow.notification.adapter.in.messaging;
 import io.ledgerflow.events.EventEnvelope;
 import io.ledgerflow.events.ledger.FundsHeld;
 import io.ledgerflow.notification.application.Notifier;
-import io.ledgerflow.notification.application.ProcessedEvents;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.kafka.annotation.BackOff;
-import org.springframework.kafka.annotation.DltHandler;
+import io.ledgerflow.starter.messaging.Inbox;
+import io.ledgerflow.starter.messaging.InvalidPayloadException;
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.kafka.annotation.RetryableTopic;
 import org.springframework.kafka.support.Acknowledgment;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.support.TransactionTemplate;
 
-import java.nio.charset.StandardCharsets;
-
+// retries and the dead letter topic come from the starter: 1s, 3s, 9s, then <topic>.notification-service.dlt
 @Component
 class FundsHoldListener {
 
-    private static final Logger log = LoggerFactory.getLogger(FundsHoldListener.class);
-
-    private final ProcessedEvents processed;
+    private final Inbox inbox;
     private final Notifier notifier;
-    private final TransactionTemplate tx;
-    private final String group;
 
-    // the group from config, not from the record: a retry topic delivers under a different group name,
-    // and a retry of the same event must still be a duplicate
-    FundsHoldListener(ProcessedEvents processed, Notifier notifier, TransactionTemplate tx,
-                      @Value("${spring.kafka.consumer.group-id}") String group) {
-        this.processed = processed;
+    FundsHoldListener(Inbox inbox, Notifier notifier) {
+        this.inbox = inbox;
         this.notifier = notifier;
-        this.tx = tx;
-        this.group = group;
     }
 
-    @RetryableTopic(
-            attempts = "4",
-            backOff = @BackOff(delay = 1000, multiplier = 3.0),   // 1s, 3s, 9s, then the DLT
-            retryTopicSuffix = ".retry",
-            dltTopicSuffix = ".dlt",
-            numPartitions = "3",
-            exclude = InvalidPayloadException.class)               // bad data never gets better; skip the retries
     @KafkaListener(topics = FundsHeld.TOPIC)
     void onFundsHeld(EventEnvelope<FundsHeld> event, Acknowledgment ack) {
         var held = event.payload();
         if (held == null || held.wallets() == null || held.wallets().isEmpty()) {
             throw new InvalidPayloadException("event " + event.eventId() + " names no wallet");
         }
-        // mark and send commit together or not at all; two transactions would be step 10's bug one layer down
-        tx.executeWithoutResult(status -> {
-            if (processed.markProcessed(event.eventId(), group)) {
-                notifier.send(held);
-            } else {
-                log.info("event {} already handled, skipping", event.eventId());
-            }
-        });
+        inbox.once(event, () -> notifier.send(held));
         ack.acknowledge();   // after the commit, never before
-    }
-
-    // ConsumerRecord on purpose: a poison pill would not survive conversion a second time either
-    @DltHandler
-    void onDead(ConsumerRecord<String, String> record, Acknowledgment ack) {
-        log.error("gave up on hold {}: {} ({})", record.key(),
-                header(record, KafkaHeaders.EXCEPTION_MESSAGE), header(record, KafkaHeaders.EXCEPTION_CAUSE_FQCN));
-        ack.acknowledge();
-    }
-
-    private static String header(ConsumerRecord<?, ?> record, String name) {
-        var h = record.headers().lastHeader(name);
-        return h == null ? "?" : new String(h.value(), StandardCharsets.UTF_8);
     }
 }

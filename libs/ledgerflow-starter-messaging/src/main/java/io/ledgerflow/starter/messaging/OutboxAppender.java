@@ -1,19 +1,21 @@
-package io.ledgerflow.ledger.adapter.out.persistence;
+package io.ledgerflow.starter.messaging;
 
 import io.ledgerflow.events.EventEnvelope;
-import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Component;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.time.ZoneOffset;
 
-@Component
-@RequiredArgsConstructor
+/** Writes the envelope into the service's outbox table; the poller takes it from there. */
 public class OutboxAppender {
 
     private final JdbcClient db;
     private final JsonMapper json;
+
+    OutboxAppender(JdbcClient db, JsonMapper json) {
+        this.db = db;
+        this.json = json;
+    }
 
     /** Joins the caller's transaction. No @Transactional here on purpose: on its own this row means nothing. */
     public void append(String topic, EventEnvelope<?> event) {
