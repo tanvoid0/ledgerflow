@@ -17,7 +17,8 @@ spring:
   kafka:
     bootstrap-servers: localhost:9092
     producer:
-      value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
+      # the outbox row already holds the JSON; the publisher sends it as is
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
       acks: all                         # client default since Kafka 3, spelled out so nobody has to know that
       properties:
         enable.idempotence: true

@@ -1,7 +1,6 @@
 package io.ledgerflow.ledger.adapter.in.web;
 
 import io.ledgerflow.events.Money;
-import io.ledgerflow.ledger.adapter.out.messaging.HoldEventPublisher;
 import io.ledgerflow.ledger.application.PlaceHold;
 import io.ledgerflow.ledger.domain.model.FundsHold;
 import jakarta.validation.Valid;
@@ -27,7 +26,6 @@ import java.util.UUID;
 class HoldController {
 
     private final PlaceHold placeHold;
-    private final HoldEventPublisher publisher;
 
     /** One hold of amountMinor is placed on each wallet listed. */
     record HoldRequest(@NotNull UUID accountId,
@@ -38,12 +36,6 @@ class HoldController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     List<FundsHold> place(@Valid @RequestBody HoldRequest req) {
-        var holds = placeHold.place(req.accountId(), req.wallets(), new Money(req.amountMinor(), req.currency()));
-
-        // ...and only then do we publish. Two systems, two writes, no atomicity: if the broker is down
-        // the holds exist and nobody ever hears about them. Real bug, reproduced and fixed in step 10.
-        holds.forEach(publisher::publish);
-
-        return holds;
+        return placeHold.place(req.accountId(), req.wallets(), new Money(req.amountMinor(), req.currency()));
     }
 }

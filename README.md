@@ -10,7 +10,7 @@ Java 25 · Spring Boot 4.1 · Maven multi-module · PostgreSQL 17 · k6 · Docke
 | service | port | owns |
 |---|---|---|
 | account-service | 8080 | accounts, wallets, the book of record (journal entries and postings). The only service that moves money. |
-| ledger-service | 8081 | funds holds. Asks account whether a wallet exists before reserving against it, then publishes `ledger.FundsHeld`. |
+| ledger-service | 8081 | funds holds. Asks account whether a wallet exists before reserving against it, writes the hold and its `ledger.FundsHeld` event in one transaction; a poller moves the event to Kafka. |
 | notification-service | 8082 | nothing. Consumes `ledger.FundsHeld` and logs what it would tell the customer; acks after the work, retries on `.retry-*` topics, dead-letters on `.dlt`. |
 
 Two shared libraries: `ledgerflow-events` (Money, WalletRef, EventEnvelope, the
@@ -36,6 +36,14 @@ that will never parse, the record lands in `…events.v1.dlt` with the exception
 in its headers. `scripts/dlt-depth.sh` says how many are there (anything above
 zero is an incident), `scripts/dlt-replay.sh` puts them back once the cause is
 fixed. Kill-the-consumer proof in `docs/measurements/step-09-consumer-restart.md`.
+
+Producing it: the hold and its event are committed together. The event is a
+row in ledger's `outbox` table, written inside the hold's transaction; a
+scheduled poller claims unpublished rows (`FOR UPDATE SKIP LOCKED`, so a
+second instance can run), waits for the broker's ack and marks them. Broker
+down: the rows wait. Hold rolled back: the row was never there. Why polling
+and not Debezium: `docs/adr/0001-outbox-over-cdc.md`. Kill-the-broker proof,
+before and after, in `docs/measurements/step-10-dual-write.md`.
 
 ## Measured, not claimed
 
@@ -66,6 +74,7 @@ and a CHECK constraint bring it to exactly one. `perf/race.sh` reproduces it,
 | No wallet overdrawn under concurrency | conditional UPDATE + CHECK constraint | `TransferConcurrencyIT` (`-DexcludedGroups=none`) |
 | A slow dependency cannot take a service down | timeouts, retry in its own bean, fallback | `docs/measurements/step-06-cascade.md` |
 | A consumer crash loses nothing; a bad message blocks nothing | manual ack after the work, `@RetryableTopic` + DLT | `FundsHoldListenerIT`, `docs/measurements/step-09-consumer-restart.md` |
+| A broker outage loses no event; a rolled-back hold publishes none | transactional outbox, poller marks rows only after the ack | `PlaceHoldIT`, `docs/measurements/step-10-dual-write.md` |
 
 ## Run it
 
@@ -87,3 +96,4 @@ Load and race: `RATE=100 DURATION=60s perf/run.sh transfer baseline`, `perf/race
 Watch the events: `docker exec ledgerflow-redpanda rpk topic consume ledgerflow.ledger.wallet-hold.events.v1 -f '%p %k %v\n'`.
 Break one: `printf 'poison\t{not json\n' | docker exec -i ledgerflow-redpanda rpk topic produce ledgerflow.ledger.wallet-hold.events.v1 -f '%k\t%v\n'`, then `scripts/dlt-depth.sh`.
 Freeze a service to watch the cascade: `scripts/freeze.sh 8080`, `scripts/freeze.sh 8080 --thaw`.
+Kill the broker and place a hold: `docker stop ledgerflow-redpanda`, then `docker exec ledgerflow-postgres psql -U ledgerflow -d ledger -c 'SELECT count(*) FROM outbox WHERE published_at IS NULL'` before and after `docker start ledgerflow-redpanda`.
