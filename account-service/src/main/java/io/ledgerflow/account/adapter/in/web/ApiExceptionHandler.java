@@ -6,12 +6,15 @@ import io.ledgerflow.account.domain.model.AccountNotFoundException;
 import io.ledgerflow.account.domain.model.UnbalancedEntryException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 
 import java.net.URI;
+import java.util.List;
 
 /** RFC 9457 problem details. Callers get something to act on, not a stack trace. */
 @RestControllerAdvice
@@ -50,9 +53,26 @@ class ApiExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     ProblemDetail onInvalid(MethodArgumentNotValidException e) {
-        var p = problem(HttpStatus.BAD_REQUEST, "Validation failed", "validation", "Request body is invalid");
-        p.setProperty("errors", e.getBindingResult().getFieldErrors().stream()
+        return validation(e.getBindingResult().getFieldErrors().stream()
                 .map(f -> f.getField() + ": " + f.getDefaultMessage()).toList());
+    }
+
+    /**
+     * Raised instead of MethodArgumentNotValidException once any parameter carries a constraint
+     * (the @NotBlank on Idempotency-Key does): Spring then validates the whole handler method.
+     */
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    ProblemDetail onInvalid(HandlerMethodValidationException e) {
+        return validation(e.getParameterValidationResults().stream()
+                .flatMap(r -> r.getResolvableErrors().stream()
+                        .map(err -> (err instanceof FieldError f ? f.getField()
+                                : r.getMethodParameter().getParameterName()) + ": " + err.getDefaultMessage()))
+                .toList());
+    }
+
+    private static ProblemDetail validation(List<String> errors) {
+        var p = problem(HttpStatus.BAD_REQUEST, "Validation failed", "validation", "Request is invalid");
+        p.setProperty("errors", errors);
         return p;
     }
 
