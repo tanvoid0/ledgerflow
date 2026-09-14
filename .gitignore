@@ -1,0 +1,20 @@
+# build
+target/
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+
+# ide
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+
+# os
+.DS_Store
+Thumbs.db
+
+# local env
+*.local.yml
+.env
