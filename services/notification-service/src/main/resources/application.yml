@@ -9,6 +9,11 @@ spring:
     consumer:
       group-id: notification-service    # its own group: its own copy of every message
       auto-offset-reset: earliest
+      enable-auto-commit: false         # we commit, after the work, not a timer
+      isolation-level: read_committed
+    listener:
+      ack-mode: manual_immediate
+      concurrency: 3                    # = partition count; more would sit idle
 
 management:
   endpoints:

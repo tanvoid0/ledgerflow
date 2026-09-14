@@ -24,9 +24,13 @@ Contracts, one file per event: `ledger.FundsHeld.md`.
 5. The listener's offset commits as soon as it returns, and it returns whether
    or not the email was actually sent. A crash inside the handler redelivers;
    a handler that swallows its own failure loses the work silently.
-                                                                  -> step 09
+                                                                  -> step 09 DONE
+   (manual_immediate, `ack.acknowledge()` after the work; measured in
+   `docs/measurements/step-09-consumer-restart.md`)
 6. A message the listener throws on is retried 10 times back to back, then
-   logged and skipped. Not forever: worse. Gone.                  -> step 09
+   logged and skipped. Not forever: worse. Gone.                  -> step 09 DONE
+   (three non-blocking retries on `.retry-*` topics, then `.dlt`; poison
+   pills skip the retries)
 7. One request placed two holds but published one event carrying the first
    hold's id. The other hold is invisible to every listener.      -> step 08 DONE (one event per hold)
 8. No amount on the event. A notification that cannot say "we held GBP 45.00"

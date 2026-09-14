@@ -11,7 +11,7 @@ Java 25 · Spring Boot 4.1 · Maven multi-module · PostgreSQL 17 · k6 · Docke
 |---|---|---|
 | account-service | 8080 | accounts, wallets, the book of record (journal entries and postings). The only service that moves money. |
 | ledger-service | 8081 | funds holds. Asks account whether a wallet exists before reserving against it, then publishes `ledger.FundsHeld`. |
-| notification-service | 8082 | nothing. Consumes `ledger.FundsHeld` and logs what it would tell the customer. |
+| notification-service | 8082 | nothing. Consumes `ledger.FundsHeld` and logs what it would tell the customer; acks after the work, retries on `.retry-*` topics, dead-letters on `.dlt`. |
 
 Two shared libraries: `ledgerflow-events` (Money, WalletRef, EventEnvelope, the
 event records and their JSON schemas - no behaviour) and `ledgerflow-starter-web`
@@ -28,6 +28,14 @@ existing consumer would not survive (CI runs it on every PR that touches a schem
 
 The first version of this event was deliberately naive. `docs/events/README.md`
 lists what was wrong with it and ticks items off as later steps fix them.
+
+Consuming it: offsets move only when the listener says so, after the work.
+A listener that throws gets three more attempts from retry topics (1s, 3s, 9s)
+while the main partition keeps moving; after that, or straight away for data
+that will never parse, the record lands in `…events.v1.dlt` with the exception
+in its headers. `scripts/dlt-depth.sh` says how many are there (anything above
+zero is an incident), `scripts/dlt-replay.sh` puts them back once the cause is
+fixed. Kill-the-consumer proof in `docs/measurements/step-09-consumer-restart.md`.
 
 ## Measured, not claimed
 
@@ -57,12 +65,13 @@ and a CHECK constraint bring it to exactly one. `perf/race.sh` reproduces it,
 | No transfer applies twice | Idempotency-Key lookup + UNIQUE index | `TransferControllerTest`, live retry |
 | No wallet overdrawn under concurrency | conditional UPDATE + CHECK constraint | `TransferConcurrencyIT` (`-DexcludedGroups=none`) |
 | A slow dependency cannot take a service down | timeouts, retry in its own bean, fallback | `docs/measurements/step-06-cascade.md` |
+| A consumer crash loses nothing; a bad message blocks nothing | manual ack after the work, `@RetryableTopic` + DLT | `FundsHoldListenerIT`, `docs/measurements/step-09-consumer-restart.md` |
 
 ## Run it
 
 ```bash
 docker compose -f infra/compose/docker-compose.yml up -d      # Postgres 5433, Redpanda 9092, schema registry 18081
-docker exec lf-redpanda rpk topic create ledgerflow.ledger.wallet-hold.events.v1 -p 3
+docker exec lf-redpanda rpk topic create ledgerflow.ledger.wallet-hold.events.v1 -p 3   # retry and dlt topics create themselves
 scripts/check-schemas.sh --register                           # put the event schemas in the registry
 ./mvnw -T 1C clean install                                    # builds everything, runs the tests
 ./mvnw -pl services/account-service spring-boot:run           # terminal 1
@@ -76,4 +85,5 @@ curl -s -X POST localhost:8081/api/v1/holds -H 'content-type: application/json' 
 
 Load and race: `RATE=100 DURATION=60s perf/run.sh transfer baseline`, `perf/race.sh`.
 Watch the events: `docker exec lf-redpanda rpk topic consume ledgerflow.ledger.wallet-hold.events.v1 -f '%p %k %v\n'`.
+Break one: `printf 'poison\t{not json\n' | docker exec -i lf-redpanda rpk topic produce ledgerflow.ledger.wallet-hold.events.v1 -f '%k\t%v\n'`, then `scripts/dlt-depth.sh`.
 Freeze a service to watch the cascade: `scripts/freeze.sh 8080`, `scripts/freeze.sh 8080 --thaw`.
