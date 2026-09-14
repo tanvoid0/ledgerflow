@@ -1,0 +1,23 @@
+name: schema-compatibility
+on:
+  pull_request:
+    paths: ['libs/ledgerflow-events/src/main/resources/schemas/**', 'scripts/check-schemas.sh']
+
+# A PR may only change an event schema in a way every existing consumer survives.
+# The registry is empty in CI, so first register what main ships, then check the PR against it.
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Start Redpanda (its built-in registry answers on 18081)
+        run: docker compose -f infra/compose/docker-compose.yml up -d --wait redpanda
+      - name: Register the schemas main currently ships
+        run: |
+          mkdir -p /tmp/base
+          git archive origin/${{ github.base_ref }} libs/ledgerflow-events/src/main/resources/schemas 2>/dev/null \
+            | tar -x -C /tmp/base || echo "base branch ships no schemas yet"
+          SCHEMA_DIR=/tmp/base/libs/ledgerflow-events/src/main/resources/schemas scripts/check-schemas.sh --register
+      - name: Check this branch's schemas against them
+        run: scripts/check-schemas.sh
