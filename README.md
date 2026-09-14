@@ -10,10 +10,14 @@ Java 25 · Spring Boot 4.1 · Maven multi-module · PostgreSQL 17 · k6 · Docke
 | service | port | owns |
 |---|---|---|
 | account-service | 8080 | accounts, wallets, the book of record (journal entries and postings). The only service that moves money. |
-| ledger-service | 8081 | funds holds. Asks account whether a wallet exists before reserving against it. |
+| ledger-service | 8081 | funds holds. Asks account whether a wallet exists before reserving against it, then publishes `FundsHeld`. |
+| notification-service | 8082 | nothing. Listens on `wallet-hold-events` and logs what it would tell the customer. |
 
 Two shared libraries: `ledgerflow-events` (Money, WalletRef - records only) and
 `ledgerflow-starter-web` (the request-id filter as a Boot auto-configuration).
+
+The first event is deliberately naive. `docs/events/README.md` lists the eight
+things wrong with it; steps 08-11 fix them one at a time.
 
 ## Measured, not claimed
 
@@ -47,10 +51,12 @@ and a CHECK constraint bring it to exactly one. `perf/race.sh` reproduces it,
 ## Run it
 
 ```bash
-docker compose -f infra/compose/docker-compose.yml up -d      # Postgres on host port 5433
+docker compose -f infra/compose/docker-compose.yml up -d      # Postgres on host port 5433, Redpanda on 9092
+docker exec lf-redpanda rpk topic create wallet-hold-events -p 3
 ./mvnw -T 1C clean install                                    # builds everything, runs the tests
 ./mvnw -pl services/account-service spring-boot:run           # terminal 1
 ./mvnw -pl services/ledger-service spring-boot:run            # terminal 2
+./mvnw -pl services/notification-service spring-boot:run      # terminal 3: watch it for "would email the customer"
 
 curl -s localhost:8080/api/v1/accounts | jq
 curl -s -X POST localhost:8081/api/v1/holds -H 'content-type: application/json' \
