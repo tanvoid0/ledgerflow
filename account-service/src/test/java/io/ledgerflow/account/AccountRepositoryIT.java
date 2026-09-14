@@ -31,7 +31,8 @@ class AccountRepositoryIT {
         var account = accounts.findById(demo).orElseThrow();
 
         assertThat(account.name()).isEqualTo("Demo Arena");
-        assertThat(account.wallets()).hasSize(20);
+        assertThat(account.wallets()).hasSize(21);   // A-1..A-20 plus TREASURY
         assertThat(account.hasWallet("A-12")).isTrue();
+        assertThat(account.hasWallet("TREASURY")).isTrue();
     }
 }
