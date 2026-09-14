@@ -3,6 +3,7 @@ package io.ledgerflow.notification.adapter.in.messaging;
 import io.ledgerflow.events.EventEnvelope;
 import io.ledgerflow.events.ledger.FundsHeld;
 import io.ledgerflow.notification.application.Notifier;
+import io.ledgerflow.notification.application.ProcessedEvents;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,8 +12,10 @@ import org.springframework.kafka.annotation.DltHandler;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.annotation.RetryableTopic;
 import org.springframework.kafka.support.Acknowledgment;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.nio.charset.StandardCharsets;
 
@@ -21,10 +24,19 @@ class FundsHoldListener {
 
     private static final Logger log = LoggerFactory.getLogger(FundsHoldListener.class);
 
+    private final ProcessedEvents processed;
     private final Notifier notifier;
+    private final TransactionTemplate tx;
+    private final String group;
 
-    FundsHoldListener(Notifier notifier) {
+    // the group from config, not from the record: a retry topic delivers under a different group name,
+    // and a retry of the same event must still be a duplicate
+    FundsHoldListener(ProcessedEvents processed, Notifier notifier, TransactionTemplate tx,
+                      @Value("${spring.kafka.consumer.group-id}") String group) {
+        this.processed = processed;
         this.notifier = notifier;
+        this.tx = tx;
+        this.group = group;
     }
 
     @RetryableTopic(
@@ -40,8 +52,15 @@ class FundsHoldListener {
         if (held == null || held.wallets() == null || held.wallets().isEmpty()) {
             throw new InvalidPayloadException("event " + event.eventId() + " names no wallet");
         }
-        notifier.send(held);
-        ack.acknowledge();   // after the work, never before
+        // mark and send commit together or not at all; two transactions would be step 10's bug one layer down
+        tx.executeWithoutResult(status -> {
+            if (processed.markProcessed(event.eventId(), group)) {
+                notifier.send(held);
+            } else {
+                log.info("event {} already handled, skipping", event.eventId());
+            }
+        });
+        ack.acknowledge();   // after the commit, never before
     }
 
     // ConsumerRecord on purpose: a poison pill would not survive conversion a second time either

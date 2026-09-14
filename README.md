@@ -11,7 +11,7 @@ Java 25 · Spring Boot 4.1 · Maven multi-module · PostgreSQL 17 · k6 · Docke
 |---|---|---|
 | account-service | 8080 | accounts, wallets, the book of record (journal entries and postings). The only service that moves money. |
 | ledger-service | 8081 | funds holds. Asks account whether a wallet exists before reserving against it, writes the hold and its `ledger.FundsHeld` event in one transaction; a poller moves the event to Kafka. |
-| notification-service | 8082 | nothing. Consumes `ledger.FundsHeld` and logs what it would tell the customer; acks after the work, retries on `.retry-*` topics, dead-letters on `.dlt`. |
+| notification-service | 8082 | the record of what it sent, and which events it has already handled. Consumes `ledger.FundsHeld`; a replay of the topic sends nothing twice. Acks after the commit, retries on `.retry-*` topics, dead-letters on `.dlt`. |
 
 Two shared libraries: `ledgerflow-events` (Money, WalletRef, EventEnvelope, the
 event records and their JSON schemas - no behaviour) and `ledgerflow-starter-web`
@@ -85,7 +85,7 @@ scripts/check-schemas.sh --register                           # put the event sc
 ./mvnw -T 1C clean install                                    # builds everything, runs the tests
 ./mvnw -pl services/account-service spring-boot:run           # terminal 1
 ./mvnw -pl services/ledger-service spring-boot:run            # terminal 2
-./mvnw -pl services/notification-service spring-boot:run      # terminal 3: watch it for "would email the customer"
+./mvnw -pl services/notification-service spring-boot:run      # terminal 3: watch it for "emailed the customer"
 
 curl -s localhost:8080/api/v1/accounts | jq
 curl -s -X POST localhost:8081/api/v1/holds -H 'content-type: application/json' \
@@ -96,4 +96,5 @@ Load and race: `RATE=100 DURATION=60s perf/run.sh transfer baseline`, `perf/race
 Watch the events: `docker exec ledgerflow-redpanda rpk topic consume ledgerflow.ledger.wallet-hold.events.v1 -f '%p %k %v\n'`.
 Break one: `printf 'poison\t{not json\n' | docker exec -i ledgerflow-redpanda rpk topic produce ledgerflow.ledger.wallet-hold.events.v1 -f '%k\t%v\n'`, then `scripts/dlt-depth.sh`.
 Freeze a service to watch the cascade: `scripts/freeze.sh 8080`, `scripts/freeze.sh 8080 --thaw`.
+Replay the topic and watch nothing move: stop notification, `docker exec ledgerflow-redpanda rpk group seek notification-service --to start` (the group must be empty first, 45s after a kill), start it, `docker exec ledgerflow-postgres psql -U ledgerflow -d notification -c 'SELECT count(*) FROM sent_notifications'` before and after.
 Kill the broker and place a hold: `docker stop ledgerflow-redpanda`, then `docker exec ledgerflow-postgres psql -U ledgerflow -d ledger -c 'SELECT count(*) FROM outbox WHERE published_at IS NULL'` before and after `docker start ledgerflow-redpanda`.
