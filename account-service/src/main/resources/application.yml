@@ -11,3 +11,24 @@ spring:
     open-in-view: false
   flyway:
     enabled: true
+
+ledgerflow:
+  account:
+    display-name: LedgerFlow Account
+    max-wallets-per-account: 500
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  structured:
+    format:
+      console: ecs
+  level:
+    io.ledgerflow: DEBUG
