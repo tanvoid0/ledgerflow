@@ -14,6 +14,20 @@
     <name>ledgerflow-events</name>
     <description>Types every service must agree on. Records only: no Spring, no behaviour.</description>
 
+    <dependencies>
+        <!-- test only: the schema-vs-record check reads JSON. Still no runtime dependency. -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>tools.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
     <!-- No spring-boot-maven-plugin here. It would repackage this jar and every
          service depending on it would fail with ClassNotFoundException. -->
 </project>

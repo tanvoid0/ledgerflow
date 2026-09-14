@@ -10,14 +10,24 @@ Java 25 · Spring Boot 4.1 · Maven multi-module · PostgreSQL 17 · k6 · Docke
 | service | port | owns |
 |---|---|---|
 | account-service | 8080 | accounts, wallets, the book of record (journal entries and postings). The only service that moves money. |
-| ledger-service | 8081 | funds holds. Asks account whether a wallet exists before reserving against it, then publishes `FundsHeld`. |
-| notification-service | 8082 | nothing. Listens on `wallet-hold-events` and logs what it would tell the customer. |
+| ledger-service | 8081 | funds holds. Asks account whether a wallet exists before reserving against it, then publishes `ledger.FundsHeld`. |
+| notification-service | 8082 | nothing. Consumes `ledger.FundsHeld` and logs what it would tell the customer. |
 
-Two shared libraries: `ledgerflow-events` (Money, WalletRef - records only) and
-`ledgerflow-starter-web` (the request-id filter as a Boot auto-configuration).
+Two shared libraries: `ledgerflow-events` (Money, WalletRef, EventEnvelope, the
+event records and their JSON schemas - no behaviour) and `ledgerflow-starter-web`
+(the request-id filter as a Boot auto-configuration).
 
-The first event is deliberately naive. `docs/events/README.md` lists the eight
-things wrong with it; steps 08-11 fix them one at a time.
+## Events are contracts
+
+One event so far: `ledger.FundsHeld` on `ledgerflow.ledger.wallet-hold.events.v1`,
+keyed by hold id, wrapped in an envelope (eventId, aggregateVersion, correlationId
+= the caller's `X-Request-Id`). The written contract is `docs/events/ledger.FundsHeld.md`;
+the schema next to the record is registered in Redpanda's schema registry with
+BACKWARD compatibility, and `scripts/check-schemas.sh` refuses a change an
+existing consumer would not survive (CI runs it on every PR that touches a schema).
+
+The first version of this event was deliberately naive. `docs/events/README.md`
+lists what was wrong with it and ticks items off as later steps fix them.
 
 ## Measured, not claimed
 
@@ -51,8 +61,9 @@ and a CHECK constraint bring it to exactly one. `perf/race.sh` reproduces it,
 ## Run it
 
 ```bash
-docker compose -f infra/compose/docker-compose.yml up -d      # Postgres on host port 5433, Redpanda on 9092
-docker exec lf-redpanda rpk topic create wallet-hold-events -p 3
+docker compose -f infra/compose/docker-compose.yml up -d      # Postgres 5433, Redpanda 9092, schema registry 18081
+docker exec lf-redpanda rpk topic create ledgerflow.ledger.wallet-hold.events.v1 -p 3
+scripts/check-schemas.sh --register                           # put the event schemas in the registry
 ./mvnw -T 1C clean install                                    # builds everything, runs the tests
 ./mvnw -pl services/account-service spring-boot:run           # terminal 1
 ./mvnw -pl services/ledger-service spring-boot:run            # terminal 2
@@ -64,4 +75,5 @@ curl -s -X POST localhost:8081/api/v1/holds -H 'content-type: application/json' 
 ```
 
 Load and race: `RATE=100 DURATION=60s perf/run.sh transfer baseline`, `perf/race.sh`.
+Watch the events: `docker exec lf-redpanda rpk topic consume ledgerflow.ledger.wallet-hold.events.v1 -f '%p %k %v\n'`.
 Freeze a service to watch the cascade: `scripts/freeze.sh 8080`, `scripts/freeze.sh 8080 --thaw`.

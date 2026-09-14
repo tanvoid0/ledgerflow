@@ -16,6 +16,10 @@
     <dependencies>
         <dependency>
             <groupId>io.ledgerflow</groupId>
+            <artifactId>ledgerflow-events</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.ledgerflow</groupId>
             <artifactId>ledgerflow-starter-web</artifactId>
         </dependency>
 

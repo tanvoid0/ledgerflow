@@ -1,0 +1,49 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ledger.FundsHeld",
+  "description": "EventEnvelope<FundsHeld>. Closed content model on purpose: with additionalProperties true, dropping a field would pass BACKWARD.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "eventId":          { "type": "string", "format": "uuid" },
+    "eventType":        { "type": "string" },
+    "schemaVersion":    { "type": "integer" },
+    "aggregateId":      { "type": "string", "format": "uuid" },
+    "aggregateVersion": { "type": "integer" },
+    "occurredAt":       { "type": "string", "format": "date-time" },
+    "correlationId":    { "type": ["string", "null"] },
+    "causationId":      { "type": ["string", "null"] },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "holdId":    { "type": "string", "format": "uuid" },
+        "wallets": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "accountId": { "type": "string", "format": "uuid" },
+              "label":     { "type": "string" }
+            },
+            "required": ["accountId", "label"]
+          }
+        },
+        "expiresAt": { "type": "string", "format": "date-time" },
+        "totalAmount": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "minorUnits": { "type": "integer" },
+            "currency":   { "type": "string", "minLength": 3, "maxLength": 3 }
+          },
+          "required": ["minorUnits", "currency"]
+        }
+      },
+      "required": ["holdId", "wallets", "expiresAt", "totalAmount"]
+    }
+  },
+  "required": ["eventId", "eventType", "schemaVersion", "aggregateId", "aggregateVersion", "occurredAt", "payload"]
+}
