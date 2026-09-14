@@ -1,4 +1,4 @@
-package io.ledgerflow.ledger;
+package io.ledgerflow.account;
 
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
@@ -13,16 +13,11 @@ class TestcontainersConfiguration {
     // one context per set of bean overrides, so two of these can be alive in one JVM: the suffix keeps the names apart
     private final String suffix = UUID.randomUUID().toString().substring(0, 4);
 
-    /**
-     * A bean rather than a static @Container: a static one stops when its test class ends while
-     * the cached context lives on, and the outbox poller then spends 30s per tick waiting for a
-     * database that is gone. As a bean it is stopped with the context, after the scheduler.
-     */
     @Bean
     @ServiceConnection
     PostgreSQLContainer postgres() {
         return new PostgreSQLContainer("postgres:17")
-                .withCreateContainerCmdModifier(cmd -> cmd.withName("ledgerflow-test-ledger-postgres-" + suffix))
+                .withCreateContainerCmdModifier(cmd -> cmd.withName("ledgerflow-test-account-postgres-" + suffix))
                 .withLabel("com.docker.compose.project", "ledgerflow");   // Docker Desktop groups by this label
     }
 }
