@@ -23,4 +23,9 @@ public record EventEnvelope<T>(
         return new EventEnvelope<>(UUID.randomUUID(), type, 1, aggregateId, version,
                 Instant.now(), correlationId, causationId, payload);
     }
+
+    /** An answer to a message: same correlation, and the message answered is the cause. */
+    public static <T> EventEnvelope<T> inReplyTo(EventEnvelope<?> cause, String type, UUID aggregateId, long version, T payload) {
+        return of(type, aggregateId, version, cause.correlationId(), cause.eventId().toString(), payload);
+    }
 }

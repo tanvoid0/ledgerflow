@@ -1,42 +1,97 @@
 package io.ledgerflow.events;
 
+import io.ledgerflow.events.issuer.AuthorizePayment;
+import io.ledgerflow.events.issuer.PaymentAuthorized;
+import io.ledgerflow.events.issuer.PaymentDeclined;
+import io.ledgerflow.events.issuer.RefundPayment;
+import io.ledgerflow.events.ledger.CaptureHolds;
 import io.ledgerflow.events.ledger.FundsHeld;
-import org.junit.jupiter.api.Test;
+import io.ledgerflow.events.ledger.HoldRejected;
+import io.ledgerflow.events.ledger.ReleaseWallets;
+import io.ledgerflow.events.ledger.ReserveWallets;
+import io.ledgerflow.events.settlement.CapturesIssued;
+import io.ledgerflow.events.settlement.IssueCaptures;
+import io.ledgerflow.events.settlement.IssueFailed;
+import io.ledgerflow.events.settlement.RevokeCaptures;
+import org.junit.jupiter.api.DynamicTest;
+import org.junit.jupiter.api.TestFactory;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.lang.reflect.RecordComponent;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * The schema in resources/schemas is what the registry enforces; the records are what Jackson writes.
- * If they disagree, the gate is guarding the wrong shape. Field names must match exactly.
+ * If they disagree, the gate is guarding the wrong shape. Field names must match exactly, at every level.
  */
 class SchemaMatchesRecordsTest {
 
-    static final JsonNode SCHEMA = new JsonMapper().readTree(
-            SchemaMatchesRecordsTest.class.getResourceAsStream(
-                    "/schemas/" + FundsHeld.TOPIC + "-value.json"));
+    // topic -> the payload records that ride on it; a topic with one type is a plain object, more is a oneOf
+    static final Map<String, List<Class<? extends Record>>> TOPICS = Map.of(
+            FundsHeld.TOPIC, List.of(FundsHeld.class),
+            HoldRejected.TOPIC, List.of(HoldRejected.class),
+            ReserveWallets.TOPIC, List.of(ReserveWallets.class, ReleaseWallets.class, CaptureHolds.class),
+            AuthorizePayment.TOPIC, List.of(AuthorizePayment.class, RefundPayment.class),
+            PaymentAuthorized.TOPIC, List.of(PaymentAuthorized.class, PaymentDeclined.class),
+            IssueCaptures.TOPIC, List.of(IssueCaptures.class, RevokeCaptures.class),
+            CapturesIssued.TOPIC, List.of(CapturesIssued.class, IssueFailed.class));
 
-    @Test
-    void envelopeFieldsMatchSchema() {
-        assertEquals(fields(EventEnvelope.class), properties(SCHEMA));
+    @TestFactory
+    Stream<DynamicTest> everyTopicSchemaMatchesItsRecords() {
+        return TOPICS.entrySet().stream().map(e -> DynamicTest.dynamicTest(e.getKey(), () -> {
+            var schema = new JsonMapper().readTree(getClass().getResourceAsStream("/schemas/" + e.getKey() + "-value.json"));
+            assertEquals(fields(EventEnvelope.class), properties(schema));
+            for (var type : e.getValue()) {
+                var payload = payloadSchema(schema, typeName(type));
+                assertNotNull(payload, "no payload schema titled " + typeName(type));
+                assertMatches(type, payload);
+            }
+        }));
     }
 
-    @Test
-    void payloadFieldsMatchSchema() {
-        var payload = SCHEMA.get("properties").get("payload");
-        assertEquals(fields(FundsHeld.class), properties(payload));
-        assertEquals(fields(WalletRef.class), properties(payload.get("properties").get("wallets").get("items")));
-        assertEquals(fields(Money.class), properties(payload.get("properties").get("totalAmount")));
+    /** Recurses into nested records (Money, WalletRef, HeldWallet), through arrays. */
+    static void assertMatches(Class<? extends Record> type, JsonNode objectSchema) {
+        assertEquals(fields(type), properties(objectSchema), type.getSimpleName());
+        for (var c : type.getRecordComponents()) {
+            var node = objectSchema.get("properties").get(c.getName());
+            if (node.has("items")) node = node.get("items");
+            if (nestedRecord(c) != null) assertMatches(nestedRecord(c), node);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    static Class<? extends Record> nestedRecord(RecordComponent c) {
+        var t = c.getType();
+        if (t == List.class) {
+            var arg = ((java.lang.reflect.ParameterizedType) c.getGenericType()).getActualTypeArguments()[0];
+            t = (Class<?>) arg;
+        }
+        return t.isRecord() ? (Class<? extends Record>) t : null;
+    }
+
+    static JsonNode payloadSchema(JsonNode schema, String title) {
+        var payload = schema.get("properties").get("payload");
+        if (!payload.has("oneOf")) return title.equals(payload.get("title").asString()) ? payload : null;
+        for (var option : payload.get("oneOf")) if (title.equals(option.get("title").asString())) return option;
+        return null;
+    }
+
+    static String typeName(Class<?> type) throws ReflectiveOperationException {
+        return (String) type.getField("TYPE").get(null);
     }
 
     static Set<String> fields(Class<? extends Record> type) {
-        return Arrays.stream(type.getRecordComponents()).map(c -> c.getName()).collect(Collectors.toSet());
+        return Arrays.stream(type.getRecordComponents()).map(RecordComponent::getName).collect(Collectors.toSet());
     }
 
     static Set<String> properties(JsonNode objectSchema) {

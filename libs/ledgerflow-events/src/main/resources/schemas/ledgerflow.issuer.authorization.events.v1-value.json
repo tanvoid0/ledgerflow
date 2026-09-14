@@ -1,0 +1,111 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ledgerflow.issuer.authorization.events.v1",
+  "description": "EventEnvelope<one of issuer.PaymentAuthorized, issuer.PaymentDeclined>. Closed content model on purpose: with additionalProperties true, dropping a field would pass BACKWARD.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "eventType": {
+      "type": "string"
+    },
+    "schemaVersion": {
+      "type": "integer"
+    },
+    "aggregateId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "aggregateVersion": {
+      "type": "integer"
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "correlationId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "causationId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "payload": {
+      "oneOf": [
+        {
+          "title": "issuer.PaymentAuthorized",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "paymentId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "authorizationId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "amount": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "minorUnits": {
+                  "type": "integer"
+                },
+                "currency": {
+                  "type": "string",
+                  "minLength": 3,
+                  "maxLength": 3
+                }
+              },
+              "required": [
+                "minorUnits",
+                "currency"
+              ]
+            }
+          },
+          "required": [
+            "paymentId",
+            "authorizationId",
+            "amount"
+          ]
+        },
+        {
+          "title": "issuer.PaymentDeclined",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "paymentId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "reason": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "paymentId",
+            "reason"
+          ]
+        }
+      ]
+    }
+  },
+  "required": [
+    "eventId",
+    "eventType",
+    "schemaVersion",
+    "aggregateId",
+    "aggregateVersion",
+    "occurredAt",
+    "payload"
+  ]
+}

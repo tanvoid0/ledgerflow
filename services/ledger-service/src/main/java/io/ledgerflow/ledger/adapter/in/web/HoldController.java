@@ -36,6 +36,6 @@ class HoldController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     List<FundsHold> place(@Valid @RequestBody HoldRequest req) {
-        return placeHold.place(req.accountId(), req.wallets(), new Money(req.amountMinor(), req.currency()));
+        return placeHold.place(req.accountId(), req.wallets(), new Money(req.amountMinor(), req.currency()), null);
     }
 }

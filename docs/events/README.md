@@ -37,3 +37,7 @@ Contracts, one file per event: `ledger.FundsHeld.md`.
    hold's id. The other hold is invisible to every listener.      -> step 08 DONE (one event per hold)
 8. No amount on the event. A notification that cannot say "we held GBP 45.00"
    is not much of a notification.                                 -> step 08 DONE (`totalAmount`)
+9. The closed, single-type schema pinned one payload shape per topic. When step 12 wanted a
+   second event on the hold topic, the registry refused the `oneOf` as a type change under
+   BACKWARD, and `HoldRejected` had to take its own topic. New topics start as `oneOf`.
+                                                                  -> step 12 (lesson, not a fix)

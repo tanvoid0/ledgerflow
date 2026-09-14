@@ -86,6 +86,6 @@ class ReplayIdempotencyIT {
         var holdId = UUID.randomUUID();
         return EventEnvelope.of(FundsHeld.TYPE, holdId, 1, "req-1", "req-1",
                 new FundsHeld(holdId, List.of(new WalletRef(UUID.randomUUID(), "A-12")),
-                        Instant.parse("2026-09-14T20:00:00Z"), Money.gbp(4500)));
+                        Instant.parse("2026-09-14T20:00:00Z"), Money.gbp(4500), null));
     }
 }

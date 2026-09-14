@@ -1,0 +1,43 @@
+server:
+  port: 8086
+
+spring:
+  application:
+    name: issuer-service
+  datasource:
+    url: jdbc:postgresql://localhost:5433/issuer
+    username: ledgerflow
+    password: ledgerflow
+  flyway:
+    enabled: true
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: issuer-service
+      auto-offset-reset: earliest
+      enable-auto-commit: false         # we commit, after the work, not a timer
+      isolation-level: read_committed
+    listener:
+      ack-mode: manual_immediate
+      concurrency: 3
+    producer:
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer   # the outbox row is already JSON
+      acks: all
+      properties:
+        enable.idempotence: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  structured:
+    format:
+      console: ecs
+  level:
+    io.ledgerflow: DEBUG

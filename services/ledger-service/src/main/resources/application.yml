@@ -16,6 +16,14 @@ spring:
     enabled: true
   kafka:
     bootstrap-servers: localhost:9092
+    consumer:
+      group-id: ledger-service
+      auto-offset-reset: earliest
+      enable-auto-commit: false         # we commit, after the work, not a timer
+      isolation-level: read_committed
+    listener:
+      ack-mode: manual_immediate
+      concurrency: 3
     producer:
       # the outbox row already holds the JSON; the publisher sends it as is
       value-serializer: org.apache.kafka.common.serialization.StringSerializer

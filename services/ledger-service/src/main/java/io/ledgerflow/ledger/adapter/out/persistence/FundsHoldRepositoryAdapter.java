@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -18,5 +19,10 @@ class FundsHoldRepositoryAdapter implements FundsHoldRepository {
     public List<FundsHold> saveAll(List<FundsHold> holds) {
         return jpa.saveAll(holds.stream().map(mapper::toEntity).toList())
                 .stream().map(mapper::toDomain).toList();
+    }
+
+    @Override
+    public int closeAll(UUID reference, FundsHold.Status to) {
+        return jpa.closeAll(reference, FundsHold.Status.HELD, to);
     }
 }
