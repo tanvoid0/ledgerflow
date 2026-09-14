@@ -2,10 +2,14 @@ package io.ledgerflow.notification.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.kafka.annotation.EnableKafkaRetryTopic;
 import org.springframework.kafka.support.converter.JacksonJsonMessageConverter;
 import org.springframework.kafka.support.converter.RecordMessageConverter;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 @Configuration
+@EnableKafkaRetryTopic
+@EnableScheduling   // the retry delays need a TaskScheduler; Boot only creates one when scheduling is on
 class KafkaConfig {
 
     /**
