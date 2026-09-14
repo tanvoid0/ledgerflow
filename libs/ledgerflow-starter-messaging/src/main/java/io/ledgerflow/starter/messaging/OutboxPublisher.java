@@ -1,25 +1,26 @@
-package io.ledgerflow.ledger.adapter.out.messaging;
+package io.ledgerflow.starter.messaging;
 
-import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-@Component
-@RequiredArgsConstructor
-class OutboxPublisher {
+public class OutboxPublisher {
 
     private static final Logger log = LoggerFactory.getLogger(OutboxPublisher.class);
 
     private final JdbcClient db;
     private final KafkaTemplate<String, String> kafka;
+
+    OutboxPublisher(JdbcClient db, KafkaTemplate<String, String> kafka) {
+        this.db = db;
+        this.kafka = kafka;
+    }
 
     /**
      * Claim, send, mark: one transaction. SKIP LOCKED lets a second instance drain alongside this one
@@ -29,7 +30,7 @@ class OutboxPublisher {
      */
     @Scheduled(fixedDelay = 500)
     @Transactional
-    void drain() {
+    public void drain() {
         var pending = db.sql("""
                 SELECT id, aggregate_id, topic, payload
                   FROM outbox

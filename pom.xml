@@ -29,6 +29,7 @@
     <modules>
         <module>libs/ledgerflow-events</module>
         <module>libs/ledgerflow-starter-web</module>
+        <module>libs/ledgerflow-starter-messaging</module>
         <module>services/account-service</module>
         <module>services/ledger-service</module>
         <module>services/notification-service</module>
@@ -44,6 +45,11 @@
             <dependency>
                 <groupId>io.ledgerflow</groupId>
                 <artifactId>ledgerflow-starter-web</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.ledgerflow</groupId>
+                <artifactId>ledgerflow-starter-messaging</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

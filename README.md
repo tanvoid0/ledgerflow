@@ -11,7 +11,7 @@ Java 25 · Spring Boot 4.1 · Maven multi-module · PostgreSQL 17 · k6 · Docke
 |---|---|---|
 | account-service | 8080 | accounts, wallets, the book of record (journal entries and postings). The only service that moves money. |
 | ledger-service | 8081 | funds holds. Asks account whether a wallet exists before reserving against it, writes the hold and its `ledger.FundsHeld` event in one transaction; a poller moves the event to Kafka. |
-| notification-service | 8082 | the record of what it sent, and which events it has already handled. Consumes `ledger.FundsHeld`; a replay of the topic sends nothing twice. Acks after the commit, retries on `.retry-*` topics, dead-letters on `.dlt`. |
+| notification-service | 8082 | the record of what it sent, and which events it has already handled. Consumes `ledger.FundsHeld`; a replay of the topic sends nothing twice. Acks after the commit, retries on `.<group>.retry-*` topics, dead-letters on `.<group>.dlt`. |
 
 Two shared libraries: `ledgerflow-events` (Money, WalletRef, EventEnvelope, the
 event records and their JSON schemas - no behaviour) and `ledgerflow-starter-web`
@@ -32,7 +32,7 @@ lists what was wrong with it and ticks items off as later steps fix them.
 Consuming it: offsets move only when the listener says so, after the work.
 A listener that throws gets three more attempts from retry topics (1s, 3s, 9s)
 while the main partition keeps moving; after that, or straight away for data
-that will never parse, the record lands in `…events.v1.dlt` with the exception
+that will never parse, the record lands in `…events.v1.notification-service.dlt` with the exception
 in its headers. `scripts/dlt-depth.sh` says how many are there (anything above
 zero is an incident), `scripts/dlt-replay.sh` puts them back once the cause is
 fixed. Kill-the-consumer proof in `docs/measurements/step-09-consumer-restart.md`.

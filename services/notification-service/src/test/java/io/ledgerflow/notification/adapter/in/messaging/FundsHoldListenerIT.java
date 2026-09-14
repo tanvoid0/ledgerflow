@@ -5,6 +5,8 @@ import io.ledgerflow.events.Money;
 import io.ledgerflow.events.WalletRef;
 import io.ledgerflow.events.ledger.FundsHeld;
 import io.ledgerflow.notification.TestcontainersConfiguration;
+import io.ledgerflow.starter.messaging.DeadLetters;
+import io.ledgerflow.starter.messaging.InvalidPayloadException;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -46,6 +48,9 @@ class FundsHoldListenerIT {
 
     @MockitoSpyBean
     FundsHoldListener listener;
+
+    @MockitoSpyBean
+    DeadLetters deadLetters;
 
     @Test
     void anEnvelopeOnTheTopicArrivesTypedAndIntact() {
@@ -95,7 +100,7 @@ class FundsHoldListenerIT {
     private ConsumerRecord<String, String> deadLetter() {
         @SuppressWarnings("unchecked")
         ArgumentCaptor<ConsumerRecord<String, String>> dead = ArgumentCaptor.forClass(ConsumerRecord.class);
-        verify(listener, timeout(10_000)).onDead(dead.capture(), any());
+        verify(deadLetters, timeout(10_000)).onDead(dead.capture(), any());
         return dead.getValue();
     }
 

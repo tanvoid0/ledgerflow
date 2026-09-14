@@ -3,10 +3,8 @@ package io.ledgerflow.ledger;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
-import org.springframework.scheduling.annotation.EnableScheduling;
 
 @ConfigurationPropertiesScan
-@EnableScheduling   // the outbox poller
 @SpringBootApplication
 public class LedgerServiceApplication {
 
