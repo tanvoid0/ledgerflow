@@ -70,7 +70,7 @@ class PlaceHoldIT {
     void refusesAWalletAccountDoesNotKnowAndWritesNothing() {
         accountHas("A-12");
 
-        assertThatThrownBy(() -> placeHold.place(ACCOUNT, List.of("A-12", "ZZ-99"), Money.gbp(100)))
+        assertThatThrownBy(() -> placeHold.place(ACCOUNT, List.of("A-12", "ZZ-99"), Money.gbp(100), null))
                 .isInstanceOf(UnknownWalletException.class)
                 .hasMessageContaining("ZZ-99");
 
@@ -82,7 +82,7 @@ class PlaceHoldIT {
     void holdsAKnownWalletAndQueuesTheEventInTheSameTransaction() {
         accountHas("A-12");
 
-        var hold = placeHold.place(ACCOUNT, List.of("A-12"), Money.gbp(4500)).getFirst();
+        var hold = placeHold.place(ACCOUNT, List.of("A-12"), Money.gbp(4500), null).getFirst();
 
         assertThat(hold.status()).isEqualTo(FundsHold.Status.HELD);
         assertThat(db.sql("SELECT status FROM funds_holds WHERE id = :id").param("id", hold.id())
@@ -95,7 +95,7 @@ class PlaceHoldIT {
         assertThat(event.schemaVersion()).isEqualTo(1);
         assertThat(event.correlationId()).isEqualTo("req-42");
         assertThat(event.payload()).isEqualTo(new FundsHeld(hold.id(),
-                List.of(new WalletRef(ACCOUNT, "A-12")), hold.expiresAt(), Money.gbp(4500)));
+                List.of(new WalletRef(ACCOUNT, "A-12")), hold.expiresAt(), Money.gbp(4500), null));
 
         // the poller sends exactly the stored bytes, keyed by the hold, and only then marks the row
         verify(kafka, timeout(5_000)).send(FundsHeld.TOPIC, hold.id().toString(), stored);
@@ -107,7 +107,7 @@ class PlaceHoldIT {
         var tooLongForTheColumn = "A-" + "9".repeat(20);
         accountHas(tooLongForTheColumn);
 
-        assertThatThrownBy(() -> placeHold.place(ACCOUNT, List.of(tooLongForTheColumn), Money.gbp(100)))
+        assertThatThrownBy(() -> placeHold.place(ACCOUNT, List.of(tooLongForTheColumn), Money.gbp(100), null))
                 .isInstanceOf(DataAccessException.class);
 
         // nothing was said about a hold that does not exist
@@ -120,7 +120,7 @@ class PlaceHoldIT {
         accountHas("A-12");
         brokerIs(CompletableFuture.failedFuture(new IllegalStateException("broker down")));
 
-        var hold = placeHold.place(ACCOUNT, List.of("A-12"), Money.gbp(100)).getFirst();
+        var hold = placeHold.place(ACCOUNT, List.of("A-12"), Money.gbp(100), null).getFirst();
 
         verify(kafka, timeout(5_000).atLeastOnce()).send(eq(FundsHeld.TOPIC), eq(hold.id().toString()), anyString());
         assertThat(pending()).isEqualTo(1);   // tried, failed, still there

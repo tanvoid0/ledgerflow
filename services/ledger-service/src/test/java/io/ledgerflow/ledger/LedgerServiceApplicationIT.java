@@ -23,6 +23,6 @@ class LedgerServiceApplicationIT {
                 """).query(String.class).list();
 
         // no accounts, no postings: ledger owns none of that
-        assertThat(tables).containsExactlyInAnyOrder("funds_holds", "outbox");
+        assertThat(tables).containsExactlyInAnyOrder("funds_holds", "outbox", "processed_events");
     }
 }

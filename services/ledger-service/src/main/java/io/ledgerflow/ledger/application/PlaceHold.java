@@ -37,7 +37,7 @@ public class PlaceHold {
      * as well as the thread pool. The write is its own short transaction, and the event goes
      * into the outbox inside it: if the hold rolls back, so does the event.
      */
-    public List<FundsHold> place(UUID accountId, List<String> walletCodes, Money amount) {
+    public List<FundsHold> place(UUID accountId, List<String> walletCodes, Money amount, UUID reference) {
         var accountView = account.accountOrLastKnown(accountId);
 
         for (var label : walletCodes) {
@@ -47,7 +47,7 @@ public class PlaceHold {
         var expiry = Instant.now().plus(HOLD_FOR);
         return tx.execute(status -> {
             var placed = holds.saveAll(walletCodes.stream()
-                    .map(label -> FundsHold.hold(accountId, label, amount, expiry))
+                    .map(label -> FundsHold.hold(accountId, label, amount, expiry, reference))
                     .toList());
             placed.forEach(hold -> outbox.append(FundsHeld.TOPIC, fundsHeld(hold)));
             return placed;
@@ -60,7 +60,7 @@ public class PlaceHold {
         var requestId = MDC.get(RequestIdFilter.MDC_KEY);
         var payload = new FundsHeld(hold.id(),
                 List.of(new WalletRef(hold.accountId(), hold.walletCode())),
-                hold.expiresAt(), hold.amount());
+                hold.expiresAt(), hold.amount(), hold.reference());
         // aggregateVersion 1: placing a hold is the first thing that ever happens to it
         return EventEnvelope.of(FundsHeld.TYPE, hold.id(), 1, requestId, requestId, payload);
     }

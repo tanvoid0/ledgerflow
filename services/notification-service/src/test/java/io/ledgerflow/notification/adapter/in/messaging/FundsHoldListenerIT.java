@@ -112,7 +112,7 @@ class FundsHoldListenerIT {
     private static EventEnvelope<FundsHeld> envelope(List<WalletRef> wallets) {
         var holdId = UUID.randomUUID();
         return EventEnvelope.of(FundsHeld.TYPE, holdId, 1, "req-1", "req-1",
-                new FundsHeld(holdId, wallets, Instant.parse("2026-09-14T20:00:00Z"), Money.gbp(4500)));
+                new FundsHeld(holdId, wallets, Instant.parse("2026-09-14T20:00:00Z"), Money.gbp(4500), null));
     }
 
     private static String header(ConsumerRecord<?, ?> record, String name) {

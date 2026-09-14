@@ -16,7 +16,8 @@ public record FundsHeld(
         UUID holdId,
         List<WalletRef> wallets,
         Instant expiresAt,
-        Money totalAmount) {
+        Money totalAmount,
+        UUID reference) {   // what the hold is for (the payment); null for a hold placed over HTTP
 
     public static final String TYPE = "ledger.FundsHeld";
     public static final String TOPIC = "ledgerflow.ledger.wallet-hold.events.v1";
