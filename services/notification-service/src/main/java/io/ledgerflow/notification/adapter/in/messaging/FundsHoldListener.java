@@ -2,6 +2,7 @@ package io.ledgerflow.notification.adapter.in.messaging;
 
 import io.ledgerflow.events.EventEnvelope;
 import io.ledgerflow.events.ledger.FundsHeld;
+import io.ledgerflow.notification.application.Notifier;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +21,12 @@ class FundsHoldListener {
 
     private static final Logger log = LoggerFactory.getLogger(FundsHoldListener.class);
 
+    private final Notifier notifier;
+
+    FundsHoldListener(Notifier notifier) {
+        this.notifier = notifier;
+    }
+
     @RetryableTopic(
             attempts = "4",
             backOff = @BackOff(delay = 1000, multiplier = 3.0),   // 1s, 3s, 9s, then the DLT
@@ -33,10 +40,7 @@ class FundsHoldListener {
         if (held == null || held.wallets() == null || held.wallets().isEmpty()) {
             throw new InvalidPayloadException("event " + event.eventId() + " names no wallet");
         }
-        log.info("would email the customer: {} {} held on {} until {} (event {}, request {})",
-                held.totalAmount().currency(), held.totalAmount().minorUnits(),
-                held.wallets().getFirst().label(), held.expiresAt(),
-                event.eventId(), event.correlationId());
+        notifier.send(held);
         ack.acknowledge();   // after the work, never before
     }
 

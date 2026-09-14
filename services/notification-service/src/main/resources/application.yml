@@ -4,6 +4,12 @@ server:
 spring:
   application:
     name: notification-service
+  datasource:
+    url: jdbc:postgresql://localhost:5433/notification
+    username: ledgerflow
+    password: ledgerflow
+  flyway:
+    enabled: true
   kafka:
     bootstrap-servers: localhost:9092
     consumer:
