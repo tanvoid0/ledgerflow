@@ -1,5 +1,6 @@
 package io.ledgerflow.ledger.adapter.in.web;
 
+import io.ledgerflow.ledger.domain.model.UnknownWalletException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.validation.FieldError;
@@ -16,6 +17,11 @@ import java.util.List;
 class ApiExceptionHandler {
 
     private static final String PROBLEMS = "https://ledgerflow.io/problems/";
+
+    @ExceptionHandler(UnknownWalletException.class)
+    ProblemDetail onUnknownWallet(UnknownWalletException e) {
+        return problem(HttpStatus.BAD_REQUEST, "Unknown wallet", "unknown-wallet", e.getMessage());
+    }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     ProblemDetail onInvalid(MethodArgumentNotValidException e) {
