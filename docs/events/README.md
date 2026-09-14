@@ -11,7 +11,9 @@ headers: __TypeId__ = io.ledgerflow.ledger.domain.event.FundsHeld
 Contracts, one file per event: `ledger.FundsHeld.md`.
 
 1. Published AFTER the transaction committed. If the broker is down, the hold
-   exists and nobody will ever hear about it.                     -> step 10
+   exists and nobody will ever hear about it.                     -> step 10 DONE
+   (transactional outbox: the event is a row in the same commit as the hold, a
+   poller sends it; measured in `docs/measurements/step-10-dual-write.md`)
 2. The event class is defined twice, once in each service. They will drift.
    The `__TypeId__` header already names a class notification does not have;
    the consumer only works because it ignores the header.         -> step 08 DONE
