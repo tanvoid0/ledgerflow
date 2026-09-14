@@ -14,4 +14,10 @@ public interface LedgerRepository {
     Optional<JournalEntry> findByIdempotencyKey(String key);
 
     Money balance(UUID walletId, String currency);
+
+    /** Debits the wallet only if it can afford it. Returns false when it cannot. One statement, no race. */
+    boolean debitIfSufficient(UUID walletId, Money amount);
+
+    /** Credits the wallet. Never fails on funds. */
+    void credit(UUID walletId, Money amount);
 }

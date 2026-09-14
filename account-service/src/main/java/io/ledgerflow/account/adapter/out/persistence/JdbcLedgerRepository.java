@@ -57,12 +57,31 @@ class JdbcLedgerRepository implements LedgerRepository {
                            .list()));
     }
 
-    /** The naive balance: add up every posting the wallet has ever had. Correct by construction. */
+    /** The balance is a column read, not a SUM. The postings remain the book of record. */
     @Override
     public Money balance(UUID walletId, String currency) {
-        long sum = db.sql("SELECT COALESCE(SUM(amount_minor), 0) FROM postings WHERE wallet_id = :w AND currency = :c")
-                     .param("w", walletId).param("c", currency)
+        long bal = db.sql("SELECT balance_minor FROM wallets WHERE id = :id")
+                     .param("id", walletId)
                      .query(Long.class).single();
-        return new Money(sum, currency);
+        return new Money(bal, currency);
+    }
+
+    /** Check and write in one statement. Zero rows means the WHERE refused it: no read, no decide, no race. */
+    @Override
+    public boolean debitIfSufficient(UUID walletId, Money amount) {
+        int rows = db.sql("""
+                UPDATE wallets SET balance_minor = balance_minor - :amt
+                WHERE id = :id AND balance_minor >= :amt
+                """)
+            .param("amt", amount.minorUnits()).param("id", walletId)
+            .update();
+        return rows == 1;
+    }
+
+    @Override
+    public void credit(UUID walletId, Money amount) {
+        db.sql("UPDATE wallets SET balance_minor = balance_minor + :amt WHERE id = :id")
+          .param("amt", amount.minorUnits()).param("id", walletId)
+          .update();
     }
 }

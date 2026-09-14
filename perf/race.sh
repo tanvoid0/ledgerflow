@@ -14,6 +14,10 @@ $PSQL "WITH e AS (INSERT INTO journal_entries (id, idempotency_key, description)
        INSERT INTO postings (entry_id, wallet_id, amount_minor, currency)
        SELECT id, '$FROM'::uuid, 10000 - $BAL, 'GBP' FROM e UNION ALL
        SELECT id, '$TREASURY'::uuid, $BAL - 10000, 'GBP' FROM e" > /dev/null
+# the balance is a column since V5: keep it in step with the postings we just wrote
+$PSQL "UPDATE wallets w SET balance_minor = (SELECT COALESCE(SUM(amount_minor),0) FROM postings p WHERE p.wallet_id = w.id AND p.currency = 'GBP')
+       WHERE w.id IN ('$FROM', '$TREASURY')" > /dev/null
+
 k6 run -q -e FROM="$FROM" -e TO="$TO" ${TOKEN:+-e TOKEN=$TOKEN} perf/k6/race.js
 
 echo "A-20 balance after the race (should never be below 0):"
