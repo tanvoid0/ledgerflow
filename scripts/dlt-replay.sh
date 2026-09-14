@@ -5,6 +5,6 @@
 set -euo pipefail
 dlt=$1
 source=${dlt%.dlt}
-docker exec lf-redpanda rpk topic consume "$dlt" -o :end -f '%k\t%v\n' \
-  | docker exec -i lf-redpanda rpk topic produce "$source" -f '%k\t%v\n'
+docker exec ledgerflow-redpanda rpk topic consume "$dlt" -o :end -f '%k\t%v\n' \
+  | docker exec -i ledgerflow-redpanda rpk topic produce "$source" -f '%k\t%v\n'
 echo "replayed $dlt -> $source"

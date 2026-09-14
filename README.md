@@ -71,7 +71,7 @@ and a CHECK constraint bring it to exactly one. `perf/race.sh` reproduces it,
 
 ```bash
 docker compose -f infra/compose/docker-compose.yml up -d      # Postgres 5433, Redpanda 9092, schema registry 18081
-docker exec lf-redpanda rpk topic create ledgerflow.ledger.wallet-hold.events.v1 -p 3   # retry and dlt topics create themselves
+docker exec ledgerflow-redpanda rpk topic create ledgerflow.ledger.wallet-hold.events.v1 -p 3   # retry and dlt topics create themselves
 scripts/check-schemas.sh --register                           # put the event schemas in the registry
 ./mvnw -T 1C clean install                                    # builds everything, runs the tests
 ./mvnw -pl services/account-service spring-boot:run           # terminal 1
@@ -84,6 +84,6 @@ curl -s -X POST localhost:8081/api/v1/holds -H 'content-type: application/json' 
 ```
 
 Load and race: `RATE=100 DURATION=60s perf/run.sh transfer baseline`, `perf/race.sh`.
-Watch the events: `docker exec lf-redpanda rpk topic consume ledgerflow.ledger.wallet-hold.events.v1 -f '%p %k %v\n'`.
-Break one: `printf 'poison\t{not json\n' | docker exec -i lf-redpanda rpk topic produce ledgerflow.ledger.wallet-hold.events.v1 -f '%k\t%v\n'`, then `scripts/dlt-depth.sh`.
+Watch the events: `docker exec ledgerflow-redpanda rpk topic consume ledgerflow.ledger.wallet-hold.events.v1 -f '%p %k %v\n'`.
+Break one: `printf 'poison\t{not json\n' | docker exec -i ledgerflow-redpanda rpk topic produce ledgerflow.ledger.wallet-hold.events.v1 -f '%k\t%v\n'`, then `scripts/dlt-depth.sh`.
 Freeze a service to watch the cascade: `scripts/freeze.sh 8080`, `scripts/freeze.sh 8080 --thaw`.

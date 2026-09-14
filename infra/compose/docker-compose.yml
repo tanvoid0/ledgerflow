@@ -1,7 +1,9 @@
+name: ledgerflow   # the group Docker Desktop shows, and the prefix on the volume; without it: "compose"
+
 services:
   postgres:
     image: postgres:17
-    container_name: lf-postgres
+    container_name: ledgerflow-postgres
     environment:
       POSTGRES_USER: ledgerflow
       POSTGRES_PASSWORD: ledgerflow
@@ -18,7 +20,7 @@ services:
 
   redpanda:
     image: redpandadata/redpanda:v25.2.1
-    container_name: lf-redpanda
+    container_name: ledgerflow-redpanda
     command:
       - redpanda start
       - --smp 1
