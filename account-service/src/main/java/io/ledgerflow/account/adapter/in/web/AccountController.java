@@ -1,29 +1,33 @@
 package io.ledgerflow.account.adapter.in.web;
 
+import io.ledgerflow.account.application.AccountRepository;
 import io.ledgerflow.account.domain.model.Account;
-import io.ledgerflow.account.domain.model.Wallet;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.IntStream;
 
 @RestController
 @RequestMapping("/api/v1/accounts")
+@RequiredArgsConstructor
 public class AccountController {
 
-    /** Pinned on purpose: every curl in this project refers to this account. */
-    static final UUID DEMO_ACCOUNT = UUID.fromString("11111111-1111-1111-1111-111111111111");
-
-    private static final Account HARDCODED = new Account(DEMO_ACCOUNT, "Demo Arena",
-            IntStream.rangeClosed(1, 20)
-                     .mapToObj(i -> new Wallet(UUID.randomUUID(), "A-" + i))
-                     .toList());
+    private final AccountRepository accounts;
 
     @GetMapping
     public List<Account> all() {
-        return List.of(HARDCODED);
+        return accounts.findAll();
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Account> byId(@PathVariable UUID id) {
+        return accounts.findById(id)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 }

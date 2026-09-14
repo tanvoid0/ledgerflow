@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: lf-postgres
+    environment:
+      POSTGRES_USER: ledgerflow
+      POSTGRES_PASSWORD: ledgerflow
+      POSTGRES_DB: account
+    # 5433 on the host: most dev laptops already have a Postgres on 5432
+    ports: ["5433:5432"]
+    volumes:
+      - "./init-databases.sh:/docker-entrypoint-initdb.d/init.sh"
+      - "pgdata:/var/lib/postgresql/data"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ledgerflow"]
+      interval: 5s
+      retries: 10
+
+volumes:
+  pgdata:
