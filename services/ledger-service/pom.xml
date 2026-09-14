@@ -45,6 +45,12 @@
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
         </dependency>
 
+        <!-- messaging: this service publishes, it does not listen -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-kafka</artifactId>
+        </dependency>
+
         <!-- persistence -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
