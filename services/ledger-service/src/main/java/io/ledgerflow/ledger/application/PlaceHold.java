@@ -1,12 +1,11 @@
 package io.ledgerflow.ledger.application;
 
 import io.ledgerflow.events.Money;
-import io.ledgerflow.ledger.adapter.out.account.AccountClient;
+import io.ledgerflow.ledger.adapter.out.account.AccountGateway;
 import io.ledgerflow.ledger.domain.model.FundsHold;
 import io.ledgerflow.ledger.domain.model.UnknownWalletException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -19,13 +18,17 @@ public class PlaceHold {
 
     private static final Duration HOLD_FOR = Duration.ofMinutes(10);
 
-    private final AccountClient account;
+    private final AccountGateway account;
     private final FundsHoldRepository holds;
 
-    /** Ledger must not hold a wallet that account has never heard of: hence the network call. */
-    @Transactional
+    /**
+     * Ledger must not hold a wallet that account has never heard of: hence the network call.
+     * Deliberately not @Transactional: a transaction here would pin a database connection for
+     * the whole of the wait on account, and a slow account would drain the pool as well as the
+     * thread pool. The write is its own short transaction.
+     */
     public List<FundsHold> place(UUID accountId, List<String> walletCodes, Money amount) {
-        var accountView = account.account(accountId);
+        var accountView = account.accountOrLastKnown(accountId);
 
         for (var label : walletCodes) {
             if (!accountView.hasWallet(label)) throw new UnknownWalletException(accountId, label);
