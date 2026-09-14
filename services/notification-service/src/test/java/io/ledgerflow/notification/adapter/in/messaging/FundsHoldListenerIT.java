@@ -4,19 +4,18 @@ import io.ledgerflow.events.EventEnvelope;
 import io.ledgerflow.events.Money;
 import io.ledgerflow.events.WalletRef;
 import io.ledgerflow.events.ledger.FundsHeld;
+import io.ledgerflow.notification.TestcontainersConfiguration;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.JacksonMapperUtils;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.redpanda.RedpandaContainer;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Instant;
@@ -24,6 +23,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.doThrow;
@@ -32,18 +32,17 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 /** Bytes on a topic become a typed method call; failures are retried or dead-lettered, never dropped. */
-@Testcontainers
 @SpringBootTest
+@Import(TestcontainersConfiguration.class)
 class FundsHoldListenerIT {
-
-    @Container
-    @ServiceConnection
-    static RedpandaContainer redpanda = new RedpandaContainer("redpandadata/redpanda:v25.2.1");
 
     static final JsonMapper json = JacksonMapperUtils.enhancedJsonMapper();
 
     @Autowired
     KafkaTemplate<String, String> kafka;
+
+    @Autowired
+    JdbcClient db;
 
     @MockitoSpyBean
     FundsHoldListener listener;
@@ -56,6 +55,7 @@ class FundsHoldListenerIT {
         ArgumentCaptor<EventEnvelope<FundsHeld>> received = ArgumentCaptor.forClass(EventEnvelope.class);
         verify(listener, timeout(10_000)).onFundsHeld(received.capture(), any());
         assertThat(received.getValue()).isEqualTo(sent);
+        await().untilAsserted(() -> assertThat(sentFor(sent.aggregateId())).isOne());
     }
 
     @Test
@@ -85,6 +85,11 @@ class FundsHoldListenerIT {
         var dead = deadLetter();
         assertThat(dead.key()).isEqualTo("poison");
         assertThat(dead.value()).isEqualTo("{not json");
+    }
+
+    private int sentFor(UUID holdId) {
+        return db.sql("SELECT count(*) FROM sent_notifications WHERE hold_id = :id")
+                .param("id", holdId).query(Integer.class).single();
     }
 
     private ConsumerRecord<String, String> deadLetter() {
