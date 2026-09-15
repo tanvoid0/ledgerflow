@@ -62,18 +62,22 @@ class HoldCommandListener {
             placeHold.place(c.accountId(), c.wallets(), c.amount(), c.reference());
         } catch (UnknownWalletException e) {
             log.info("rejecting reservation {}: {}", c.reference(), e.getMessage());
+            // no hold was ever placed, so there is no wallet to key by; the reference is the closest thing to one
+            var key = c.wallets().isEmpty() ? c.reference().toString()
+                    : PlaceHold.partitionKey(List.of(new WalletRef(c.accountId(), c.wallets().getFirst())));
             outbox.append(HoldRejected.TOPIC, EventEnvelope.inReplyTo(command, HoldRejected.TYPE, c.reference(), 1,
-                    new HoldRejected(c.reference(), e.getMessage())));
+                    new HoldRejected(c.reference(), e.getMessage())), key);
         }
     }
 
-    /** One HoldClosed per hold, keyed like its FundsHeld, version 2: the second and last thing that happens to a hold. */
+    /** One HoldClosed per hold, version 2: the second and last thing that happens to a hold. */
     private void close(EventEnvelope<?> command, UUID reference, FundsHold.Status to) {
         var closed = holds.closeAll(reference, to);
         for (var hold : closed) {
-            var payload = new HoldClosed(hold.id(), List.of(new WalletRef(hold.accountId(), hold.walletCode())),
-                    hold.amount(), hold.reference(), HoldClosed.Outcome.valueOf(to.name()));
-            outbox.append(HoldClosed.TOPIC, EventEnvelope.inReplyTo(command, HoldClosed.TYPE, hold.id(), 2, payload));
+            var wallets = List.of(new WalletRef(hold.accountId(), hold.walletCode()));
+            var payload = new HoldClosed(hold.id(), wallets, hold.amount(), hold.reference(), HoldClosed.Outcome.valueOf(to.name()));
+            outbox.append(HoldClosed.TOPIC, EventEnvelope.inReplyTo(command, HoldClosed.TYPE, hold.id(), 2, payload),
+                    PlaceHold.partitionKey(wallets));
         }
         log.info("{} hold(s) for {} now {}", closed.size(), reference, to);
     }
