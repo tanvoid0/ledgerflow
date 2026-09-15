@@ -20,7 +20,8 @@ Contracts, one file per event: `ledger.FundsHeld.md`.
    (one record in ledgerflow-events, a JSON schema next to it, a registry gate)
 3. The topic name says nothing about who owns it or which version it is.
                                                                   -> step 08 DONE
-   (`ledgerflow.ledger.wallet-hold.events.v1`, keyed by hold id)
+   (`ledgerflow.ledger.wallet-hold.events.v1`, keyed by hold id - re-keyed by wallet at
+   step 18, `docs/events/ledger.FundsHeld.md`)
 4. No eventId, so a consumer cannot tell a redelivery from a new event.
                                                                   -> step 08 DONE (the id), step 11 (using it)
 5. The listener's offset commits as soon as it returns, and it returns whether
