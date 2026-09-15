@@ -2,6 +2,7 @@ package io.ledgerflow.payment.application;
 
 import io.ledgerflow.events.EventEnvelope;
 import io.ledgerflow.events.Money;
+import io.ledgerflow.events.payment.PaymentRequested;
 import io.ledgerflow.payment.config.PaymentProperties;
 import io.ledgerflow.payment.domain.model.PaymentState;
 import io.ledgerflow.payment.domain.model.PaymentState.Failed;
@@ -42,7 +43,7 @@ public class Payments {
     private final MeterRegistry meters;
 
     @Transactional
-    public PaymentState start(UUID accountId, List<String> wallets, Money amount) {
+    public PaymentState start(UUID accountId, List<String> wallets, Money amount, String beneficiary) {
         var decision = PaymentSaga.start(accountId, wallets, amount);
         var state = decision.next();
         var correlationId = MDC.get(RequestIdFilter.MDC_KEY);
@@ -54,6 +55,9 @@ public class Payments {
                 .param("step", state.step().name()).param("deadline", deadline()).param("correlationId", correlationId)
                 .update();
         send(state.paymentId(), decision.commands(), correlationId, correlationId);
+        // risk-service scores every payment; it has no place in the saga's own reply flow, so it goes out on its own topic
+        outbox.append(PaymentRequested.TOPIC, EventEnvelope.of(PaymentRequested.TYPE, state.paymentId(), 1, correlationId, correlationId,
+                new PaymentRequested(state.paymentId(), accountId, wallets, amount, beneficiary)));
         return state;
     }
 
