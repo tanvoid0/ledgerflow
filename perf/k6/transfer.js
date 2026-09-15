@@ -45,5 +45,6 @@ export function transfer(data) {
 }
 
 export function handleSummary(data) {
+  data.meta = { rate: RATE, duration: DURATION };   // run.sh adds commit, date and host
   return { [__ENV.SUMMARY || 'summary.json']: JSON.stringify(data, null, 1) };
 }

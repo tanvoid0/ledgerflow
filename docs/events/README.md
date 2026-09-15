@@ -27,8 +27,9 @@ Contracts, one file per event: `ledger.FundsHeld.md`.
    or not the email was actually sent. A crash inside the handler redelivers;
    a handler that swallows its own failure loses the work silently.
                                                                   -> step 09 DONE
-   (manual_immediate, `ack.acknowledge()` after the work; measured in
-   `docs/measurements/step-09-consumer-restart.md`)
+   (`ack.acknowledge()` after the work; measured in
+   `docs/measurements/step-09-consumer-restart.md`. Step 15 moved the commit
+   itself from per record to per poll: same guarantee, one round trip per batch)
 6. A message the listener throws on is retried 10 times back to back, then
    logged and skipped. Not forever: worse. Gone.                  -> step 09 DONE
    (three non-blocking retries on `.retry-*` topics, then `.dlt`; poison
