@@ -1,0 +1,265 @@
+{
+  "options": {
+    "summaryTrendStats": [
+      "avg",
+      "med",
+      "p(95)",
+      "p(99)",
+      "max"
+    ],
+    "summaryTimeUnit": "",
+    "noColor": false
+  },
+  "state": {
+    "isStdOutTTY": false,
+    "isStdErrTTY": false,
+    "testRunDurationMs": 75182.427
+  },
+  "metrics": {
+    "http_req_failed{scenario:main}": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "fails": 6000,
+        "rate": 0,
+        "passes": 0
+      },
+      "thresholds": {
+        "rate<0.01": {
+          "ok": true
+        }
+      }
+    },
+    "vus_max": {
+      "values": {
+        "value": 60,
+        "min": 60,
+        "max": 60
+      },
+      "type": "gauge",
+      "contains": "default"
+    },
+    "http_req_failed": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "rate": 0,
+        "passes": 0,
+        "fails": 6302
+      }
+    },
+    "http_req_blocked": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 0.004687242145350682,
+        "med": 0,
+        "p(95)": 0,
+        "p(99)": 0,
+        "max": 9.0006
+      }
+    },
+    "data_received": {
+      "contains": "data",
+      "values": {
+        "count": 1577485,
+        "rate": 20982.09731909825
+      },
+      "type": "counter"
+    },
+    "http_req_duration{expected_response:true}": {
+      "values": {
+        "avg": 7.0474885115836114,
+        "med": 6.9988,
+        "p(95)": 8.5026,
+        "p(99)": 9.995129999999941,
+        "max": 172.2725
+      },
+      "type": "trend",
+      "contains": "time"
+    },
+    "http_req_duration": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "max": 172.2725,
+        "avg": 7.0474885115836114,
+        "med": 6.9988,
+        "p(95)": 8.5026,
+        "p(99)": 9.995129999999941
+      }
+    },
+    "iteration_duration": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 7.0838112997936795,
+        "med": 6.9998,
+        "p(95)": 8.5071,
+        "p(99)": 10.0002,
+        "max": 24.534
+      }
+    },
+    "http_req_receiving": {
+      "contains": "time",
+      "values": {
+        "med": 0,
+        "p(95)": 0.4998,
+        "p(99)": 0.5017,
+        "max": 1.1847,
+        "avg": 0.04966426531259919
+      },
+      "type": "trend"
+    },
+    "http_req_tls_handshaking": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 0,
+        "med": 0,
+        "p(95)": 0,
+        "p(99)": 0,
+        "max": 0
+      }
+    },
+    "data_sent": {
+      "type": "counter",
+      "contains": "data",
+      "values": {
+        "rate": 28493.719682659354,
+        "count": 2142227
+      }
+    },
+    "iterations": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 6301,
+        "rate": 83.80947851018429
+      }
+    },
+    "http_req_sending": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 0.001192573786099651,
+        "med": 0,
+        "p(95)": 0,
+        "p(99)": 0,
+        "max": 0.5045
+      }
+    },
+    "checks": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "rate": 1,
+        "passes": 6301,
+        "fails": 0
+      }
+    },
+    "http_req_duration{scenario:main}": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 6.987516999999988,
+        "med": 6.998,
+        "p(95)": 8.5014,
+        "p(99)": 9.504913000000002,
+        "max": 24.534
+      },
+      "thresholds": {
+        "p(99)<1000": {
+          "ok": true
+        }
+      }
+    },
+    "http_req_connecting": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "max": 1.0025,
+        "avg": 0.0030209139955569664,
+        "med": 0,
+        "p(95)": 0,
+        "p(99)": 0
+      }
+    },
+    "http_req_waiting": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 6.996631672484909,
+        "med": 6.9974,
+        "p(95)": 8.501495,
+        "p(99)": 9.564430999999992,
+        "max": 171.7955
+      }
+    },
+    "http_reqs": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 6302,
+        "rate": 83.82277949074455
+      }
+    },
+    "vus": {
+      "type": "gauge",
+      "contains": "default",
+      "values": {
+        "value": 1,
+        "min": 0,
+        "max": 1
+      }
+    }
+  },
+  "setup_data": {
+    "wallets": [
+      "ee569237-0072-4618-8f11-101f7ed349de",
+      "2a65fe8c-5e88-4ab4-a95a-a446fb7f0014",
+      "4c305087-6136-4715-bb43-e95186b7035e",
+      "3d08954b-0d9b-4ed7-97c0-713369752202",
+      "b3c6a146-8064-4b55-bd84-5f2b457b2b71",
+      "82a45a2f-7b3f-4f24-bc89-580e3cbf441b",
+      "9cc3dd9c-ce3c-4359-8ddd-d1851e761c36",
+      "2b4cbf81-fb8d-4398-bd8d-e776404d1fa4",
+      "663aa175-116f-4917-9008-d2c30d46bfeb",
+      "949b75f4-44bf-4a94-9f80-5f1284534485",
+      "be8403fc-ca1f-41c6-a51f-131e4b823db4",
+      "ef7ffd3f-3539-4311-8311-d17bc12a45d3",
+      "c2f0ff2e-4bec-4294-b767-82641939a6c6",
+      "06eb2b62-aa64-4acd-b6a0-88793ea24f1e",
+      "11b94979-a791-4f99-82ee-b35d3da49e5d",
+      "b826ec23-abf8-40a8-b140-d5cc17a3e680",
+      "bd854a46-680a-419e-94fc-c224695cdd30",
+      "f9e8fcc9-8496-48c6-8f50-3f1ee52385c9",
+      "0741a180-44a5-4d46-b210-de816f95fbcb",
+      "6c82d0eb-aa5e-489c-8211-4570a83e2616"
+    ]
+  },
+  "meta": {
+    "rate": 100,
+    "duration": "60s",
+    "scenario": "transfer",
+    "label": "step20",
+    "commit": "a3d0d89-dirty",
+    "date": "2026-09-15T18:08:13Z",
+    "host": "AMD Ryzen 9 9950X 16-Core Processor, 32 threads"
+  },
+  "root_group": {
+    "name": "",
+    "path": "",
+    "id": "d41d8cd98f00b204e9800998ecf8427e",
+    "groups": [],
+    "checks": [
+      {
+        "passes": 6301,
+        "fails": 0,
+        "name": "created or refused",
+        "path": "::created or refused",
+        "id": "f81b254da830b8553bef4cc2e97bf40a"
+      }
+    ]
+  }
+}
