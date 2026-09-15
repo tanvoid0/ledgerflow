@@ -1,0 +1,12 @@
+groups:
+  - name: risk-service
+    rules:
+      - alert: RiskScoringSlow
+        # risk.score is a Timer; Micrometer's OTLP export lands it in milliseconds (risk_score_milliseconds_bucket),
+        # so the 10ms budget is 10 in this unit, not 0.01.
+        expr: histogram_quantile(0.99, sum(rate(risk_score_milliseconds_bucket[5m])) by (le)) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "risk scoring p99 above the 10ms budget"
