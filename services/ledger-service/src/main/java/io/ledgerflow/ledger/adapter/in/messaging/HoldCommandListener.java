@@ -1,7 +1,9 @@
 package io.ledgerflow.ledger.adapter.in.messaging;
 
 import io.ledgerflow.events.EventEnvelope;
+import io.ledgerflow.events.WalletRef;
 import io.ledgerflow.events.ledger.CaptureHolds;
+import io.ledgerflow.events.ledger.HoldClosed;
 import io.ledgerflow.events.ledger.HoldRejected;
 import io.ledgerflow.events.ledger.ReleaseWallets;
 import io.ledgerflow.events.ledger.ReserveWallets;
@@ -12,14 +14,17 @@ import io.ledgerflow.ledger.domain.model.UnknownWalletException;
 import io.ledgerflow.starter.messaging.Inbox;
 import io.ledgerflow.starter.messaging.InvalidPayloadException;
 import io.ledgerflow.starter.messaging.OutboxAppender;
+import io.ledgerflow.starter.web.RequestIdFilter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.util.List;
 import java.util.UUID;
 
 /** What the payment saga asks of ledger. Three commands share the topic so one reference's commands stay in order. */
@@ -39,8 +44,8 @@ class HoldCommandListener {
         inbox.once(command, () -> {
             switch (command.eventType()) {
                 case ReserveWallets.TYPE -> reserve(command, json.treeToValue(command.payload(), ReserveWallets.class));
-                case ReleaseWallets.TYPE -> close(json.treeToValue(command.payload(), ReleaseWallets.class).reference(), FundsHold.Status.RELEASED);
-                case CaptureHolds.TYPE -> close(json.treeToValue(command.payload(), CaptureHolds.class).reference(), FundsHold.Status.CAPTURED);
+                case ReleaseWallets.TYPE -> close(command, json.treeToValue(command.payload(), ReleaseWallets.class).reference(), FundsHold.Status.RELEASED);
+                case CaptureHolds.TYPE -> close(command, json.treeToValue(command.payload(), CaptureHolds.class).reference(), FundsHold.Status.CAPTURED);
                 default -> throw new InvalidPayloadException("ledger does not take " + command.eventType());
             }
         });
@@ -54,16 +59,26 @@ class HoldCommandListener {
      */
     private void reserve(EventEnvelope<?> command, ReserveWallets c) {
         // the account lookup inside PlaceHold runs within the inbox transaction here; its timeouts bound the wait
+        MDC.put(RequestIdFilter.MDC_KEY, command.correlationId());   // so the FundsHeld events carry the payment's request id
         try {
             placeHold.place(c.accountId(), c.wallets(), c.amount(), c.reference());
         } catch (UnknownWalletException e) {
             log.info("rejecting reservation {}: {}", c.reference(), e.getMessage());
             outbox.append(HoldRejected.TOPIC, EventEnvelope.inReplyTo(command, HoldRejected.TYPE, c.reference(), 1,
                     new HoldRejected(c.reference(), e.getMessage())));
+        } finally {
+            MDC.remove(RequestIdFilter.MDC_KEY);
         }
     }
 
-    private void close(UUID reference, FundsHold.Status to) {
-        log.info("{} hold(s) for {} now {}", holds.closeAll(reference, to), reference, to);
+    /** One HoldClosed per hold, keyed like its FundsHeld, version 2: the second and last thing that happens to a hold. */
+    private void close(EventEnvelope<?> command, UUID reference, FundsHold.Status to) {
+        var closed = holds.closeAll(reference, to);
+        for (var hold : closed) {
+            var payload = new HoldClosed(hold.id(), List.of(new WalletRef(hold.accountId(), hold.walletCode())),
+                    hold.amount(), hold.reference(), HoldClosed.Outcome.valueOf(to.name()));
+            outbox.append(HoldClosed.TOPIC, EventEnvelope.inReplyTo(command, HoldClosed.TYPE, hold.id(), 2, payload));
+        }
+        log.info("{} hold(s) for {} now {}", closed.size(), reference, to);
     }
 }

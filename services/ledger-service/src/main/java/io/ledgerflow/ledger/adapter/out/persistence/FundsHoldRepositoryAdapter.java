@@ -22,7 +22,9 @@ class FundsHoldRepositoryAdapter implements FundsHoldRepository {
     }
 
     @Override
-    public int closeAll(UUID reference, FundsHold.Status to) {
-        return jpa.closeAll(reference, FundsHold.Status.HELD, to);
+    public List<FundsHold> closeAll(UUID reference, FundsHold.Status to) {
+        var open = jpa.findAllByReferenceAndStatus(reference, FundsHold.Status.HELD);
+        open.forEach(e -> e.setStatus(to));   // managed entities: the caller's transaction flushes them
+        return open.stream().map(mapper::toDomain).toList();
     }
 }

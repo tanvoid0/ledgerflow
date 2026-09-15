@@ -36,5 +36,15 @@ services:
       interval: 5s
       retries: 20
 
+  redis:
+    image: redis:7-alpine
+    container_name: ledgerflow-redis
+    # the balance read model. No volume on purpose: it is rebuilt from the log (scripts/rebuild-balance.sh)
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
+
 volumes:
   pgdata:

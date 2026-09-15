@@ -3,15 +3,16 @@
 A double-entry payment ledger with authorisation holds, being built across
 services that talk by events. No distributed transaction anywhere.
 
-Java 25 · Spring Boot 4.1 · Maven multi-module · PostgreSQL 17 · k6 · Docker
+Java 25 · Spring Boot 4.1 · Maven multi-module · PostgreSQL 17 · Redpanda · Redis · k6 · Docker
 
 ## What exists today
 
 | service | port | owns |
 |---|---|---|
-| account-service | 8080 | accounts, wallets, the book of record (journal entries and postings). The only service that moves money. |
-| ledger-service | 8081 | funds holds. Asks account whether a wallet exists before reserving against it, writes the hold and its `ledger.FundsHeld` event in one transaction; a poller moves the event to Kafka. |
+| account-service | 8080 | accounts, wallets, the book of record (journal entries and postings). The only service that moves money. Every entry leaves as `account.EntryPosted`. |
+| ledger-service | 8081 | funds holds. Asks account whether a wallet exists before reserving against it, writes the hold and its `ledger.FundsHeld` event in one transaction; a poller moves the event to Kafka. Release and capture leave as `ledger.HoldClosed`. |
 | notification-service | 8082 | the record of what it sent, and which events it has already handled. Consumes `ledger.FundsHeld`; a replay of the topic sends nothing twice. Acks after the commit, retries on `.<group>.retry-*` topics, dead-letters on `.<group>.dlt`. |
+| balance-service | 8083 | the available balance: account's balance less ledger's open holds, per wallet, in Redis. A projection of the three events above; owns no truth, and `scripts/rebuild-balance.sh` proves it by deleting it. |
 | payment-service | 8085 | the workflow. `POST /api/v1/payments` starts a saga: reserve (ledger), authorize (issuer), issue (settlement). Owns the saga state and a per-step deadline; nothing else. |
 | issuer-service | 8086 | a stub card issuer: authorizes everything except an amount of exactly 1, refunds on request. |
 | settlement-service | 8087 | captures: moves the held money through account-service (`Idempotency-Key` per hold) and remembers each capture so it can revoke it. |
@@ -34,9 +35,23 @@ absorbed, and the compensation already sent covers whatever the late service did
 Messages: `docs/events/payment-saga.md`. All three failures and the late reply, live:
 `docs/measurements/step-12-saga.md`. Every path: `PaymentSagaTest`, `PaymentFlowIT`.
 
+## A read model that can be thrown away
+
+Nobody could answer "how much can this wallet spend": the balance lives in account, the
+holds in ledger. balance-service answers it from a Redis hash per account, built by
+summing `EntryPosted` lines into the balance and `FundsHeld` / `HoldClosed` into the held
+amount. Sums commute, so it needs no ordering; one Lua script marks the event id and
+applies every line in one step, so a redelivery changes nothing and a crash leaves no
+half-applied event. The outbox migrations backfill the history before them (opening
+balances included), so the topic is complete from its first record, and
+`scripts/rebuild-balance.sh` wipes Redis, rewinds the group and rebuilds: 3,000 events
+in the time it takes to start a JVM (`docs/measurements/step-13-rebuild.md`, which also
+shows the read model catching the hold step 10 lost). A user who just wrote reads their
+own write with `?after=<X-Request-Id>`: the reason is `docs/adr/0002-read-your-own-writes.md`.
+
 ## Events are contracts
 
-One event so far: `ledger.FundsHeld` on `ledgerflow.ledger.wallet-hold.events.v1`,
+The first event: `ledger.FundsHeld` on `ledgerflow.ledger.wallet-hold.events.v1`,
 keyed by hold id, wrapped in an envelope (eventId, aggregateVersion, correlationId
 = the caller's `X-Request-Id`). The written contract is `docs/events/ledger.FundsHeld.md`;
 the schema next to the record is registered in Redpanda's schema registry with
@@ -93,12 +108,13 @@ and a CHECK constraint bring it to exactly one. `perf/race.sh` reproduces it,
 | A consumer crash loses nothing; a bad message blocks nothing | manual ack after the work, `@RetryableTopic` + DLT | `FundsHoldListenerIT`, `docs/measurements/step-09-consumer-restart.md` |
 | A broker outage loses no event; a rolled-back hold publishes none | transactional outbox, poller marks rows only after the ack | `PlaceHoldIT`, `docs/measurements/step-10-dual-write.md` |
 | Every failed payment ends terminal with its wallets released | sealed state + exhaustive transition, per-step deadline and sweeper, idempotent compensations | `PaymentSagaTest`, `PaymentFlowIT`, `docs/measurements/step-12-saga.md` |
+| The balance view is disposable, and a user sees their own write | projection of events only, atomic mark-and-apply in Lua, outbox backfills, bounded wait on the request id | `ProjectionIT`, `PostTransferIT`, `docs/measurements/step-13-rebuild.md` |
 
 ## Run it
 
 ```bash
-docker compose -f infra/compose/docker-compose.yml up -d      # Postgres 5433, Redpanda 9092, schema registry 18081
-for t in ledger.wallet-hold.events ledger.hold-rejected.events ledger.hold.commands issuer.authorization.commands          issuer.authorization.events settlement.capture.commands settlement.capture.events; do
+docker compose -f infra/compose/docker-compose.yml up -d      # Postgres 5433, Redpanda 9092, schema registry 18081, Redis 6379
+for t in ledger.wallet-hold.events ledger.hold-rejected.events ledger.hold-closed.events ledger.hold.commands account.entry.events          issuer.authorization.commands issuer.authorization.events settlement.capture.commands settlement.capture.events; do
   docker exec ledgerflow-redpanda rpk topic create ledgerflow.$t.v1 -p 3; done       # retry and dlt topics create themselves
 scripts/check-schemas.sh --register                           # put the event schemas in the registry
 ./mvnw -T 1C clean install                                    # builds everything, runs the tests
@@ -108,13 +124,18 @@ scripts/check-schemas.sh --register                           # put the event sc
 ./mvnw -pl services/payment-service spring-boot:run           # 4, 5, 6: payment, issuer, settlement
 ./mvnw -pl services/issuer-service spring-boot:run
 ./mvnw -pl services/settlement-service spring-boot:run
+./mvnw -pl services/balance-service spring-boot:run           # 7: the read model
 
 curl -s localhost:8080/api/v1/accounts | jq
 curl -s -X POST localhost:8081/api/v1/holds -H 'content-type: application/json' \
   -d '{"accountId":"11111111-1111-1111-1111-111111111111","wallets":["A-12"],"amountMinor":4500,"currency":"GBP"}' | jq
 PAYMENT=$(curl -s -X POST localhost:8085/api/v1/payments -H 'content-type: application/json'   -d '{"accountId":"11111111-1111-1111-1111-111111111111","wallets":["A-13"],"amountMinor":4500,"currency":"GBP"}' | jq -r .paymentId)
 sleep 3; curl -s localhost:8085/api/v1/payments/$PAYMENT | jq       # Captured. amountMinor 1: declined. 20000: capture fails. freeze.sh 8086: times out.
+curl -s localhost:8083/api/v1/balances/11111111-1111-1111-1111-111111111111 | jq '.wallets[] | select(.label=="A-13")'   # balance 55.00, held 0
 ```
+
+Throw the balance view away and watch it come back: `scripts/rebuild-balance.sh`.
+Read your own write: `curl -si localhost:8083/api/v1/balances/<account>/A-12?after=<the X-Request-Id a POST answered with>`.
 
 Load and race: `RATE=100 DURATION=60s perf/run.sh transfer baseline`, `perf/race.sh`.
 Watch the events: `docker exec ledgerflow-redpanda rpk topic consume ledgerflow.ledger.wallet-hold.events.v1 -f '%p %k %v\n'`.

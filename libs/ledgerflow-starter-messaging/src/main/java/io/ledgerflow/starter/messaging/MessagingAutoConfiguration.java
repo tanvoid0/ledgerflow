@@ -1,10 +1,14 @@
 package io.ledgerflow.starter.messaging;
 
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.jdbc.autoconfigure.JdbcClientAutoConfiguration;
 import org.springframework.boot.kafka.autoconfigure.KafkaAutoConfiguration;
 import org.springframework.boot.kafka.autoconfigure.KafkaProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.kafka.annotation.EnableKafkaRetryTopic;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -21,25 +25,10 @@ import tools.jackson.databind.json.JsonMapper;
  * Every service that talks over Kafka gets the same plumbing: an outbox poller, an inbox that dedupes
  * on eventId, and retry topics that end in a dead letter topic. The service brings the two tables.
  */
-@AutoConfiguration(after = KafkaAutoConfiguration.class)
+@AutoConfiguration(after = {KafkaAutoConfiguration.class, JdbcClientAutoConfiguration.class})
 @EnableKafkaRetryTopic
 @EnableScheduling   // the poller, and the retry delays need a TaskScheduler
 public class MessagingAutoConfiguration {
-
-    @Bean
-    OutboxAppender outboxAppender(JdbcClient db, JsonMapper json) {
-        return new OutboxAppender(db, json);
-    }
-
-    @Bean
-    OutboxPublisher outboxPublisher(JdbcClient db, KafkaTemplate<String, String> kafka) {
-        return new OutboxPublisher(db, kafka);
-    }
-
-    @Bean
-    Inbox inbox(JdbcClient db, TransactionTemplate tx, KafkaProperties kafka) {
-        return new Inbox(db, tx, kafka.getConsumer().getGroupId());
-    }
 
     /**
      * Bytes stay bytes until a listener says what type it wants. The converter infers the target from the
@@ -73,5 +62,31 @@ public class MessagingAutoConfiguration {
                 .notRetryOn(InvalidPayloadException.class)   // bad data never gets better; skip the retries
                 .dltHandlerMethod(new EndpointHandlerMethod(DeadLetters.class, "onDead"))
                 .create(kafka);
+    }
+
+    /**
+     * The database half, only where there is a database. A projection that lives in Redis has no outbox
+     * and no inbox table, and must not be made to configure a DataSource it will never open.
+     * Nested and guarded on the class so the outer configuration never mentions JdbcClient in a signature.
+     */
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnClass(JdbcClient.class)
+    @ConditionalOnBean(JdbcClient.class)
+    static class Database {
+
+        @Bean
+        OutboxAppender outboxAppender(JdbcClient db, JsonMapper json) {
+            return new OutboxAppender(db, json);
+        }
+
+        @Bean
+        OutboxPublisher outboxPublisher(JdbcClient db, KafkaTemplate<String, String> kafka) {
+            return new OutboxPublisher(db, kafka);
+        }
+
+        @Bean
+        Inbox inbox(JdbcClient db, TransactionTemplate tx, KafkaProperties kafka) {
+            return new Inbox(db, tx, kafka.getConsumer().getGroupId());
+        }
     }
 }

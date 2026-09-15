@@ -4,9 +4,11 @@ import io.ledgerflow.account.application.DuplicateEntryException;
 import io.ledgerflow.account.application.LedgerRepository;
 import io.ledgerflow.account.domain.model.JournalEntry;
 import io.ledgerflow.events.Money;
+import io.ledgerflow.events.WalletRef;
 import io.ledgerflow.account.domain.model.Posting;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -66,22 +68,25 @@ class JdbcLedgerRepository implements LedgerRepository {
         return new Money(bal, currency);
     }
 
-    /** Check and write in one statement. Zero rows means the WHERE refused it: no read, no decide, no race. */
+    /** Check and write in one statement. No row back means the WHERE refused it: no read, no decide, no race. */
     @Override
-    public boolean debitIfSufficient(UUID walletId, Money amount) {
-        int rows = db.sql("""
+    public Optional<WalletRef> debitIfSufficient(UUID walletId, Money amount) {
+        return db.sql("""
                 UPDATE wallets SET balance_minor = balance_minor - :amt
                 WHERE id = :id AND balance_minor >= :amt
+                RETURNING account_id, label
                 """)
             .param("amt", amount.minorUnits()).param("id", walletId)
-            .update();
-        return rows == 1;
+            .query(WALLET_REF).optional();
     }
 
     @Override
-    public void credit(UUID walletId, Money amount) {
-        db.sql("UPDATE wallets SET balance_minor = balance_minor + :amt WHERE id = :id")
+    public WalletRef credit(UUID walletId, Money amount) {
+        return db.sql("UPDATE wallets SET balance_minor = balance_minor + :amt WHERE id = :id RETURNING account_id, label")
           .param("amt", amount.minorUnits()).param("id", walletId)
-          .update();
+          .query(WALLET_REF).single();
     }
+
+    private static final RowMapper<WalletRef> WALLET_REF =
+            (rs, i) -> new WalletRef(rs.getObject("account_id", UUID.class), rs.getString("label"));
 }

@@ -1,0 +1,44 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: balance-service
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  mvc:
+    problemdetails:
+      enabled: true   # a 404 here is a ResponseStatusException; same problem+json shape as the other services
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: balance-service         # its own group: its own copy of every message, and the group the rebuild rewinds
+      auto-offset-reset: earliest
+      enable-auto-commit: false         # we commit, after the work, not a timer
+      isolation-level: read_committed
+    listener:
+      ack-mode: manual_immediate
+      concurrency: 3
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,shutdown
+  endpoint:
+    health:
+      show-details: always
+    shutdown:
+      # scripts/rebuild-balance.sh stops the service through this: a clean stop leaves the consumer
+      # group at once, a killed JVM holds its partitions for session.timeout.ms and the rewind waits 45s.
+      # Fine on a projection that owns nothing; step 31 puts a token in front of it.
+      access: unrestricted
+
+logging:
+  structured:
+    format:
+      console: ecs
+  level:
+    io.ledgerflow: DEBUG
