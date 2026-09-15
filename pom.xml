@@ -29,6 +29,8 @@
         <!-- spring-boot:run would otherwise pin the JIT at C1 (-XX:TieredStopAtLevel=1) for faster startup,
              and every number in docs/perf would be a dev-mode number; the services measured are the ones run -->
         <spring-boot.run.optimizedLaunch>false</spring-boot.run.optimizedLaunch>
+        <onnxruntime.version>1.22.0</onnxruntime.version>
+        <archunit.version>1.4.1</archunit.version>
     </properties>
 
     <modules>
@@ -42,6 +44,7 @@
         <module>services/payment-service</module>
         <module>services/issuer-service</module>
         <module>services/settlement-service</module>
+        <module>services/risk-service</module>
     </modules>
 
     <dependencyManagement>
@@ -75,6 +78,16 @@
                 <groupId>io.opentelemetry.instrumentation</groupId>
                 <artifactId>opentelemetry-logback-appender-1.0</artifactId>
                 <version>${opentelemetry-logback-appender.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.microsoft.onnxruntime</groupId>
+                <artifactId>onnxruntime</artifactId>
+                <version>${onnxruntime.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.tngtech.archunit</groupId>
+                <artifactId>archunit-junit5</artifactId>
+                <version>${archunit.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

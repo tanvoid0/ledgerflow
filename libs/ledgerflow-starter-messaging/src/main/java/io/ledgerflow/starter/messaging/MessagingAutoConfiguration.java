@@ -6,6 +6,7 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.jdbc.autoconfigure.JdbcClientAutoConfiguration;
 import org.springframework.boot.kafka.autoconfigure.KafkaAutoConfiguration;
 import org.springframework.boot.kafka.autoconfigure.KafkaProperties;
@@ -76,12 +77,15 @@ public class MessagingAutoConfiguration {
     @ConditionalOnBean(JdbcClient.class)
     static class Database {
 
+        // a consumer-only service (risk-service) has nothing to tell anyone: no outbox row, ever, from any code path in it
         @Bean
+        @ConditionalOnProperty(prefix = "ledgerflow.outbox", name = "enabled", havingValue = "true", matchIfMissing = true)
         OutboxAppender outboxAppender(JdbcClient db, JsonMapper json, ObservationRegistry observations) {
             return new OutboxAppender(db, json, observations);
         }
 
         @Bean
+        @ConditionalOnProperty(prefix = "ledgerflow.outbox", name = "enabled", havingValue = "true", matchIfMissing = true)
         OutboxPublisher outboxPublisher(JdbcClient db, JsonMapper json, KafkaTemplate<String, String> kafka, ObservationRegistry observations,
                                         TransactionTemplate tx) {
             return new OutboxPublisher(db, json, kafka, observations, tx);

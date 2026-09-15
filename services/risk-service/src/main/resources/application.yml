@@ -1,0 +1,79 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: risk-service
+  datasource:
+    url: jdbc:postgresql://localhost:5433/risk
+    username: risk
+    password: risk
+  flyway:
+    enabled: true
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 1   # balance-service owns 0
+  kafka:
+    bootstrap-servers: localhost:9092
+    template:
+      observation-enabled: true         # with the listener's, the trace crosses the broker instead of stopping at it
+    consumer:
+      group-id: risk-service            # its own group: its own copy of every message
+      auto-offset-reset: earliest
+      enable-auto-commit: false         # we commit, after the work, not a timer
+      isolation-level: read_committed
+    listener:
+      observation-enabled: true
+      ack-mode: manual                # one offset commit per poll, not per record
+      concurrency: 3
+
+ledgerflow:
+  outbox:
+    enabled: false   # this service publishes nothing; the property removes the beans, the ArchUnit test removes the temptation
+
+risk:
+  review-threshold: 0.8
+  rules:
+    amount-limit-minor: 1000000
+    blocked-beneficiaries: [mule-1]
+  narrator:
+    url: http://localhost:11434/v1
+    model: gemma4
+    api-key: ${NARRATOR_API_KEY:}
+    batch: 5
+    max-tokens: 800   # gemma4 spends ~400 on reasoning before it answers; 300 came back empty
+    # local by default so the features never leave the machine; any OpenAI-compatible endpoint plugs in here (ollama.com cloud, aimlapi, Gemini) with a key
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0                  # every trace, locally; 0.01-0.1 in production
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: http://localhost:4318/v1/traces
+    logging:
+      export:
+        otlp:
+          endpoint: http://localhost:4318/v1/logs
+  otlp:
+    metrics:
+      export:
+        url: http://localhost:4318/v1/metrics
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  structured:
+    format:
+      console: ecs
+  level:
+    io.ledgerflow: DEBUG
