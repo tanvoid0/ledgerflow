@@ -49,3 +49,18 @@ measure. Neither is true here.
   the broker down that is one pool connection held for up to
   `delivery.timeout.ms` (2 minutes), then a rollback and a retry. Acceptable
   for one poller; a fleet of them would want a shorter timeout.
+
+## What I would revisit
+
+Step 15 measured the poll, not guessed at it: the 500ms tick was the whole
+authorisation path, seven outbox hops at 250ms of mean wait each, 1.75s of a
+payment doing nothing. Draining a batch until it comes back short, one offset
+commit per poll instead of per record, and a 50ms tick took settled p99 from
+34.7s to 1.3s without touching CDC. `synchronous_commit = off` bought another
+0.39s and was the one change not kept - a ledger does not trade a fsync for
+tail latency, so that row stands as a measurement of the disk, not a fix.
+Polling still costs an empty-poll query every tick per service, 7µs and
+nothing at today's rate. It stops paying the moment either number moves: more
+services than the disk has empty-poll headroom for, or a latency budget under
+~50ms that no tick can hit no matter how short. Neither has happened yet;
+when it does, this ADR is the one to revisit, not the tick.
