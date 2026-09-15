@@ -1,8 +1,10 @@
 package io.ledgerflow.starter.messaging;
 
 import io.ledgerflow.events.EventEnvelope;
+import io.ledgerflow.starter.web.RequestIdFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -38,10 +40,16 @@ public class Inbox {
                     .param("eventId", event.eventId())
                     .param("group", group)
                     .update() == 1;
-            if (claimed) {
-                work.run();
-            } else {
+            if (!claimed) {
                 log.info("event {} already handled, skipping", event.eventId());
+                return;
+            }
+            // the request that started the story: on every line the work logs, and on every event it appends
+            if (event.correlationId() != null) MDC.put(RequestIdFilter.MDC_KEY, event.correlationId());
+            try {
+                work.run();
+            } finally {
+                MDC.remove(RequestIdFilter.MDC_KEY);
             }
         });
     }

@@ -12,7 +12,7 @@
 
     <artifactId>ledgerflow-starter-web</artifactId>
     <name>ledgerflow-starter-web</name>
-    <description>Cross-cutting web plumbing every service gets by depending on it: request id filter.</description>
+    <description>Cross-cutting plumbing every service gets by depending on it: request id filter, traces, metrics and logs shipped over OTLP.</description>
 
     <dependencies>
         <dependency>
@@ -23,6 +23,16 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webmvc</artifactId>
             <optional>true</optional>     <!-- compile against it; the service decides whether it is there -->
+        </dependency>
+        <dependency>
+            <!-- tracing bridge, OTLP exporters for all three signals; not optional: a service nobody can see is not done -->
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-opentelemetry</artifactId>
+        </dependency>
+        <dependency>
+            <!-- Boot exports OTel logs but does not feed them; this is the logback side of that -->
+            <groupId>io.opentelemetry.instrumentation</groupId>
+            <artifactId>opentelemetry-logback-appender-1.0</artifactId>
         </dependency>
     </dependencies>
     <!-- again: no spring-boot-maven-plugin in a library -->

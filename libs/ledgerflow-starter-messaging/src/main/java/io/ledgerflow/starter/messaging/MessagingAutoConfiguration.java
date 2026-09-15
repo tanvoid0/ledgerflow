@@ -1,5 +1,7 @@
 package io.ledgerflow.starter.messaging;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.observation.ObservationRegistry;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -41,8 +43,8 @@ public class MessagingAutoConfiguration {
     }
 
     @Bean
-    DeadLetters deadLetters() {
-        return new DeadLetters();
+    DeadLetters deadLetters(MeterRegistry meters) {
+        return new DeadLetters(meters);
     }
 
     /**
@@ -75,13 +77,13 @@ public class MessagingAutoConfiguration {
     static class Database {
 
         @Bean
-        OutboxAppender outboxAppender(JdbcClient db, JsonMapper json) {
-            return new OutboxAppender(db, json);
+        OutboxAppender outboxAppender(JdbcClient db, JsonMapper json, ObservationRegistry observations) {
+            return new OutboxAppender(db, json, observations);
         }
 
         @Bean
-        OutboxPublisher outboxPublisher(JdbcClient db, KafkaTemplate<String, String> kafka) {
-            return new OutboxPublisher(db, kafka);
+        OutboxPublisher outboxPublisher(JdbcClient db, JsonMapper json, KafkaTemplate<String, String> kafka, ObservationRegistry observations) {
+            return new OutboxPublisher(db, json, kafka, observations);
         }
 
         @Bean

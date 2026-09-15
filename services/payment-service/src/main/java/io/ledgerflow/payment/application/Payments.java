@@ -4,9 +4,11 @@ import io.ledgerflow.events.EventEnvelope;
 import io.ledgerflow.events.Money;
 import io.ledgerflow.payment.config.PaymentProperties;
 import io.ledgerflow.payment.domain.model.PaymentState;
+import io.ledgerflow.payment.domain.model.PaymentState.Failed;
 import io.ledgerflow.payment.domain.model.StepTimedOut;
 import io.ledgerflow.starter.messaging.OutboxAppender;
 import io.ledgerflow.starter.web.RequestIdFilter;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
@@ -37,6 +39,7 @@ public class Payments {
     private final JsonMapper json;
     private final OutboxAppender outbox;
     private final PaymentProperties props;
+    private final MeterRegistry meters;
 
     @Transactional
     public PaymentState start(UUID accountId, List<String> wallets, Money amount) {
@@ -57,30 +60,36 @@ public class Payments {
     /** A reply from a service, or a timeout from the sweeper: same door. Unknown payment: not ours, ignore. */
     @Transactional
     public void apply(UUID paymentId, Record reply, EventEnvelope<?> cause) {
-        var row = db.sql("SELECT payload, correlation_id FROM sagas WHERE payment_id = :id FOR UPDATE")
-                .param("id", paymentId).query(Row.class).optional().orElse(null);
-        if (row == null) {
-            log.warn("{} for payment {} nobody here started; ignoring", reply.getClass().getSimpleName(), paymentId);
-            return;
+        try (var _ = MDC.putCloseable("paymentId", paymentId.toString())) {   // every line below is findable by payment
+            var row = db.sql("SELECT payload, correlation_id FROM sagas WHERE payment_id = :id FOR UPDATE")
+                    .param("id", paymentId).query(Row.class).optional().orElse(null);
+            if (row == null) {
+                log.warn("{} for payment {} nobody here started; ignoring", reply.getClass().getSimpleName(), paymentId);
+                return;
+            }
+            var state = json.readValue(row.payload(), PaymentState.class);
+            var decision = PaymentSaga.on(state, reply);
+            if (decision.next().equals(state)) {
+                log.info("{} changes nothing for payment {} in {}", reply.getClass().getSimpleName(), paymentId, name(state));
+                return;
+            }
+            var next = decision.next();
+            log.info("payment {}: {} + {} -> {}", paymentId, name(state), reply.getClass().getSimpleName(), name(next));
+            db.sql("""
+                    UPDATE sagas SET state = :state, payload = CAST(:payload AS jsonb), current_step = :step,
+                                     deadline_at = :deadline, updated_at = now()
+                     WHERE payment_id = :id
+                    """)
+                    .param("id", paymentId).param("state", name(next)).param("payload", json.writeValueAsString(next))
+                    .param("step", next.step() == null ? null : next.step().name())
+                    .param("deadline", next.step() == null ? null : deadline())
+                    .update();
+            send(paymentId, decision.commands(), row.correlationId(), cause == null ? null : cause.eventId().toString());
+            // the number that says customers are being turned away, and why: worth more than any latency histogram
+            if (next instanceof Failed f) {
+                meters.counter("ledgerflow.saga.compensated", "step", f.failedAt().name(), "reason", f.reason().name()).increment();
+            }
         }
-        var state = json.readValue(row.payload(), PaymentState.class);
-        var decision = PaymentSaga.on(state, reply);
-        if (decision.next().equals(state)) {
-            log.info("{} changes nothing for payment {} in {}", reply.getClass().getSimpleName(), paymentId, name(state));
-            return;
-        }
-        var next = decision.next();
-        log.info("payment {}: {} + {} -> {}", paymentId, name(state), reply.getClass().getSimpleName(), name(next));
-        db.sql("""
-                UPDATE sagas SET state = :state, payload = CAST(:payload AS jsonb), current_step = :step,
-                                 deadline_at = :deadline, updated_at = now()
-                 WHERE payment_id = :id
-                """)
-                .param("id", paymentId).param("state", name(next)).param("payload", json.writeValueAsString(next))
-                .param("step", next.step() == null ? null : next.step().name())
-                .param("deadline", next.step() == null ? null : deadline())
-                .update();
-        send(paymentId, decision.commands(), row.correlationId(), cause == null ? null : cause.eventId().toString());
     }
 
     /** A step past its deadline is answered with a timeout, through the same transition as a real reply. */
