@@ -23,6 +23,10 @@ spring:
       auto-offset-reset: earliest
       enable-auto-commit: false         # we commit, after the work, not a timer
       isolation-level: read_committed
+      properties:
+        partition.assignment.strategy: org.apache.kafka.clients.consumer.CooperativeStickyAssignor   # only the moved partitions get revoked on a rebalance
+        group.instance.id: ledger-service-${server.port}   # a restart within session.timeout.ms rejoins as the same member: no rebalance at all
+        session.timeout.ms: 30000
     listener:
       observation-enabled: true
       ack-mode: manual                # one offset commit per poll, not per record: 2ms of broker round trip a record at 100 payments/s was the step 15 cliff

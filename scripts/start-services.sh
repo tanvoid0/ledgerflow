@@ -3,6 +3,7 @@
 # each pid appended to .local/pids. Refuses outright if a port already answers - a leftover JVM
 # from an earlier run would otherwise get a second one stacked on top of it.
 #   scripts/start-services.sh
+#   EXTRA_NOTIFICATION_PORTS="8092 8093" scripts/start-services.sh   # extra notification-service instances, for step 19's group tests
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -44,3 +45,12 @@ for i in "${!SERVICES[@]}"; do
   echo "$svc-service is up ($port)"
 done
 echo "all eight services are up."
+
+for port in ${EXTRA_NOTIFICATION_PORTS:-}; do
+  jar="services/notification-service/target/notification-service-1.0.0-SNAPSHOT.jar"
+  SERVER_PORT=$port java -jar "$jar" > ".local/logs/notification-service-$port.log" 2>&1 &
+  echo $! >> .local/pids
+  echo "started extra notification-service (pid $!, port $port)"
+  until up "$port"; do sleep 2; done
+  echo "extra notification-service is up ($port)"
+done
