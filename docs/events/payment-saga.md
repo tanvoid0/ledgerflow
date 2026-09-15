@@ -11,8 +11,8 @@ A topic with several types uses `oneOf` on `payload`, keyed by `eventType`. Java
 | topic | direction | types | key |
 |---|---|---|---|
 | `ledgerflow.ledger.hold.commands.v1` | payment → ledger | `ledger.ReserveWallets` (reference, accountId, wallets, amount) · `ledger.ReleaseWallets` (reference) · `ledger.CaptureHolds` (reference) | reference |
-| `ledgerflow.ledger.wallet-hold.events.v1` | ledger → payment, notification | `ledger.FundsHeld` (+ optional `reference` since this step) | holdId |
-| `ledgerflow.ledger.hold-rejected.events.v1` | ledger → payment | `ledger.HoldRejected` (reference, reason) | reference |
+| `ledgerflow.ledger.wallet-hold.events.v1` | ledger → payment, notification | `ledger.FundsHeld` (+ optional `reference` since this step) | `accountId:label` (the wallet, since step 18; was holdId) |
+| `ledgerflow.ledger.hold-rejected.events.v1` | ledger → payment | `ledger.HoldRejected` (reference, reason) | `accountId:label` of the first wallet (since step 18; was reference) |
 | `ledgerflow.issuer.authorization.commands.v1` | payment → issuer | `issuer.AuthorizePayment` (paymentId, amount) · `issuer.RefundPayment` (paymentId) | paymentId |
 | `ledgerflow.issuer.authorization.events.v1` | issuer → payment | `issuer.PaymentAuthorized` (paymentId, authorizationId, amount) · `issuer.PaymentDeclined` (paymentId, reason) | paymentId |
 | `ledgerflow.settlement.capture.commands.v1` | payment → settlement | `settlement.IssueCaptures` (paymentId, accountId, holds[], amount) · `settlement.RevokeCaptures` (paymentId) | paymentId |

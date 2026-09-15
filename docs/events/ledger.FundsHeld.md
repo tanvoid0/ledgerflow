@@ -2,7 +2,7 @@
 
 Topic:      ledgerflow.ledger.wallet-hold.events.v1
 Kind:       event-carried state transfer
-Key:        holdId (= envelope.aggregateId)
+Key:        accountId:label, the wallet — the ordering unit is the wallet, not the hold (a hold and its close already share an aggregateId).
 Retention:  7 days (broker default)
 Producer:   ledger-service, after `POST /api/v1/holds` commits
 Consumers:  notification-service, payment-service (the saga's reply), balance-service (the read model).
@@ -18,7 +18,7 @@ Encoding:   plain JSON, no registry framing. The registry gates the schema file,
 | eventId          | UUID      | no   | unique per event. Dedupe on this.                   |
 | eventType        | string    | no   | `ledger.FundsHeld`                                  |
 | schemaVersion    | int       | no   | 1                                                   |
-| aggregateId      | UUID      | no   | the hold. Partition key.                            |
+| aggregateId      | UUID      | no   | the hold. See Key above for the partition key.      |
 | aggregateVersion | long      | no   | 1 on placement; the HoldClosed that follows is 2    |
 | occurredAt       | timestamp | no   | UTC, when the producer built the event              |
 | correlationId    | string    | yes  | the `X-Request-Id` of the request that started it (the payment's, for a saga hold) |
@@ -39,7 +39,8 @@ One `POST /holds` with N wallets places N holds and publishes N events, one per 
 ### Guarantees
 
 Delivery: at least once. Consumers MUST dedupe on `envelope.eventId` (nothing does yet: step 11).
-Ordering: per holdId only. Nothing is guaranteed between different holds.
+Ordering: per wallet (`accountId:label`). Two holds on the same wallet, and a hold and its
+close, land on the same partition; nothing is guaranteed between different wallets.
 A later event about the same hold can arrive before this one after a consumer rebalance -
 check `aggregateVersion` before applying.
 
