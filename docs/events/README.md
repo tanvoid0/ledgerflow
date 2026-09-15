@@ -30,7 +30,11 @@ Contracts, one file per event: `ledger.FundsHeld.md`.
                                                                   -> step 09 DONE
    (`ack.acknowledge()` after the work; measured in
    `docs/measurements/step-09-consumer-restart.md`. Step 15 moved the commit
-   itself from per record to per poll: same guarantee, one round trip per batch)
+   itself from per record to per poll: same guarantee, one round trip per
+   batch. Step 19 fixed the group itself: every consumer runs the
+   cooperative-sticky assignor and a static `group.instance.id` per instance
+   and listener container, 30s session timeout, so a restart is not a
+   rebalance at all - `docs/measurements/step-19-groups.md`)
 6. A message the listener throws on is retried 10 times back to back, then
    logged and skipped. Not forever: worse. Gone.                  -> step 09 DONE
    (three non-blocking retries on `.retry-*` topics, then `.dlt`; poison
