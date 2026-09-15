@@ -97,8 +97,12 @@ class PlaceHoldIT {
         assertThat(event.payload()).isEqualTo(new FundsHeld(hold.id(),
                 List.of(new WalletRef(ACCOUNT, "A-12")), hold.expiresAt(), Money.gbp(4500), null));
 
-        // the poller sends exactly the stored bytes, keyed by the hold, and only then marks the row
-        verify(kafka, timeout(5_000)).send(FundsHeld.TOPIC, hold.id().toString(), stored);
+        var partitionKey = db.sql("SELECT partition_key FROM outbox WHERE aggregate_id = :id").param("id", hold.id())
+                .query(String.class).single();
+        assertThat(partitionKey).isEqualTo(ACCOUNT + ":A-12");
+
+        // the poller sends exactly the stored bytes, keyed by the wallet, and only then marks the row
+        verify(kafka, timeout(5_000)).send(FundsHeld.TOPIC, partitionKey, stored);
         await().atMost(Duration.ofSeconds(5)).until(() -> pending() == 0);
     }
 
@@ -120,9 +124,9 @@ class PlaceHoldIT {
         accountHas("A-12");
         brokerIs(CompletableFuture.failedFuture(new IllegalStateException("broker down")));
 
-        var hold = placeHold.place(ACCOUNT, List.of("A-12"), Money.gbp(100), null).getFirst();
+        placeHold.place(ACCOUNT, List.of("A-12"), Money.gbp(100), null);
 
-        verify(kafka, timeout(5_000).atLeastOnce()).send(eq(FundsHeld.TOPIC), eq(hold.id().toString()), anyString());
+        verify(kafka, timeout(5_000).atLeastOnce()).send(eq(FundsHeld.TOPIC), eq(ACCOUNT + ":A-12"), anyString());
         assertThat(pending()).isEqualTo(1);   // tried, failed, still there
 
         brokerIs(CompletableFuture.completedFuture(null));
