@@ -72,5 +72,8 @@ Redpanda has no volume, so `scripts/demo.sh` sets these on every run (create wit
 | `*.dlt`                        | 2592000000 (30d)       | delete         | someone has to look |
 | `ledgerflow.balance.snapshots.v1` | n/a                 | compact        | keyed by `accountId:label`, keeps the latest snapshot per wallet instead of a window of history; `segment.ms=10000` in dev only (with the cluster floor `log_segment_ms_min` lowered to match, or Redpanda ignores it), so the cleaner runs often enough to watch - never in production |
 
+Replication is a topic property too, set by `scripts/topics.sh`: rf 1 daily, rf 3 under
+`scripts/cluster3.sh` - `docs/measurements/step-21-broker.md`.
+
 `Balances.REMEMBER` (step 13's dedup TTL for processed events) now tracks the same 30d as the
 events topics it dedups against.

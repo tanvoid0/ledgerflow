@@ -1,0 +1,265 @@
+{
+  "setup_data": {
+    "wallets": [
+      "ee569237-0072-4618-8f11-101f7ed349de",
+      "2b4cbf81-fb8d-4398-bd8d-e776404d1fa4",
+      "c2f0ff2e-4bec-4294-b767-82641939a6c6",
+      "f9e8fcc9-8496-48c6-8f50-3f1ee52385c9",
+      "06eb2b62-aa64-4acd-b6a0-88793ea24f1e",
+      "6c82d0eb-aa5e-489c-8211-4570a83e2616",
+      "b3c6a146-8064-4b55-bd84-5f2b457b2b71",
+      "bd854a46-680a-419e-94fc-c224695cdd30",
+      "663aa175-116f-4917-9008-d2c30d46bfeb",
+      "82a45a2f-7b3f-4f24-bc89-580e3cbf441b",
+      "9cc3dd9c-ce3c-4359-8ddd-d1851e761c36",
+      "ef7ffd3f-3539-4311-8311-d17bc12a45d3",
+      "2a65fe8c-5e88-4ab4-a95a-a446fb7f0014",
+      "949b75f4-44bf-4a94-9f80-5f1284534485",
+      "3d08954b-0d9b-4ed7-97c0-713369752202",
+      "be8403fc-ca1f-41c6-a51f-131e4b823db4",
+      "0741a180-44a5-4d46-b210-de816f95fbcb",
+      "b826ec23-abf8-40a8-b140-d5cc17a3e680",
+      "4c305087-6136-4715-bb43-e95186b7035e",
+      "11b94979-a791-4f99-82ee-b35d3da49e5d"
+    ]
+  },
+  "meta": {
+    "rate": 100,
+    "duration": "60s",
+    "scenario": "transfer",
+    "label": "step21",
+    "commit": "910d07c-dirty",
+    "date": "2026-09-15T20:22:16Z",
+    "host": "AMD Ryzen 9 9950X 16-Core Processor, 32 threads"
+  },
+  "root_group": {
+    "id": "d41d8cd98f00b204e9800998ecf8427e",
+    "groups": [],
+    "checks": [
+      {
+        "id": "f81b254da830b8553bef4cc2e97bf40a",
+        "passes": 6301,
+        "fails": 0,
+        "name": "created or refused",
+        "path": "::created or refused"
+      }
+    ],
+    "name": "",
+    "path": ""
+  },
+  "options": {
+    "summaryTrendStats": [
+      "avg",
+      "med",
+      "p(95)",
+      "p(99)",
+      "max"
+    ],
+    "summaryTimeUnit": "",
+    "noColor": false
+  },
+  "state": {
+    "isStdOutTTY": false,
+    "isStdErrTTY": false,
+    "testRunDurationMs": 75167.9668
+  },
+  "metrics": {
+    "vus": {
+      "type": "gauge",
+      "contains": "default",
+      "values": {
+        "min": 0,
+        "max": 2,
+        "value": 1
+      }
+    },
+    "iteration_duration": {
+      "contains": "time",
+      "values": {
+        "p(95)": 9.4998,
+        "p(99)": 11.5033,
+        "max": 66.9982,
+        "avg": 7.278636613235991,
+        "med": 7.0006
+      },
+      "type": "trend"
+    },
+    "http_reqs": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 6302,
+        "rate": 83.83890463297725
+      }
+    },
+    "checks": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "rate": 1,
+        "passes": 6301,
+        "fails": 0
+      }
+    },
+    "http_req_duration{scenario:main}": {
+      "thresholds": {
+        "p(99)<1000": {
+          "ok": true
+        }
+      },
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 7.06563717713716,
+        "med": 6.9994,
+        "p(95)": 8.5096,
+        "p(99)": 10.0013,
+        "max": 20.5006
+      }
+    },
+    "http_req_blocked": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(99)": 0.4982,
+        "max": 8.501,
+        "avg": 0.0069833068867026366,
+        "med": 0,
+        "p(95)": 0
+      }
+    },
+    "http_req_receiving": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 0.05463576642335768,
+        "med": 0,
+        "p(95)": 0.49999499999999997,
+        "p(99)": 0.5022,
+        "max": 1.0053
+      }
+    },
+    "data_received": {
+      "values": {
+        "count": 1577396,
+        "rate": 20984.949668746394
+      },
+      "type": "counter",
+      "contains": "data"
+    },
+    "http_req_duration": {
+      "values": {
+        "avg": 7.232980720406213,
+        "med": 7,
+        "p(95)": 9.4981,
+        "p(99)": 11.500497000000001,
+        "max": 150.3489
+      },
+      "type": "trend",
+      "contains": "time"
+    },
+    "http_req_sending": {
+      "contains": "time",
+      "values": {
+        "avg": 0.0011936686766106,
+        "med": 0,
+        "p(95)": 0,
+        "p(99)": 0,
+        "max": 0.5057
+      },
+      "type": "trend"
+    },
+    "iterations": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 6301,
+        "rate": 83.8256010936829
+      }
+    },
+    "http_req_failed{scenario:main}": {
+      "values": {
+        "rate": 0,
+        "passes": 0,
+        "fails": 6001
+      },
+      "thresholds": {
+        "rate<0.01": {
+          "ok": true
+        }
+      },
+      "type": "rate",
+      "contains": "default"
+    },
+    "http_req_duration{expected_response:true}": {
+      "contains": "time",
+      "values": {
+        "med": 7,
+        "p(95)": 9.4981,
+        "p(99)": 11.500497000000001,
+        "max": 150.3489,
+        "avg": 7.232980720406213
+      },
+      "type": "trend"
+    },
+    "http_req_connecting": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 0.005395033322754681,
+        "med": 0,
+        "p(95)": 0,
+        "p(99)": 0.49699899999999997,
+        "max": 1.0023
+      }
+    },
+    "http_req_failed": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "fails": 6302,
+        "rate": 0,
+        "passes": 0
+      }
+    },
+    "http_req_waiting": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 7.177151285306252,
+        "med": 6.9996,
+        "p(95)": 9.330029999999994,
+        "p(99)": 11.4999,
+        "max": 149.8448
+      }
+    },
+    "vus_max": {
+      "contains": "default",
+      "values": {
+        "value": 60,
+        "min": 60,
+        "max": 60
+      },
+      "type": "gauge"
+    },
+    "http_req_tls_handshaking": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 0,
+        "med": 0,
+        "p(95)": 0,
+        "p(99)": 0,
+        "max": 0
+      }
+    },
+    "data_sent": {
+      "values": {
+        "count": 2142138,
+        "rate": 28498.017056914727
+      },
+      "type": "counter",
+      "contains": "data"
+    }
+  }
+}
