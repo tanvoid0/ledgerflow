@@ -27,12 +27,15 @@ public class Balances {
 
     private static final RedisScript<Long> APPLY = RedisScript.of(new ClassPathResource("apply.lua"), Long.class);
     // = the topic's retention: a duplicate older than what the broker still holds cannot arrive
-    private static final Duration REMEMBER = Duration.ofDays(7);
+    private static final Duration REMEMBER = Duration.ofDays(30);
 
     private final StringRedisTemplate redis;
 
     /** How one event moves one wallet. Balance from account's entries, held from ledger's holds. */
     public record Delta(WalletRef wallet, String currency, long balanceMinor, long heldMinor) {}
+
+    /** One wallet's state as of the last apply: what a BalanceSnapshot needs, before the Source is known. */
+    public record Snapshot(String currency, long balanceMinor, long heldMinor, long version) {}
 
     /** All the deltas or none, once per event id. False: seen before, nothing changed. */
     public boolean apply(UUID eventId, String token, List<Delta> deltas) {
@@ -61,6 +64,14 @@ public class Balances {
                 .multiGet(accountKey(accountId), List.of(label + ":balance", label + ":held", label + ":currency"));
         if (values.get(0) == null) return Optional.empty();
         return Optional.of(wallet(label, Map.of("balance", values.get(0), "held", values.get(1), "currency", values.get(2))));
+    }
+
+    /** One HMGET of the fields a snapshot needs. Empty if the wallet has never been touched. */
+    public Optional<Snapshot> snapshot(UUID accountId, String label) {
+        var values = redis.<String, String>opsForHash().multiGet(accountKey(accountId),
+                List.of(label + ":currency", label + ":balance", label + ":held", label + ":version"));
+        if (values.get(0) == null) return Optional.empty();
+        return Optional.of(new Snapshot(values.get(0), Long.parseLong(values.get(1)), Long.parseLong(values.get(2)), Long.parseLong(values.get(3))));
     }
 
     /** True once an event carrying the token (a write's request id) has been applied to this wallet. ADR 0002. */

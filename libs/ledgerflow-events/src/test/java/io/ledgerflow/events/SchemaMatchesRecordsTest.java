@@ -1,6 +1,7 @@
 package io.ledgerflow.events;
 
 import io.ledgerflow.events.account.EntryPosted;
+import io.ledgerflow.events.balance.BalanceSnapshot;
 import io.ledgerflow.events.issuer.AuthorizePayment;
 import io.ledgerflow.events.issuer.PaymentAuthorized;
 import io.ledgerflow.events.issuer.PaymentDeclined;
@@ -51,6 +52,17 @@ class SchemaMatchesRecordsTest {
             PaymentAuthorized.TOPIC, List.of(PaymentAuthorized.class, PaymentDeclined.class),
             IssueCaptures.TOPIC, List.of(IssueCaptures.class, RevokeCaptures.class),
             CapturesIssued.TOPIC, List.of(CapturesIssued.class, IssueFailed.class));
+
+    // state, not events: the schema is the record's own shape, not EventEnvelope<record>
+    static final Map<String, Class<? extends Record>> STATE_TOPICS = Map.of(BalanceSnapshot.TOPIC, BalanceSnapshot.class);
+
+    @TestFactory
+    Stream<DynamicTest> everyStateTopicSchemaMatchesItsRecord() {
+        return STATE_TOPICS.entrySet().stream().map(e -> DynamicTest.dynamicTest(e.getKey(), () -> {
+            var schema = new JsonMapper().readTree(getClass().getResourceAsStream("/schemas/" + e.getKey() + "-value.json"));
+            assertMatches(e.getValue(), schema);
+        }));
+    }
 
     @TestFactory
     Stream<DynamicTest> everyTopicSchemaMatchesItsRecords() {

@@ -58,3 +58,19 @@ Producer:  payment-service, appended to the outbox inside `Payments.start`'s own
            replies to it, and a payment risk-service never saw still captures.
 Consumers: risk-service only, on its own group, scoring every payment for fraud risk beside the
            authorisation path rather than on it. Full contract: docs/measurements/step-16-risk.md.
+
+## How long a topic remembers
+
+Redpanda has no volume, so `scripts/demo.sh` sets these on every run (create with `-c`, then
+`alter-config` unconditionally, so an existing volume converges on the same policy).
+
+| topic kind                    | retention.ms          | cleanup.policy | why |
+|--------------------------------|------------------------|----------------|-----|
+| `*.events.v1`                  | 2592000000 (30d)       | delete         | the outbox table is the archive; the topic is only the replay window a consumer group can be rebuilt from |
+| `*.commands.v1`                | 86400000 (1d)          | delete         | a command older than the saga's 15s deadline is already Failed; a day is for the post-mortem |
+| `*.retry-1000\|3000\|9000`     | 86400000 (1d)          | delete         | same lifetime as the topic they retry |
+| `*.dlt`                        | 2592000000 (30d)       | delete         | someone has to look |
+| `ledgerflow.balance.snapshots.v1` | n/a                 | compact        | keyed by `accountId:label`, keeps the latest snapshot per wallet instead of a window of history; `segment.ms=10000` in dev only, so the cleaner runs often enough to watch - never in production |
+
+`Balances.REMEMBER` (step 13's dedup TTL for processed events) now tracks the same 30d as the
+events topics it dedups against.

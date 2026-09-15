@@ -18,14 +18,35 @@ docker exec ledgerflow-postgres psql -U risk -d risk -c 'select 1' > /dev/null 2
   docker exec -i ledgerflow-postgres psql -U ledgerflow -d postgres < infra/compose/risk-role.sql
 }
 
-for t in ledger.wallet-hold.events ledger.hold-rejected.events ledger.hold-closed.events ledger.hold.commands account.entry.events \
-         issuer.authorization.commands issuer.authorization.events settlement.capture.commands settlement.capture.events payment.requested.events; do
-  docker exec ledgerflow-redpanda rpk topic create "ledgerflow.$t.v1" -p 3 || true   # exists already: fine
+# retention.ms by kind - see docs/events/README.md#how-long-a-topic-remembers for the why
+policy() {
+  local topic="$1" retention_ms="$2"
+  docker exec ledgerflow-redpanda rpk topic create "$topic" -p 3 -c "retention.ms=$retention_ms" > /dev/null 2>&1 || true   # exists already: fine
+  docker exec ledgerflow-redpanda rpk topic alter-config "$topic" --set "retention.ms=$retention_ms" > /dev/null   # brings an existing volume's topic to the same policy
+}
+
+for t in ledger.wallet-hold.events ledger.hold-rejected.events ledger.hold-closed.events account.entry.events \
+         issuer.authorization.events settlement.capture.events payment.requested.events; do
+  policy "ledgerflow.$t.v1" 2592000000   # 30d: the outbox is the archive, the topic is the replay window
 done
+for t in ledger.hold.commands issuer.authorization.commands settlement.capture.commands; do
+  policy "ledgerflow.$t.v1" 86400000   # 1d: a command older than the saga's 15s deadline is already Failed
+done
+docker exec ledgerflow-redpanda rpk topic create ledgerflow.balance.snapshots.v1 -p 3 \
+  -c cleanup.policy=compact -c segment.ms=10000 > /dev/null 2>&1 || true   # segment.ms=10000 makes the cleaner visible in dev; never in production
 ./scripts/check-schemas.sh --register
 
 ./mvnw -q -T1C package -DskipTests
 ./scripts/start-services.sh
+
+# the retry and dlt topics only exist once a consumer has started, so their policy lands after the services do
+existing_topics=$(docker exec ledgerflow-redpanda rpk topic list | awk 'NR>1{print $1}')
+for t in $(echo "$existing_topics" | grep -E '\.retry-[0-9]+$' || true); do
+  policy "$t" 86400000   # 1d, same as the commands/events they retry
+done
+for t in $(echo "$existing_topics" | grep -E '\.dlt$' || true); do
+  policy "$t" 2592000000   # 30d: someone has to look
+done
 
 ./scripts/scenario-authorize-capture.sh
 ./scripts/scenario-insufficient-funds.sh
