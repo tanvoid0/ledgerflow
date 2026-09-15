@@ -10,6 +10,8 @@ services:
       POSTGRES_DB: account
     # 5433 on the host: most dev laptops already have a Postgres on 5432
     ports: ["5433:5432"]
+    # pg_stat_statements: what each database actually ran, by total time. CREATE EXTENSION once per database.
+    command: ["postgres", "-c", "shared_preload_libraries=pg_stat_statements"]
     volumes:
       - "./init-databases.sh:/docker-entrypoint-initdb.d/init.sh"
       - "pgdata:/var/lib/postgresql/data"
