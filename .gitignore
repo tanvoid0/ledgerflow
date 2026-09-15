@@ -18,3 +18,8 @@ Thumbs.db
 # local env
 *.local.yml
 .env
+
+# local tracking
+PROGRESS.md
+CLAUDE.local.md
+.local/
