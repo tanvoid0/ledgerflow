@@ -1,1 +1,2 @@
 io.ledgerflow.starter.web.LedgerflowWebAutoConfiguration
+io.ledgerflow.starter.web.LogShippingAutoConfiguration

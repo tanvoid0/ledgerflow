@@ -14,10 +14,8 @@ import io.ledgerflow.ledger.domain.model.UnknownWalletException;
 import io.ledgerflow.starter.messaging.Inbox;
 import io.ledgerflow.starter.messaging.InvalidPayloadException;
 import io.ledgerflow.starter.messaging.OutboxAppender;
-import io.ledgerflow.starter.web.RequestIdFilter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.MDC;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Component;
@@ -58,16 +56,14 @@ class HoldCommandListener {
      * like any other event, in the same transaction as the inbox mark.
      */
     private void reserve(EventEnvelope<?> command, ReserveWallets c) {
-        // the account lookup inside PlaceHold runs within the inbox transaction here; its timeouts bound the wait
-        MDC.put(RequestIdFilter.MDC_KEY, command.correlationId());   // so the FundsHeld events carry the payment's request id
+        // the account lookup inside PlaceHold runs within the inbox transaction here; its timeouts bound the wait.
+        // the inbox has put the command's correlationId on the MDC, so the FundsHeld events carry the payment's request id
         try {
             placeHold.place(c.accountId(), c.wallets(), c.amount(), c.reference());
         } catch (UnknownWalletException e) {
             log.info("rejecting reservation {}: {}", c.reference(), e.getMessage());
             outbox.append(HoldRejected.TOPIC, EventEnvelope.inReplyTo(command, HoldRejected.TYPE, c.reference(), 1,
                     new HoldRejected(c.reference(), e.getMessage())));
-        } finally {
-            MDC.remove(RequestIdFilter.MDC_KEY);
         }
     }
 

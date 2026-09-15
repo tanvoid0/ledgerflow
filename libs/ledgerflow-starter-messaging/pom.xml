@@ -20,6 +20,15 @@
             <artifactId>ledgerflow-events</artifactId>
         </dependency>
         <dependency>
+            <!-- the inbox continues the request id the web starter's filter began -->
+            <groupId>io.ledgerflow</groupId>
+            <artifactId>ledgerflow-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-core</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-autoconfigure</artifactId>
         </dependency>

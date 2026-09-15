@@ -3,7 +3,7 @@
 A double-entry payment ledger with authorisation holds, being built across
 services that talk by events. No distributed transaction anywhere.
 
-Java 25 · Spring Boot 4.1 · Maven multi-module · PostgreSQL 17 · Redpanda · Redis · k6 · Docker
+Java 25 · Spring Boot 4.1 · Maven multi-module · PostgreSQL 17 · Redpanda · Redis · OpenTelemetry + Grafana LGTM · k6 · Docker
 
 ## What exists today
 
@@ -19,8 +19,9 @@ Java 25 · Spring Boot 4.1 · Maven multi-module · PostgreSQL 17 · Redpanda ·
 
 Three shared libraries: `ledgerflow-events` (Money, WalletRef, EventEnvelope, the
 event and command records and their JSON schemas - no behaviour), `ledgerflow-starter-web`
-(the request-id filter as a Boot auto-configuration) and `ledgerflow-starter-messaging`
-(the outbox poller, the inbox that dedupes on eventId, one retry policy for every listener).
+(the request-id filter, and traces, metrics and logs shipped over OTLP, as Boot auto-configurations)
+and `ledgerflow-starter-messaging` (the outbox poller, the inbox that dedupes on eventId, one
+retry policy for every listener; the outbox row carries the trace it was written in).
 
 ## A workflow across services
 
@@ -34,6 +35,21 @@ ones that could have happened. A reply that arrives after the payment has alread
 absorbed, and the compensation already sent covers whatever the late service did.
 Messages: `docs/events/payment-saga.md`. All three failures and the late reply, live:
 `docs/measurements/step-12-saga.md`. Every path: `PaymentSagaTest`, `PaymentFlowIT`.
+
+## One payment is one trace
+
+`grafana/otel-lgtm` runs next to the stack; every service pushes traces, metrics and logs
+to it. A payment is one trace of 48 spans across seven services, both directions of every
+Kafka hop included, from the POST to the last `HoldClosed` reaching the read model - with the
+time between hops measured rather than guessed (2.4s of a 3.2s payment is outbox polling).
+The two Kafka observation flags alone did not do that: the outbox poller sends on its own
+thread, so every trace used to end at the outbox. Now `OutboxAppender` stores the current
+span in the row and `OutboxPublisher` restores it around the send. Every log line carries
+`trace_id`, `requestId` and (in payment) `paymentId`, so Grafana walks from a span to its lines
+and a Loki query by payment finds the whole story. The metrics worth an alert:
+`ledgerflow_dead_letters_total` (zero is the only acceptable value),
+`kafka_consumer_fetch_manager_records_lag_max`, `ledgerflow_saga_compensated_total{step,reason}`.
+The traces, queries and thresholds: `docs/measurements/step-14-observability.md`.
 
 ## A read model that can be thrown away
 
@@ -113,7 +129,7 @@ and a CHECK constraint bring it to exactly one. `perf/race.sh` reproduces it,
 ## Run it
 
 ```bash
-docker compose -f infra/compose/docker-compose.yml up -d      # Postgres 5433, Redpanda 9092, schema registry 18081, Redis 6379
+docker compose -f infra/compose/docker-compose.yml up -d      # Postgres 5433, Redpanda 9092, schema registry 18081, Redis 6379, Grafana 3000
 for t in ledger.wallet-hold.events ledger.hold-rejected.events ledger.hold-closed.events ledger.hold.commands account.entry.events          issuer.authorization.commands issuer.authorization.events settlement.capture.commands settlement.capture.events; do
   docker exec ledgerflow-redpanda rpk topic create ledgerflow.$t.v1 -p 3; done       # retry and dlt topics create themselves
 scripts/check-schemas.sh --register                           # put the event schemas in the registry
@@ -134,6 +150,7 @@ sleep 3; curl -s localhost:8085/api/v1/payments/$PAYMENT | jq       # Captured. 
 curl -s localhost:8083/api/v1/balances/11111111-1111-1111-1111-111111111111 | jq '.wallets[] | select(.label=="A-13")'   # balance 55.00, held 0
 ```
 
+See it: http://localhost:3000 (admin / admin), Explore -> Tempo, search by service `payment-service`, open the trace; "Logs for this span" jumps to Loki.
 Throw the balance view away and watch it come back: `scripts/rebuild-balance.sh`.
 Read your own write: `curl -si localhost:8083/api/v1/balances/<account>/A-12?after=<the X-Request-Id a POST answered with>`.
 
