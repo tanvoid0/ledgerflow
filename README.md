@@ -1,9 +1,15 @@
 # LedgerFlow
 
-A double-entry payment ledger with authorisation holds, being built across
-services that talk by events. No distributed transaction anywhere.
+A double-entry payment ledger: a payment places an authorisation hold, then
+captures or refunds it, run across eight services that talk only by events.
+No distributed transaction anywhere, and no path by which the risk model that
+scores every payment can move money.
 
 Java 25 · Spring Boot 4.1 · Maven multi-module · PostgreSQL 17 · Redpanda · Redis · OpenTelemetry + Grafana LGTM · k6 · Docker
+
+## Walkthrough
+
+One command to a fraud case narrated by a local model, in ninety seconds: `docs/walkthrough.md`.
 
 ## Measured, not claimed
 
@@ -43,12 +49,8 @@ that moved nothing: `docs/measurements/step-15-authorisation-path.md`.
 `perf/bench.sh stepNN` runs the same suite at the end of every step and
 `docs/perf/README.md` (generated) charts the checkpoints, so the cost of each
 added service is a number, not a feeling. Why k6: `docs/adr/0003-k6-over-jmeter.md`.
-Write-ups in `docs/measurements/`.
-
-The overdraft race: 50 concurrent 80.00 debits against a wallet holding 100.00.
-Naive code created ten and left the wallet at -700.00; one conditional UPDATE
-and a CHECK constraint bring it to exactly one. `perf/race.sh` reproduces it,
-`TransferConcurrencyIT` fails if the fix is ever removed.
+Write-ups in `docs/measurements/`. What this system guarantees and what
+enforces each guarantee: "The properties, and where they are enforced" below.
 
 ## What exists today
 
@@ -142,6 +144,11 @@ before and after, in `docs/measurements/step-10-dual-write.md`.
 
 ## The properties, and where they are enforced
 
+The overdraft race: 50 concurrent 80.00 debits against a wallet holding 100.00.
+Naive code created ten and left the wallet at -700.00; one conditional UPDATE
+and a CHECK constraint bring it to exactly one. `perf/race.sh` reproduces it,
+`TransferConcurrencyIT` fails if the fix is ever removed.
+
 | property | enforced by | proved by |
 |---|---|---|
 | Every entry sums to zero | `JournalEntry` compact constructor | `JournalEntryTest` |
@@ -157,19 +164,8 @@ before and after, in `docs/measurements/step-10-dual-write.md`.
 ## Run it
 
 ```bash
-docker compose -f infra/compose/docker-compose.yml up -d      # Postgres 5433, Redpanda 9092, schema registry 18081, Redis 6379, Grafana 3000
-for t in ledger.wallet-hold.events ledger.hold-rejected.events ledger.hold-closed.events ledger.hold.commands account.entry.events          issuer.authorization.commands issuer.authorization.events settlement.capture.commands settlement.capture.events payment.requested.events; do
-  docker exec ledgerflow-redpanda rpk topic create ledgerflow.$t.v1 -p 3; done       # retry and dlt topics create themselves
-scripts/check-schemas.sh --register                           # put the event schemas in the registry
-./mvnw -T 1C clean install                                    # builds everything, runs the tests
-./mvnw -pl services/account-service spring-boot:run           # terminal 1
-./mvnw -pl services/ledger-service spring-boot:run            # terminal 2
-./mvnw -pl services/notification-service spring-boot:run      # terminal 3: watch it for "emailed the customer"
-./mvnw -pl services/payment-service spring-boot:run           # 4, 5, 6: payment, issuer, settlement
-./mvnw -pl services/issuer-service spring-boot:run
-./mvnw -pl services/settlement-service spring-boot:run
-./mvnw -pl services/balance-service spring-boot:run           # 7: the read model
-./mvnw -pl services/risk-service spring-boot:run               # 8: scores the stream, writes nothing to it
+./scripts/demo.sh    # compose --wait, topics + schema registration, build, start all eight, run three scenarios - a few minutes on a warm Maven cache
+./scripts/stop-services.sh
 
 curl -s localhost:8080/api/v1/accounts | jq
 curl -s -X POST localhost:8081/api/v1/holds -H 'content-type: application/json' \
