@@ -8,7 +8,7 @@ Java 25 · Spring Boot 4.1 · Maven multi-module · PostgreSQL 17 · Redpanda ·
 ## Measured, not claimed
 
 Open model (k6 constant-arrival-rate), one machine (Ryzen 9 9950X, 32 threads),
-Postgres 17, Redpanda and Redis in Docker Desktop, seven services as local JVMs.
+Postgres 17, Redpanda and Redis in Docker Desktop, eight services as local JVMs.
 Every raw run is in `docs/perf/`; `perf/compare.sh <before> <after>` reproduces
 any row. Each row below is one change against the row above it. A payment is
 timed from the POST to its saga row reaching Captured (`perf/settled.sh`), not
@@ -30,6 +30,7 @@ to the 202, which takes 5ms at every load and says nothing.
 | Payment, `synchronous_commit = off` (not kept: a ledger does not trade durability for 1s of tail) | 100/s | 300 | 390 | 0% |
 | Payment, the kept path, at 150/s | 150/s | 6791 | 39299 | 16% hit the deadline |
 | Payment, the kept path, at 200/s | 200/s | 17717 | 44996 | 63% hit the deadline |
+| Payment with risk-service scoring every one beside it (`risk.score` p99 0.99ms; A/B off/on: within run-to-run spread) | 100/s | 391 | 996 | 0% |
 
 The outbox poll, not the database, was the authorisation path: seven outbox
 hops at 500ms each put 1.75s of waiting into the mean payment, and one batch
@@ -60,6 +61,7 @@ and a CHECK constraint bring it to exactly one. `perf/race.sh` reproduces it,
 | payment-service | 8085 | the workflow. `POST /api/v1/payments` starts a saga: reserve (ledger), authorize (issuer), issue (settlement). Owns the saga state and a per-step deadline; nothing else. |
 | issuer-service | 8086 | a stub card issuer: authorizes everything except an amount of exactly 1, refunds on request. |
 | settlement-service | 8087 | captures: moves the held money through account-service (`Idempotency-Key` per hold) and remembers each capture so it can revoke it. |
+| risk-service | 8084 | scores every payment for fraud risk off the event stream; rules veto and the score only ranks a payment to review, and its Postgres role cannot connect to any database but its own. |
 
 Three shared libraries: `ledgerflow-events` (Money, WalletRef, EventEnvelope, the
 event and command records and their JSON schemas - no behaviour), `ledgerflow-starter-web`
@@ -150,12 +152,13 @@ before and after, in `docs/measurements/step-10-dual-write.md`.
 | A broker outage loses no event; a rolled-back hold publishes none | transactional outbox, poller marks rows only after the ack | `PlaceHoldIT`, `docs/measurements/step-10-dual-write.md` |
 | Every failed payment ends terminal with its wallets released | sealed state + exhaustive transition, per-step deadline and sweeper, idempotent compensations | `PaymentSagaTest`, `PaymentFlowIT`, `docs/measurements/step-12-saga.md` |
 | The balance view is disposable, and a user sees their own write | projection of events only, atomic mark-and-apply in Lua, outbox backfills, bounded wait on the request id | `ProjectionIT`, `PostTransferIT`, `docs/measurements/step-13-rebuild.md` |
+| A model can flag a payment and cannot move money | rules veto, score ranks, `risk` role cannot connect to the ledger, ArchUnit | `ArchitectureTest`, `RiskRoleIT`, `docs/measurements/step-16-risk.md` |
 
 ## Run it
 
 ```bash
 docker compose -f infra/compose/docker-compose.yml up -d      # Postgres 5433, Redpanda 9092, schema registry 18081, Redis 6379, Grafana 3000
-for t in ledger.wallet-hold.events ledger.hold-rejected.events ledger.hold-closed.events ledger.hold.commands account.entry.events          issuer.authorization.commands issuer.authorization.events settlement.capture.commands settlement.capture.events; do
+for t in ledger.wallet-hold.events ledger.hold-rejected.events ledger.hold-closed.events ledger.hold.commands account.entry.events          issuer.authorization.commands issuer.authorization.events settlement.capture.commands settlement.capture.events payment.requested.events; do
   docker exec ledgerflow-redpanda rpk topic create ledgerflow.$t.v1 -p 3; done       # retry and dlt topics create themselves
 scripts/check-schemas.sh --register                           # put the event schemas in the registry
 ./mvnw -T 1C clean install                                    # builds everything, runs the tests
@@ -166,6 +169,7 @@ scripts/check-schemas.sh --register                           # put the event sc
 ./mvnw -pl services/issuer-service spring-boot:run
 ./mvnw -pl services/settlement-service spring-boot:run
 ./mvnw -pl services/balance-service spring-boot:run           # 7: the read model
+./mvnw -pl services/risk-service spring-boot:run               # 8: scores the stream, writes nothing to it
 
 curl -s localhost:8080/api/v1/accounts | jq
 curl -s -X POST localhost:8081/api/v1/holds -H 'content-type: application/json' \
@@ -178,6 +182,9 @@ curl -s localhost:8083/api/v1/balances/11111111-1111-1111-1111-111111111111 | jq
 See it: http://localhost:3000 (admin / admin), Explore -> Tempo, search by service `payment-service`, open the trace; "Logs for this span" jumps to Loki.
 Throw the balance view away and watch it come back: `scripts/rebuild-balance.sh`.
 Read your own write: `curl -si localhost:8083/api/v1/balances/<account>/A-12?after=<the X-Request-Id a POST answered with>`.
+Score a burst without moving any money: `scripts/replay-fraud.sh` - 30 payments from one account plus one
+blocked beneficiary, watched into `risk_decision` as REVIEW and BLOCK rows with a first case note, saga
+states in payment-service untouched throughout.
 
 Load and race: `perf/bench.sh step15` (the fixed suite, ~6 min), `RATE=100 DURATION=60s perf/run.sh transfer my-label` (one scenario), `perf/race.sh`.
 Watch the events: `docker exec ledgerflow-redpanda rpk topic consume ledgerflow.ledger.wallet-hold.events.v1 -f '%p %k %v\n'`.

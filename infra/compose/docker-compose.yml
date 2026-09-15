@@ -54,6 +54,10 @@ services:
     # Grafana on 3000 (admin / admin); the services push traces, metrics and logs to 4318 (OTLP over HTTP).
     # Tempo, Prometheus and Loki stay inside the container: one image instead of four services to run.
     ports: ["3000:3000", "4317:4317", "4318:4318"]
+    volumes:
+      # the image's own prometheus.yaml plus a rule_files line - no directory to mount a second file into otherwise
+      - "./lgtm/prometheus.yaml:/otel-lgtm/prometheus.yaml"
+      - "./lgtm/risk-scoring-slow.rules.yml:/etc/prometheus/rules/risk-scoring-slow.yml"
 
 volumes:
   pgdata:
