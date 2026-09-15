@@ -1,0 +1,23 @@
+name: ci
+on: [push, pull_request]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: 25
+          distribution: temurin
+          cache: maven
+      # ITs spin up Postgres/Redpanda themselves via Testcontainers, which needs a real Docker
+      # daemon — the ubuntu-latest runner has one. No coverage gate.
+      # No -T1C: the Redpanda Testcontainers image segfaults (exit 139) when two modules
+      # start one concurrently, so modules build one at a time.
+      - run: ./mvnw -B verify
