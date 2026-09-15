@@ -34,6 +34,8 @@ for t in ledger.hold.commands issuer.authorization.commands settlement.capture.c
 done
 docker exec ledgerflow-redpanda rpk topic create ledgerflow.balance.snapshots.v1 -p 3 \
   -c cleanup.policy=compact -c segment.ms=10000 > /dev/null 2>&1 || true   # segment.ms=10000 makes the cleaner visible in dev; never in production
+# Redpanda silently clamps a topic's segment.ms to this cluster floor (10 minutes by default); dev only, like the segment.ms above
+docker exec ledgerflow-redpanda rpk cluster config set log_segment_ms_min 1000 > /dev/null
 ./scripts/check-schemas.sh --register
 
 ./mvnw -q -T1C package -DskipTests

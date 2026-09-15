@@ -162,6 +162,7 @@ and a CHECK constraint bring it to exactly one. `perf/race.sh` reproduces it,
 | A model can flag a payment and cannot move money | rules veto, score ranks, `risk` role cannot connect to the ledger, ArchUnit | `ArchitectureTest`, `RiskRoleIT`, `docs/measurements/step-16-risk.md` |
 | Events for one wallet arrive in order | partition key = the wallet, not the hold; unkeyed sends measured and reverted | `PartitionKeyTest`, `PlaceHoldIT`, `docs/measurements/step-18-partitions.md` |
 | A consumer restart moves no partition | cooperative-sticky assignor + static membership in every consumer | `docs/measurements/step-19-groups.md` |
+| The balance model rebuilds from a snapshot, not from history | compacted `ledgerflow.balance.snapshots.v1`, seeded then resumed from its source offsets | `docs/measurements/step-20-compaction.md` |
 
 ## Run it
 
