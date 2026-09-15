@@ -10,6 +10,7 @@ for i = 0, (#KEYS - 1) / 2 - 1 do
   redis.call('HINCRBY', hash, label .. ':balance', balance)
   redis.call('HINCRBY', hash, label .. ':held', held)
   redis.call('HSET', hash, label .. ':currency', currency)
+  redis.call('HINCRBY', hash, label .. ':version', 1)
   redis.call('SET', done, '1', 'EX', 60)
 end
 return 1

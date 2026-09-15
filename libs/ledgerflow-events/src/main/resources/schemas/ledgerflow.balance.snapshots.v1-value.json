@@ -1,0 +1,59 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ledgerflow.balance.snapshots.v1",
+  "description": "BalanceSnapshot: state, not an EventEnvelope. Closed content model like the others.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "accountId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "label": {
+      "type": "string"
+    },
+    "currency": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 3
+    },
+    "balanceMinor": {
+      "type": "integer"
+    },
+    "heldMinor": {
+      "type": "integer"
+    },
+    "version": {
+      "type": "integer"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "topic": {
+          "type": "string"
+        },
+        "partition": {
+          "type": "integer"
+        },
+        "offset": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "topic",
+        "partition",
+        "offset"
+      ]
+    }
+  },
+  "required": [
+    "accountId",
+    "label",
+    "currency",
+    "balanceMinor",
+    "heldMinor",
+    "version",
+    "source"
+  ]
+}
