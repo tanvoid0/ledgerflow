@@ -14,7 +14,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.kafka.annotation.EnableKafkaRetryTopic;
+import org.springframework.kafka.config.ContainerCustomizer;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
 import org.springframework.kafka.retrytopic.RetryTopicConfiguration;
 import org.springframework.kafka.retrytopic.RetryTopicConfigurationBuilder;
 import org.springframework.kafka.support.EndpointHandlerMethod;
@@ -46,6 +48,25 @@ public class MessagingAutoConfiguration {
     @Bean
     DeadLetters deadLetters(MeterRegistry meters) {
         return new DeadLetters(meters);
+    }
+
+    /**
+     * Five listener containers per service (main, three retry tiers, dlt) share one consumer factory,
+     * so a plain yml group.instance.id gives them all the same static id and the broker fences all but
+     * the first. Suffixing the listener id keeps it unique per JVM and stable across a restart.
+     * Object, Object on purpose: Boot's listener-factory configurer asks the ObjectProvider for exactly
+     * that type, and a String, String customizer is never picked up.
+     */
+    @Bean
+    @ConditionalOnProperty(prefix = "spring.kafka.consumer.properties", name = "group.instance.id")
+    ContainerCustomizer<Object, Object, ConcurrentMessageListenerContainer<Object, Object>> staticMembershipPerContainer(KafkaProperties props) {
+        var groupInstanceId = props.getConsumer().getProperties().get("group.instance.id");
+        return container -> {
+            // retry-topic listener ids carry a '#', which group.instance.id rejects
+            var suffix = container.getListenerId().replaceAll("[^A-Za-z0-9._-]", "_");
+            container.getContainerProperties().getKafkaConsumerProperties()
+                    .setProperty("group.instance.id", groupInstanceId + "-" + suffix);
+        };
     }
 
     /**
