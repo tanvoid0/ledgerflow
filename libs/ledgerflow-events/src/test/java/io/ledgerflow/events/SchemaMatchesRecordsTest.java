@@ -11,6 +11,7 @@ import io.ledgerflow.events.ledger.HoldClosed;
 import io.ledgerflow.events.ledger.HoldRejected;
 import io.ledgerflow.events.ledger.ReleaseWallets;
 import io.ledgerflow.events.ledger.ReserveWallets;
+import io.ledgerflow.events.payment.PaymentRequested;
 import io.ledgerflow.events.settlement.CapturesIssued;
 import io.ledgerflow.events.settlement.IssueCaptures;
 import io.ledgerflow.events.settlement.IssueFailed;
@@ -44,6 +45,7 @@ class SchemaMatchesRecordsTest {
             HoldRejected.TOPIC, List.of(HoldRejected.class),
             HoldClosed.TOPIC, List.of(HoldClosed.class),
             EntryPosted.TOPIC, List.of(EntryPosted.class),
+            PaymentRequested.TOPIC, List.of(PaymentRequested.class),
             ReserveWallets.TOPIC, List.of(ReserveWallets.class, ReleaseWallets.class, CaptureHolds.class),
             AuthorizePayment.TOPIC, List.of(AuthorizePayment.class, RefundPayment.class),
             PaymentAuthorized.TOPIC, List.of(PaymentAuthorized.class, PaymentDeclined.class),
