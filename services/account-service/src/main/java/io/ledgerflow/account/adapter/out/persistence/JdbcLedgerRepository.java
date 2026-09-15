@@ -68,12 +68,15 @@ class JdbcLedgerRepository implements LedgerRepository {
         return new Money(bal, currency);
     }
 
-    /** Check and write in one statement. No row back means the WHERE refused it: no read, no decide, no race. */
+    /**
+     * Check and write in one statement. No row back means the WHERE refused it: no read, no decide, no race.
+     * Treasury is where money enters the system and runs negative by construction; the CHECK says so, and so does this.
+     */
     @Override
     public Optional<WalletRef> debitIfSufficient(UUID walletId, Money amount) {
         return db.sql("""
                 UPDATE wallets SET balance_minor = balance_minor - :amt
-                WHERE id = :id AND balance_minor >= :amt
+                WHERE id = :id AND (balance_minor >= :amt OR label = 'TREASURY')
                 RETURNING account_id, label
                 """)
             .param("amt", amount.minorUnits()).param("id", walletId)

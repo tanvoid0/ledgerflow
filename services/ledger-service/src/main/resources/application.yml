@@ -25,7 +25,7 @@ spring:
       isolation-level: read_committed
     listener:
       observation-enabled: true
-      ack-mode: manual_immediate
+      ack-mode: manual                # one offset commit per poll, not per record: 2ms of broker round trip a record at 100 payments/s was the step 15 cliff
       concurrency: 3
     producer:
       # the outbox row already holds the JSON; the publisher sends it as is

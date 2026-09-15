@@ -82,8 +82,9 @@ public class MessagingAutoConfiguration {
         }
 
         @Bean
-        OutboxPublisher outboxPublisher(JdbcClient db, JsonMapper json, KafkaTemplate<String, String> kafka, ObservationRegistry observations) {
-            return new OutboxPublisher(db, json, kafka, observations);
+        OutboxPublisher outboxPublisher(JdbcClient db, JsonMapper json, KafkaTemplate<String, String> kafka, ObservationRegistry observations,
+                                        TransactionTemplate tx) {
+            return new OutboxPublisher(db, json, kafka, observations, tx);
         }
 
         @Bean

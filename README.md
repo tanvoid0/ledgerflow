@@ -5,6 +5,50 @@ services that talk by events. No distributed transaction anywhere.
 
 Java 25 · Spring Boot 4.1 · Maven multi-module · PostgreSQL 17 · Redpanda · Redis · OpenTelemetry + Grafana LGTM · k6 · Docker
 
+## Measured, not claimed
+
+Open model (k6 constant-arrival-rate), one machine (Ryzen 9 9950X, 32 threads),
+Postgres 17, Redpanda and Redis in Docker Desktop, seven services as local JVMs.
+Every raw run is in `docs/perf/`; `perf/compare.sh <before> <after>` reproduces
+any row. Each row below is one change against the row above it. A payment is
+timed from the POST to its saga row reaching Captured (`perf/settled.sh`), not
+to the 202, which takes 5ms at every load and says nothing.
+
+| path / change | load | p50 ms | p99 ms | failed |
+|---|---|---:|---:|---:|
+| Transfer, naive SUM balance | 100/s | 5 | 8 | 0% |
+| Transfer, materialised balance + atomic debit | 100/s | 5 | 8 | 0% |
+| Hold, both services healthy | 50/s | 7 | 15 | 0% |
+| Hold, account frozen, no timeout | 50/s | 30003 | 30008 | 100% |
+| Hold, account frozen, 800ms timeout + cached fallback | 50/s | 5 | 809 | 0% |
+| Hold, account frozen, + 2 retries | 50/s | 407 | 2012 | 0% |
+| Payment settled, baseline: one outbox batch per 500ms tick, one offset commit per record | 100/s | 15750 | 41478 | 88% hit the 15s deadline |
+| Payment, outbox drains until a batch comes back short | 100/s | 2770 | 29351 | 0% |
+| Payment, one offset commit per poll (`manual`, not `manual_immediate`) | 100/s | 2667 | 3663 | 0% |
+| Payment, outbox tick 500ms -> 50ms | 100/s | 378 | 1452 | 0% |
+| Payment, virtual threads on payment-service (not kept) | 100/s | 417 | 5335 | 0% |
+| Payment, `synchronous_commit = off` (not kept: a ledger does not trade durability for 1s of tail) | 100/s | 300 | 390 | 0% |
+| Payment, the kept path, at 150/s | 150/s | 6791 | 39299 | 16% hit the deadline |
+| Payment, the kept path, at 200/s | 200/s | 17717 | 44996 | 63% hit the deadline |
+
+The outbox poll, not the database, was the authorisation path: seven outbox
+hops at 500ms each put 1.75s of waiting into the mean payment, and one batch
+of 100 per tick capped every service at 200 rows a second, above which the
+backlog only grew until the deadline failed every payment. The ceiling is now
+just above 100/s, and what holds it there is fifteen fsyncs per payment on one
+Docker disk plus the one TREASURY row every capture credits. Where the trace and
+the JFR pointed, what each database ran (`pg_stat_statements`), and the runs
+that moved nothing: `docs/measurements/step-15-authorisation-path.md`.
+`perf/bench.sh stepNN` runs the same suite at the end of every step and
+`docs/perf/README.md` (generated) charts the checkpoints, so the cost of each
+added service is a number, not a feeling. Why k6: `docs/adr/0003-k6-over-jmeter.md`.
+Write-ups in `docs/measurements/`.
+
+The overdraft race: 50 concurrent 80.00 debits against a wallet holding 100.00.
+Naive code created ten and left the wallet at -700.00; one conditional UPDATE
+and a CHECK constraint bring it to exactly one. `perf/race.sh` reproduces it,
+`TransferConcurrencyIT` fails if the fix is ever removed.
+
 ## What exists today
 
 | service | port | owns |
@@ -41,7 +85,8 @@ Messages: `docs/events/payment-saga.md`. All three failures and the late reply, 
 `grafana/otel-lgtm` runs next to the stack; every service pushes traces, metrics and logs
 to it. A payment is one trace of 48 spans across seven services, both directions of every
 Kafka hop included, from the POST to the last `HoldClosed` reaching the read model - with the
-time between hops measured rather than guessed (2.4s of a 3.2s payment is outbox polling).
+time between hops measured rather than guessed: 2.4s of a 3.2s payment was outbox polling,
+which is the number step 15 went after.
 The two Kafka observation flags alone did not do that: the outbox poller sends on its own
 thread, so every trace used to end at the outbox. Now `OutboxAppender` stores the current
 span in the row and `OutboxPublisher` restores it around the send. Every log line carries
@@ -93,26 +138,6 @@ down: the rows wait. Hold rolled back: the row was never there. Why polling
 and not Debezium: `docs/adr/0001-outbox-over-cdc.md`. Kill-the-broker proof,
 before and after, in `docs/measurements/step-10-dual-write.md`.
 
-## Measured, not claimed
-
-Open model (k6 constant-arrival-rate), single node, Postgres 17 in Docker.
-Every raw run is in `docs/perf/`; `perf/compare.sh <before> <after>` reproduces
-any row. Write-ups in `docs/measurements/`.
-
-| path / change | load | p50 | p99 | failed |
-|---|---|---:|---:|---:|
-| Transfer, naive SUM balance | 100/s | 5 | 8 | 0% |
-| Transfer, materialised balance + atomic debit | 100/s | 5 | 8 | 0% |
-| Hold, both services healthy | 50/s | 7 | 15 | 0% |
-| Hold, account frozen, no timeout | 50/s | 30003 | 30008 | 100% |
-| Hold, account frozen, 800ms timeout + cached fallback | 50/s | 5 | 809 | 0% |
-| Hold, account frozen, + 2 retries | 50/s | 407 | 2012 | 0% |
-
-The overdraft race: 50 concurrent 80.00 debits against a wallet holding 100.00.
-Naive code created ten and left the wallet at -700.00; one conditional UPDATE
-and a CHECK constraint bring it to exactly one. `perf/race.sh` reproduces it,
-`TransferConcurrencyIT` fails if the fix is ever removed.
-
 ## The properties, and where they are enforced
 
 | property | enforced by | proved by |
@@ -154,7 +179,7 @@ See it: http://localhost:3000 (admin / admin), Explore -> Tempo, search by servi
 Throw the balance view away and watch it come back: `scripts/rebuild-balance.sh`.
 Read your own write: `curl -si localhost:8083/api/v1/balances/<account>/A-12?after=<the X-Request-Id a POST answered with>`.
 
-Load and race: `RATE=100 DURATION=60s perf/run.sh transfer baseline`, `perf/race.sh`.
+Load and race: `perf/bench.sh step15` (the fixed suite, ~6 min), `RATE=100 DURATION=60s perf/run.sh transfer my-label` (one scenario), `perf/race.sh`.
 Watch the events: `docker exec ledgerflow-redpanda rpk topic consume ledgerflow.ledger.wallet-hold.events.v1 -f '%p %k %v\n'`.
 Break one: `printf 'poison\t{not json\n' | docker exec -i ledgerflow-redpanda rpk topic produce ledgerflow.ledger.wallet-hold.events.v1 -f '%k\t%v\n'`, then `scripts/dlt-depth.sh`.
 Freeze a service to watch the cascade: `scripts/freeze.sh 8080`, `scripts/freeze.sh 8080 --thaw`.
