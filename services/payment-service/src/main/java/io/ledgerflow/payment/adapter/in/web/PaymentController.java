@@ -30,17 +30,18 @@ class PaymentController {
 
     private final Payments payments;
 
-    /** amountMinor is held on, and later captured from, each wallet listed. */
+    /** amountMinor is held on, and later captured from, each wallet listed. beneficiary is optional: who the money is going to. */
     record PaymentRequest(@NotNull UUID accountId,
                           @NotEmpty List<String> wallets,
                           @Positive long amountMinor,
-                          @NotBlank @Size(min = 3, max = 3) String currency) {}
+                          @NotBlank @Size(min = 3, max = 3) String currency,
+                          @Size(max = 64) String beneficiary) {}
 
     /** 202, not 201: the payment exists, but three other services still have to answer. Poll the GET. */
     @PostMapping
     @ResponseStatus(HttpStatus.ACCEPTED)
     PaymentState start(@Valid @RequestBody PaymentRequest req) {
-        return payments.start(req.accountId(), req.wallets(), new Money(req.amountMinor(), req.currency()));
+        return payments.start(req.accountId(), req.wallets(), new Money(req.amountMinor(), req.currency()), req.beneficiary());
     }
 
     @GetMapping("/{id}")

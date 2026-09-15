@@ -9,6 +9,7 @@ import io.ledgerflow.events.ledger.CaptureHolds;
 import io.ledgerflow.events.ledger.FundsHeld;
 import io.ledgerflow.events.ledger.ReleaseWallets;
 import io.ledgerflow.events.ledger.ReserveWallets;
+import io.ledgerflow.events.payment.PaymentRequested;
 import io.ledgerflow.events.settlement.CapturesIssued;
 import io.ledgerflow.events.settlement.IssueCaptures;
 import io.ledgerflow.payment.application.Payments;
@@ -66,15 +67,16 @@ class PaymentFlowIT {
 
     @Test
     void everyServiceAnswers_thePaymentReachesCaptured() {
-        var id = payments.start(ACCOUNT, List.of("A-12"), Money.gbp(4500)).paymentId();
-        await().untilAsserted(() -> assertThat(sent(id)).containsExactly(ReserveWallets.TYPE));
+        var id = payments.start(ACCOUNT, List.of("A-12"), Money.gbp(4500), "shop-1").paymentId();
+        // risk-service's event goes out in the same transaction as the first command, right after it
+        await().untilAsserted(() -> assertThat(sent(id)).containsExactly(ReserveWallets.TYPE, PaymentRequested.TYPE));
 
         var hold = UUID.randomUUID();
         reply(FundsHeld.TOPIC, FundsHeld.TYPE, hold, new FundsHeld(hold, List.of(new WalletRef(ACCOUNT, "A-12")), Instant.now(), Money.gbp(4500), id));
-        await().untilAsserted(() -> assertThat(sent(id)).containsExactly(ReserveWallets.TYPE, AuthorizePayment.TYPE));
+        await().untilAsserted(() -> assertThat(sent(id)).containsExactly(ReserveWallets.TYPE, PaymentRequested.TYPE, AuthorizePayment.TYPE));
 
         reply(PaymentAuthorized.TOPIC, PaymentAuthorized.TYPE, id, new PaymentAuthorized(id, UUID.randomUUID(), Money.gbp(4500)));
-        await().untilAsserted(() -> assertThat(sent(id)).containsExactly(ReserveWallets.TYPE, AuthorizePayment.TYPE, IssueCaptures.TYPE));
+        await().untilAsserted(() -> assertThat(sent(id)).containsExactly(ReserveWallets.TYPE, PaymentRequested.TYPE, AuthorizePayment.TYPE, IssueCaptures.TYPE));
 
         var capture = UUID.randomUUID();
         reply(CapturesIssued.TOPIC, CapturesIssued.TYPE, id, new CapturesIssued(id, List.of(capture)));
@@ -84,17 +86,17 @@ class PaymentFlowIT {
 
     @Test
     void nobodyAnswers_theSweeperFailsThePaymentAndALateHoldChangesNothing() {
-        var id = payments.start(ACCOUNT, List.of("A-12"), Money.gbp(4500)).paymentId();
+        var id = payments.start(ACCOUNT, List.of("A-12"), Money.gbp(4500), null).paymentId();
 
         await().atMost(Duration.ofSeconds(10)).untilAsserted(() ->
                 assertThat(state(id)).isEqualTo(new Failed(id, FailureReason.TIMED_OUT, Step.RESERVE)));
-        assertThat(sent(id)).containsExactly(ReserveWallets.TYPE, ReleaseWallets.TYPE);
+        assertThat(sent(id)).containsExactly(ReserveWallets.TYPE, PaymentRequested.TYPE, ReleaseWallets.TYPE);
 
         var hold = UUID.randomUUID();
         var late = reply(FundsHeld.TOPIC, FundsHeld.TYPE, hold, new FundsHeld(hold, List.of(new WalletRef(ACCOUNT, "A-12")), Instant.now(), Money.gbp(4500), id));
         await().untilAsserted(() -> assertThat(handled(late)).isTrue());
         assertThat(state(id)).isEqualTo(new Failed(id, FailureReason.TIMED_OUT, Step.RESERVE));
-        assertThat(sent(id)).containsExactly(ReserveWallets.TYPE, ReleaseWallets.TYPE);   // the release already sent covers the late hold
+        assertThat(sent(id)).containsExactly(ReserveWallets.TYPE, PaymentRequested.TYPE, ReleaseWallets.TYPE);   // the release already sent covers the late hold
         assertThat(meters.get("ledgerflow.saga.compensated").tags("step", "RESERVE", "reason", "TIMED_OUT").counter().count()).isEqualTo(1);
     }
 
@@ -104,7 +106,7 @@ class PaymentFlowIT {
         var trace = new String[1];
         var id = Observation.createNotStarted("request", observations).observe(() -> {
             trace[0] = tracer.currentSpan().context().traceId();
-            return payments.start(ACCOUNT, List.of("A-12"), Money.gbp(4500)).paymentId();
+            return payments.start(ACCOUNT, List.of("A-12"), Money.gbp(4500), null).paymentId();
         });
 
         assertThat(trace[0]).hasSize(32);   // a real trace id, not the no-op tracer's empty one

@@ -11,6 +11,8 @@ const ACCOUNT_URL = __ENV.ACCOUNT_URL || 'http://localhost:8080';
 const ACCOUNT = '11111111-1111-1111-1111-111111111111';
 const AMOUNT = Number(__ENV.AMOUNT || 100);         // 1.00 per payment
 const WALLETS = Array.from({ length: 20 }, (_, i) => `A-${i + 1}`);
+// small pool, not one per payment: risk-service's "seen this beneficiary before" check needs repeats to be worth anything
+const BENEFICIARIES = ['shop-1', 'shop-2', 'shop-3', 'shop-4', 'shop-5'];
 
 export const options = {
   summaryTrendStats: ['avg', 'med', 'p(95)', 'p(99)', 'max'],
@@ -48,7 +50,7 @@ export function setup() {
 export function pay() {
   const res = http.post(`${BASE}/api/v1/payments`, JSON.stringify({
       accountId: ACCOUNT, wallets: [WALLETS[Math.floor(Math.random() * WALLETS.length)]],
-      amountMinor: AMOUNT, currency: 'GBP' }),
+      amountMinor: AMOUNT, currency: 'GBP', beneficiary: BENEFICIARIES[Math.floor(Math.random() * 5)] }),
     { headers });
   check(res, { 'accepted': r => r.status === 202 });
 }
