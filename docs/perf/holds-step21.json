@@ -1,0 +1,216 @@
+{
+  "options": {
+    "summaryTrendStats": [
+      "avg",
+      "med",
+      "p(95)",
+      "p(99)",
+      "max"
+    ],
+    "summaryTimeUnit": "",
+    "noColor": false
+  },
+  "state": {
+    "isStdErrTTY": false,
+    "testRunDurationMs": 30008.7238,
+    "isStdOutTTY": false
+  },
+  "metrics": {
+    "http_req_receiving": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "med": 0,
+        "p(95)": 0.5001,
+        "p(99)": 0.5022,
+        "max": 1.3105,
+        "avg": 0.06665329780146571
+      }
+    },
+    "http_req_blocked": {
+      "values": {
+        "avg": 0.02166788807461692,
+        "med": 0,
+        "p(95)": 0,
+        "p(99)": 0.5017,
+        "max": 8.4991
+      },
+      "type": "trend",
+      "contains": "time"
+    },
+    "iterations": {
+      "values": {
+        "count": 1501,
+        "rate": 50.01878820318244
+      },
+      "type": "counter",
+      "contains": "default"
+    },
+    "data_sent": {
+      "type": "counter",
+      "contains": "data",
+      "values": {
+        "count": 363242,
+        "rate": 12104.54674517015
+      }
+    },
+    "checks": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "rate": 1,
+        "passes": 1501,
+        "fails": 0
+      }
+    },
+    "http_req_duration": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(95)": 13.5001,
+        "p(99)": 17.4997,
+        "max": 173.698,
+        "avg": 10.110213524317107,
+        "med": 9.0027
+      }
+    },
+    "iteration_duration": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 10.1982441039307,
+        "med": 9.0055,
+        "p(95)": 13.9967,
+        "p(99)": 17.504,
+        "max": 182.1971
+      }
+    },
+    "http_req_sending": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "med": 0,
+        "p(95)": 0,
+        "p(99)": 0,
+        "max": 0.5072,
+        "avg": 0.0013468354430379748
+      }
+    },
+    "http_req_failed": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "rate": 0,
+        "passes": 0,
+        "fails": 1501
+      },
+      "thresholds": {
+        "rate<0.05": {
+          "ok": true
+        }
+      }
+    },
+    "http_req_duration{expected_response:true}": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 10.110213524317107,
+        "med": 9.0027,
+        "p(95)": 13.5001,
+        "p(99)": 17.4997,
+        "max": 173.698
+      }
+    },
+    "vus_max": {
+      "type": "gauge",
+      "contains": "default",
+      "values": {
+        "max": 50,
+        "value": 50,
+        "min": 50
+      }
+    },
+    "http_reqs": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 1501,
+        "rate": 50.01878820318244
+      }
+    },
+    "http_req_waiting": {
+      "contains": "time",
+      "values": {
+        "max": 173.2018,
+        "avg": 10.042213391072613,
+        "med": 9.0009,
+        "p(95)": 13.4999,
+        "p(99)": 17.4997
+      },
+      "type": "trend"
+    },
+    "data_received": {
+      "values": {
+        "count": 599956,
+        "rate": 19992.719583763173
+      },
+      "type": "counter",
+      "contains": "data"
+    },
+    "http_req_connecting": {
+      "contains": "time",
+      "values": {
+        "p(99)": 0.5001,
+        "max": 0.5073,
+        "avg": 0.015664556962025313,
+        "med": 0,
+        "p(95)": 0
+      },
+      "type": "trend"
+    },
+    "http_req_tls_handshaking": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "max": 0,
+        "avg": 0,
+        "med": 0,
+        "p(95)": 0,
+        "p(99)": 0
+      }
+    },
+    "vus": {
+      "type": "gauge",
+      "contains": "default",
+      "values": {
+        "value": 0,
+        "min": 0,
+        "max": 0
+      }
+    }
+  },
+  "meta": {
+    "duration": "30s",
+    "rate": 50,
+    "scenario": "holds",
+    "label": "step21",
+    "commit": "214dccb-dirty",
+    "date": "2026-09-15T20:22:48Z",
+    "host": "AMD Ryzen 9 9950X 16-Core Processor, 32 threads"
+  },
+  "root_group": {
+    "id": "d41d8cd98f00b204e9800998ecf8427e",
+    "groups": [],
+    "checks": [
+      {
+        "name": "2xx",
+        "path": "::2xx",
+        "id": "67e352a901723dd785c9b2fe7ab99432",
+        "passes": 1501,
+        "fails": 0
+      }
+    ],
+    "name": "",
+    "path": ""
+  }
+}
