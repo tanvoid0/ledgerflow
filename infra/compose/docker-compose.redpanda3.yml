@@ -1,0 +1,59 @@
+# Three-node overlay for step 21 (kill a broker): scripts/cluster3.sh applies it, not compose
+# directly - it also needs --renew-anon-volumes (the image declares its own data volume; compose
+# carries it over on a plain recreate) to actually get a fresh cluster: topics, groups and schemas
+# gone until scripts/topics.sh and check-schemas.sh --register run again.
+#   scripts/cluster3.sh up|down
+services:
+  # a compose overlay replaces `command` wholesale - the two kafka listeners and their advertised
+  # addresses are copied from the base file unchanged, plus the flags a cluster member needs.
+  redpanda:
+    command:
+      - redpanda start
+      - --smp 1
+      - --overprovisioned
+      - --kafka-addr PLAINTEXT://0.0.0.0:29092,OUTSIDE://0.0.0.0:9092
+      - --advertise-kafka-addr PLAINTEXT://redpanda:29092,OUTSIDE://localhost:9092
+      - --node-id 0
+      - --rpc-addr 0.0.0.0:33145
+      - --advertise-rpc-addr redpanda:33145
+      - --seeds redpanda:33145
+
+  redpanda-2:
+    image: redpandadata/redpanda:v25.2.1
+    container_name: ledgerflow-redpanda-2
+    command:
+      - redpanda start
+      - --smp 1
+      - --overprovisioned
+      - --node-id 1
+      - --rpc-addr 0.0.0.0:33145
+      - --advertise-rpc-addr redpanda-2:33145
+      - --seeds redpanda:33145
+      - --kafka-addr PLAINTEXT://0.0.0.0:29092,OUTSIDE://0.0.0.0:9092
+      - --advertise-kafka-addr PLAINTEXT://redpanda-2:29092,OUTSIDE://localhost:9192
+    depends_on: [redpanda]
+    ports: ["9192:9092", "9645:9644"]
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health | grep -q 'Healthy:.*true'"]
+      interval: 5s
+      retries: 20
+
+  redpanda-3:
+    image: redpandadata/redpanda:v25.2.1
+    container_name: ledgerflow-redpanda-3
+    command:
+      - redpanda start
+      - --smp 1
+      - --overprovisioned
+      - --node-id 2
+      - --rpc-addr 0.0.0.0:33145
+      - --advertise-rpc-addr redpanda-3:33145
+      - --seeds redpanda:33145
+      - --kafka-addr PLAINTEXT://0.0.0.0:29092,OUTSIDE://0.0.0.0:9092
+      - --advertise-kafka-addr PLAINTEXT://redpanda-3:29092,OUTSIDE://localhost:9292
+    depends_on: [redpanda]
+    ports: ["9292:9092", "9646:9644"]
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health | grep -q 'Healthy:.*true'"]
+      interval: 5s
+      retries: 20
