@@ -82,7 +82,7 @@ public class MessagingAutoConfiguration {
                 .exponentialBackoff(1000, 3.0, 9000)
                 .retryTopicSuffix("." + group + ".retry")
                 .dltSuffix("." + group + ".dlt")
-                .autoCreateTopicsWith(3, (short) 1)
+                .autoCreateTopicsWith(3, (short) -1)   // replicas: the broker default, so a three-node cluster replicates these too
                 .notRetryOn(InvalidPayloadException.class)   // bad data never gets better; skip the retries
                 .dltHandlerMethod(new EndpointHandlerMethod(DeadLetters.class, "onDead"))
                 .create(kafka);
