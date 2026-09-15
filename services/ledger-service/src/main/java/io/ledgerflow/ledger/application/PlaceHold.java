@@ -49,19 +49,30 @@ public class PlaceHold {
             var placed = holds.saveAll(walletCodes.stream()
                     .map(label -> FundsHold.hold(accountId, label, amount, expiry, reference))
                     .toList());
-            placed.forEach(hold -> outbox.append(FundsHeld.TOPIC, fundsHeld(hold)));
+            placed.forEach(hold -> {
+                var wallets = List.of(new WalletRef(hold.accountId(), hold.walletCode()));
+                outbox.append(FundsHeld.TOPIC, fundsHeld(hold, wallets), partitionKey(wallets));
+            });
             return placed;
         });
     }
 
-    /** One event per hold, keyed by the hold id: everything about one hold lands on one partition, in order. */
-    private static EventEnvelope<FundsHeld> fundsHeld(FundsHold hold) {
+    /** One event per hold, aggregateId is the hold: everything about one hold shares an envelope identity. */
+    private static EventEnvelope<FundsHeld> fundsHeld(FundsHold hold, List<WalletRef> wallets) {
         // the HTTP request id is both: it started the story, and it directly caused this event
         var requestId = MDC.get(RequestIdFilter.MDC_KEY);
-        var payload = new FundsHeld(hold.id(),
-                List.of(new WalletRef(hold.accountId(), hold.walletCode())),
-                hold.expiresAt(), hold.amount(), hold.reference());
+        var payload = new FundsHeld(hold.id(), wallets, hold.expiresAt(), hold.amount(), hold.reference());
         // aggregateVersion 1: placing a hold is the first thing that ever happens to it
         return EventEnvelope.of(FundsHeld.TYPE, hold.id(), 1, requestId, requestId, payload);
+    }
+
+    /**
+     * The Kafka partition key: the wallet's history must stay in order, not the hold's (a hold and its
+     * later close already share an aggregateId). One wallet keys by account+label; a hold spanning wallets
+     * keys by the account alone, coarser but still ordered per wallet.
+     */
+    public static String partitionKey(List<WalletRef> wallets) {
+        var first = wallets.getFirst();
+        return wallets.size() == 1 ? first.accountId() + ":" + first.label() : first.accountId().toString();
     }
 }

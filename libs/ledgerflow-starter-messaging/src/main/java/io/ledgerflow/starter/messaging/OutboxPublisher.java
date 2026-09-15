@@ -59,8 +59,9 @@ public class OutboxPublisher {
      * out twice: that is at-least-once, and the consumer's problem to solve (step 11).
      */
     private int publishBatch() {
+        // key is the ordering unit, which is not always the aggregate (a hold's wallet, say, over several holds)
         var pending = db.sql("""
-                SELECT id, aggregate_id, topic, event_type, payload, trace_context
+                SELECT id, COALESCE(partition_key, aggregate_id::text) AS key, topic, event_type, payload, trace_context
                   FROM outbox
                  WHERE published_at IS NULL
                  ORDER BY occurred_at
@@ -86,8 +87,8 @@ public class OutboxPublisher {
         trace.setCarrier(json.readValue(p.traceContext(), HEADERS));
         return Observation.createNotStarted("outbox.publish", () -> trace, observations)
                 .contextualName("publish " + p.eventType())
-                .observe(() -> kafka.send(p.topic(), p.aggregateId().toString(), p.payload()));
+                .observe(() -> kafka.send(p.topic(), p.key(), p.payload()));
     }
 
-    record Pending(UUID id, UUID aggregateId, String topic, String eventType, String payload, String traceContext) {}
+    record Pending(UUID id, String key, String topic, String eventType, String payload, String traceContext) {}
 }
