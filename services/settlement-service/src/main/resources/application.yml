@@ -13,8 +13,6 @@ spring:
   batch:
     job:
       enabled: false          # nothing runs at startup; step 26's CronJob turns this on
-    jdbc:
-      initialize-schema: always   # Postgres, not the embedded default
   mvc:
     problemdetails:
       enabled: true
