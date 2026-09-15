@@ -163,6 +163,7 @@ and a CHECK constraint bring it to exactly one. `perf/race.sh` reproduces it,
 | Events for one wallet arrive in order | partition key = the wallet, not the hold; unkeyed sends measured and reverted | `PartitionKeyTest`, `PlaceHoldIT`, `docs/measurements/step-18-partitions.md` |
 | A consumer restart moves no partition | cooperative-sticky assignor + static membership in every consumer | `docs/measurements/step-19-groups.md` |
 | The balance model rebuilds from a snapshot, not from history | compacted `ledgerflow.balance.snapshots.v1`, seeded then resumed from its source offsets | `docs/measurements/step-20-compaction.md` |
+| A broker dies mid-stream and nothing is lost | rf 3 on every topic under `scripts/cluster3.sh`, `acks=all`, the outbox holds what the cluster will not take | `docs/measurements/step-21-broker.md` |
 
 ## Run it
 
@@ -189,5 +190,6 @@ Load and race: `perf/bench.sh step15` (the fixed suite, ~6 min), `RATE=100 DURAT
 Watch the events: `docker exec ledgerflow-redpanda rpk topic consume ledgerflow.ledger.wallet-hold.events.v1 -f '%p %k %v\n'`.
 Break one: `printf 'poison\t{not json\n' | docker exec -i ledgerflow-redpanda rpk topic produce ledgerflow.ledger.wallet-hold.events.v1 -f '%k\t%v\n'`, then `scripts/dlt-depth.sh`.
 Freeze a service to watch the cascade: `scripts/freeze.sh 8080`, `scripts/freeze.sh 8080 --thaw`.
-Replay the topic and watch nothing move: stop notification, `docker exec ledgerflow-redpanda rpk group seek notification-service --to start` (the group must be empty first, 45s after a kill), start it, `docker exec ledgerflow-postgres psql -U ledgerflow -d notification -c 'SELECT count(*) FROM sent_notifications'` before and after.
+Replay the topic and watch nothing move: stop notification, `docker exec ledgerflow-redpanda rpk group seek notification-service --to start` (the group must be empty first, 30s after a kill or a clean stop under static membership), start it, `docker exec ledgerflow-postgres psql -U ledgerflow -d notification -c 'SELECT count(*) FROM sent_notifications'` before and after.
 Kill the broker and place a hold: `docker stop ledgerflow-redpanda`, then `docker exec ledgerflow-postgres psql -U ledgerflow -d ledger -c 'SELECT count(*) FROM outbox WHERE published_at IS NULL'` before and after `docker start ledgerflow-redpanda`.
+The compose above is one broker, on purpose: nothing to replicate, nothing to lose - `scripts/cluster3.sh up` trades a slower start and 3x the storage per topic for surviving one dead node; `docs/measurements/step-21-broker.md`.
