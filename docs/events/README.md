@@ -42,3 +42,14 @@ Contracts, one file per event: `ledger.FundsHeld.md`.
    second event on the hold topic, the registry refused the `oneOf` as a type change under
    BACKWARD, and `HoldRejected` had to take its own topic. New topics start as `oneOf`.
                                                                   -> step 12 (lesson, not a fix)
+
+## payment.PaymentRequested (v1)
+
+Topic:     ledgerflow.payment.requested.events.v1, keyed by paymentId (= envelope.aggregateId).
+Fields:    paymentId, accountId, wallets, amount (minorUnits + currency), beneficiary (nullable -
+           absent from the JSON entirely, or explicit null, when the caller sent none).
+Producer:  payment-service, appended to the outbox inside `Payments.start`'s own transaction - the
+           same commit that writes the saga row and queues `ReserveWallets`. Not a saga step: nothing
+           replies to it, and a payment risk-service never saw still captures.
+Consumers: risk-service only, on its own group, scoring every payment for fraud risk beside the
+           authorisation path rather than on it. Full contract: docs/measurements/step-16-risk.md.
