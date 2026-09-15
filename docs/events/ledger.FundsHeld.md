@@ -5,7 +5,8 @@ Kind:       event-carried state transfer
 Key:        holdId (= envelope.aggregateId)
 Retention:  7 days (broker default)
 Producer:   ledger-service, after `POST /api/v1/holds` commits
-Consumers:  notification-service. Steps 12/13 add the saga and the read model.
+Consumers:  notification-service, payment-service (the saga's reply), balance-service (the read model).
+Sequel:     ledger.HoldClosed on ledgerflow.ledger.hold-closed.events.v1, same key, aggregateVersion 2.
 Schema:     libs/ledgerflow-events/src/main/resources/schemas/ledgerflow.ledger.wallet-hold.events.v1-value.json
 Java:       io.ledgerflow.events.EventEnvelope<io.ledgerflow.events.ledger.FundsHeld>
 Encoding:   plain JSON, no registry framing. The registry gates the schema file, not the bytes.
@@ -18,9 +19,9 @@ Encoding:   plain JSON, no registry framing. The registry gates the schema file,
 | eventType        | string    | no   | `ledger.FundsHeld`                                  |
 | schemaVersion    | int       | no   | 1                                                   |
 | aggregateId      | UUID      | no   | the hold. Partition key.                            |
-| aggregateVersion | long      | no   | 1 on placement; release/capture will bump it        |
+| aggregateVersion | long      | no   | 1 on placement; the HoldClosed that follows is 2    |
 | occurredAt       | timestamp | no   | UTC, when the producer built the event              |
-| correlationId    | string    | yes  | the `X-Request-Id` of the request that started it   |
+| correlationId    | string    | yes  | the `X-Request-Id` of the request that started it (the payment's, for a saga hold) |
 | causationId      | string    | yes  | same request id: the HTTP call directly caused this |
 | payload          | FundsHeld | no   |                                                     |
 

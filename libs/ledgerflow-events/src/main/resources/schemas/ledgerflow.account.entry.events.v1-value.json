@@ -1,0 +1,119 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ledgerflow.account.entry.events.v1",
+  "description": "EventEnvelope<account.EntryPosted>. Closed content model on purpose: with additionalProperties true, dropping a field would pass BACKWARD.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "eventType": {
+      "type": "string"
+    },
+    "schemaVersion": {
+      "type": "integer"
+    },
+    "aggregateId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "aggregateVersion": {
+      "type": "integer"
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "correlationId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "causationId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "payload": {
+      "title": "account.EntryPosted",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "entryId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "description": {
+          "type": "string"
+        },
+        "lines": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "wallet": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "accountId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "label": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "accountId",
+                  "label"
+                ]
+              },
+              "amount": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "minorUnits": {
+                    "type": "integer"
+                  },
+                  "currency": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 3
+                  }
+                },
+                "required": [
+                  "minorUnits",
+                  "currency"
+                ]
+              }
+            },
+            "required": [
+              "wallet",
+              "amount"
+            ]
+          }
+        }
+      },
+      "required": [
+        "entryId",
+        "description",
+        "lines"
+      ]
+    }
+  },
+  "required": [
+    "eventId",
+    "eventType",
+    "schemaVersion",
+    "aggregateId",
+    "aggregateVersion",
+    "occurredAt",
+    "payload"
+  ]
+}

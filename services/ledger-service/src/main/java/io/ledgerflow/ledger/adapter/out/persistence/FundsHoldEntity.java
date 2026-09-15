@@ -11,6 +11,7 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -40,6 +41,7 @@ class FundsHoldEntity {
     @Column(nullable = false, length = 3)
     private String currency;
 
+    @Setter
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private FundsHold.Status status;

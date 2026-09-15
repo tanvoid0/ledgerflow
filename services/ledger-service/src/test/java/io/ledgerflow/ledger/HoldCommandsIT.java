@@ -3,6 +3,7 @@ package io.ledgerflow.ledger;
 import io.ledgerflow.events.EventEnvelope;
 import io.ledgerflow.events.Money;
 import io.ledgerflow.events.ledger.FundsHeld;
+import io.ledgerflow.events.ledger.HoldClosed;
 import io.ledgerflow.events.ledger.HoldRejected;
 import io.ledgerflow.events.ledger.ReleaseWallets;
 import io.ledgerflow.events.ledger.ReserveWallets;
@@ -53,9 +54,11 @@ class HoldCommandsIT {
 
         send(ReleaseWallets.TYPE, payment, new ReleaseWallets(payment));
         await().untilAsserted(() -> assertThat(statuses(payment)).containsExactly("RELEASED"));
+        assertThat(outboxTypes(payment)).containsExactly(FundsHeld.TYPE, HoldClosed.TYPE);
 
-        send(ReleaseWallets.TYPE, payment, new ReleaseWallets(payment));   // twice is harmless: nothing is open
+        send(ReleaseWallets.TYPE, payment, new ReleaseWallets(payment));   // twice is harmless: nothing is open, nothing is said
         await().untilAsserted(() -> assertThat(statuses(payment)).containsExactly("RELEASED"));
+        assertThat(outboxTypes(payment)).containsExactly(FundsHeld.TYPE, HoldClosed.TYPE);
     }
 
     @Test

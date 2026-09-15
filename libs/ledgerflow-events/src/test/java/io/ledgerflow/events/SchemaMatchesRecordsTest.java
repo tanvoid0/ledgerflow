@@ -1,11 +1,13 @@
 package io.ledgerflow.events;
 
+import io.ledgerflow.events.account.EntryPosted;
 import io.ledgerflow.events.issuer.AuthorizePayment;
 import io.ledgerflow.events.issuer.PaymentAuthorized;
 import io.ledgerflow.events.issuer.PaymentDeclined;
 import io.ledgerflow.events.issuer.RefundPayment;
 import io.ledgerflow.events.ledger.CaptureHolds;
 import io.ledgerflow.events.ledger.FundsHeld;
+import io.ledgerflow.events.ledger.HoldClosed;
 import io.ledgerflow.events.ledger.HoldRejected;
 import io.ledgerflow.events.ledger.ReleaseWallets;
 import io.ledgerflow.events.ledger.ReserveWallets;
@@ -40,6 +42,8 @@ class SchemaMatchesRecordsTest {
     static final Map<String, List<Class<? extends Record>>> TOPICS = Map.of(
             FundsHeld.TOPIC, List.of(FundsHeld.class),
             HoldRejected.TOPIC, List.of(HoldRejected.class),
+            HoldClosed.TOPIC, List.of(HoldClosed.class),
+            EntryPosted.TOPIC, List.of(EntryPosted.class),
             ReserveWallets.TOPIC, List.of(ReserveWallets.class, ReleaseWallets.class, CaptureHolds.class),
             AuthorizePayment.TOPIC, List.of(AuthorizePayment.class, RefundPayment.class),
             PaymentAuthorized.TOPIC, List.of(PaymentAuthorized.class, PaymentDeclined.class),

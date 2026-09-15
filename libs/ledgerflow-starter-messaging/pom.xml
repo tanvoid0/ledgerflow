@@ -28,8 +28,10 @@
             <artifactId>spring-boot-starter-kafka</artifactId>
         </dependency>
         <dependency>
+            <!-- optional: the outbox and inbox need a database, the retries do not. Flyway brings it to every service that has tables. -->
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-jdbc</artifactId>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
