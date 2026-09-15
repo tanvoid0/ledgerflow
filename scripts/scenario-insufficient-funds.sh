@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# A payment for far more than A-2 holds: ledger has nothing to reserve, the saga fails fast, no
-# money moves.
+# A payment for far more than A-2 holds: ledger reserves the wallet optimistically (a hold only
+# checks the wallet exists, not that it can cover the amount) - the debit is where account-service
+# actually refuses it, at capture. No money moves.
 #   scripts/scenario-insufficient-funds.sh
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -35,7 +36,7 @@ done
 
 reason=$(jq -r .reason <<< "$body")
 echo "reason: $reason"
-[ "$reason" = WALLETS_UNAVAILABLE ] || { echo "expected WALLETS_UNAVAILABLE, got $reason"; exit 1; }
+[ "$reason" = ISSUE_FAILED ] || { echo "expected ISSUE_FAILED, got $reason"; exit 1; }
 
 after=$(balance_of)
 echo "A-2 balance unchanged: $after minor"

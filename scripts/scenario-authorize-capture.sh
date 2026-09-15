@@ -46,9 +46,15 @@ while :; do
   sleep 0.2
 done
 
+echo "waiting for balance-service's projection to catch up (Captured is settlement's word, not the read model's)..."
+deadline=$((SECONDS + 10))
 after=$(balance_of)
-echo "A-1 balance after: $after minor (should be $((bal - 100)))"
-[ "$after" -eq $((bal - 100)) ] || { echo "balance did not drop by 100"; exit 1; }
+while [ "$after" -ne $((bal - 100)) ]; do
+  if [ "$SECONDS" -ge "$deadline" ]; then echo "balance did not drop by 100 (still $after)"; exit 1; fi
+  sleep 0.2
+  after=$(balance_of)
+done
+echo "A-1 balance after: $after minor (dropped by 100)"
 
 tempo="http://localhost:3000/explore?schemaVersion=1&panes=%7B%22t%22%3A%7B%22datasource%22%3A%22tempo%22%2C%22queries%22%3A%5B%7B%22query%22%3A%22$request_id%22%2C%22queryType%22%3A%22traceql%22%2C%22datasource%22%3A%7B%22type%22%3A%22tempo%22%2C%22uid%22%3A%22tempo%22%7D%2C%22refId%22%3A%22A%22%7D%5D%2C%22range%22%3A%7B%22from%22%3A%22now-1h%22%2C%22to%22%3A%22now%22%7D%7D%7D&orgId=1"
 echo "trace: $tempo"
