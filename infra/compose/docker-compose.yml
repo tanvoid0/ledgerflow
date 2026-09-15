@@ -46,5 +46,12 @@ services:
       interval: 5s
       retries: 10
 
+  lgtm:
+    image: grafana/otel-lgtm:0.33.0
+    container_name: ledgerflow-lgtm
+    # Grafana on 3000 (admin / admin); the services push traces, metrics and logs to 4318 (OTLP over HTTP).
+    # Tempo, Prometheus and Loki stay inside the container: one image instead of four services to run.
+    ports: ["3000:3000", "4317:4317", "4318:4318"]
+
 volumes:
   pgdata:

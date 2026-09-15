@@ -16,12 +16,15 @@ spring:
     enabled: true
   kafka:
     bootstrap-servers: localhost:9092
+    template:
+      observation-enabled: true         # with the listener's, the trace crosses the broker instead of stopping at it
     consumer:
       group-id: ledger-service
       auto-offset-reset: earliest
       enable-auto-commit: false         # we commit, after the work, not a timer
       isolation-level: read_committed
     listener:
+      observation-enabled: true
       ack-mode: manual_immediate
       concurrency: 3
     producer:
@@ -32,6 +35,22 @@ spring:
         enable.idempotence: true
 
 management:
+  tracing:
+    sampling:
+      probability: 1.0                  # every trace, locally; 0.01-0.1 in production
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: http://localhost:4318/v1/traces
+    logging:
+      export:
+        otlp:
+          endpoint: http://localhost:4318/v1/logs
+  otlp:
+    metrics:
+      export:
+        url: http://localhost:4318/v1/metrics
   endpoints:
     web:
       exposure:

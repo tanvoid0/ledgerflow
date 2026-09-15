@@ -17,15 +17,23 @@ import io.ledgerflow.payment.domain.model.PaymentState.Captured;
 import io.ledgerflow.payment.domain.model.PaymentState.Failed;
 import io.ledgerflow.payment.domain.model.PaymentState.FailureReason;
 import io.ledgerflow.payment.domain.model.PaymentState.Step;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationRegistry;
+import io.micrometer.tracing.Tracer;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.micrometer.tracing.test.autoconfigure.AutoConfigureTracing;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.test.context.TestPropertySource;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -40,7 +48,9 @@ import static org.awaitility.Awaitility.await;
  */
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
-@TestPropertySource(properties = "ledgerflow.step-deadline=3s")
+// Boot propagates trace context only while export is on, and @SpringBootTest turns export off: on again, but not to anywhere
+@AutoConfigureTracing
+@TestPropertySource(properties = {"ledgerflow.step-deadline=3s", "management.tracing.export.otlp.enabled=false"})
 class PaymentFlowIT {
 
     static final UUID ACCOUNT = UUID.fromString("11111111-1111-1111-1111-111111111111");
@@ -49,6 +59,10 @@ class PaymentFlowIT {
     @Autowired KafkaTemplate<String, String> kafka;
     @Autowired JdbcClient db;
     @Autowired JsonMapper json;
+    @Autowired MeterRegistry meters;
+    @Autowired ObservationRegistry observations;
+    @Autowired Tracer tracer;
+    @Autowired ConsumerFactory<String, String> consumers;
 
     @Test
     void everyServiceAnswers_thePaymentReachesCaptured() {
@@ -81,6 +95,35 @@ class PaymentFlowIT {
         await().untilAsserted(() -> assertThat(handled(late)).isTrue());
         assertThat(state(id)).isEqualTo(new Failed(id, FailureReason.TIMED_OUT, Step.RESERVE));
         assertThat(sent(id)).containsExactly(ReserveWallets.TYPE, ReleaseWallets.TYPE);   // the release already sent covers the late hold
+        assertThat(meters.get("ledgerflow.saga.compensated").tags("step", "RESERVE", "reason", "TIMED_OUT").counter().count()).isEqualTo(1);
+    }
+
+    /** The outbox row was written on the request's thread; the poller sends it on its own. Same trace, or the story breaks here. */
+    @Test
+    void theCommandOnTheWireCarriesTheTraceOfTheRequestThatStartedThePayment() {
+        var trace = new String[1];
+        var id = Observation.createNotStarted("request", observations).observe(() -> {
+            trace[0] = tracer.currentSpan().context().traceId();
+            return payments.start(ACCOUNT, List.of("A-12"), Money.gbp(4500)).paymentId();
+        });
+
+        assertThat(trace[0]).hasSize(32);   // a real trace id, not the no-op tracer's empty one
+        var command = onTheWire(ReserveWallets.TOPIC, id);
+        var traceparent = new String(command.headers().lastHeader("traceparent").value(), StandardCharsets.UTF_8);
+        assertThat(traceparent).contains(trace[0]);
+    }
+
+    private ConsumerRecord<String, String> onTheWire(String topic, UUID key) {
+        try (var consumer = consumers.createConsumer("wire-" + UUID.randomUUID(), "")) {
+            consumer.subscribe(List.of(topic));
+            var deadline = Instant.now().plusSeconds(10);
+            while (Instant.now().isBefore(deadline)) {
+                for (var record : consumer.poll(Duration.ofMillis(200))) {
+                    if (record.key().equals(key.toString())) return record;
+                }
+            }
+            throw new AssertionError("nothing for " + key + " on " + topic);
+        }
     }
 
     private UUID reply(String topic, String type, UUID key, Object payload) {
