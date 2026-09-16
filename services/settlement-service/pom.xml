@@ -23,6 +23,11 @@
             <artifactId>ledgerflow-starter-web</artifactId>
         </dependency>
         <dependency>
+            <!-- metrics already leave over OTLP; this adds /actuator/prometheus so a run can be read with curl -->
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
+        <dependency>
             <groupId>io.ledgerflow</groupId>
             <artifactId>ledgerflow-starter-messaging</artifactId>
         </dependency>

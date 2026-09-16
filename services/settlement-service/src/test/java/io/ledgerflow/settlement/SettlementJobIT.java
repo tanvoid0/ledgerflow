@@ -74,7 +74,8 @@ class SettlementJobIT {
 
         // the job repository is JDBC-backed against this same Postgres, not the resourceless default
         assertThat(jobInstanceCount()).isEqualTo(1);
-        assertThat(stepExecutionCount()).isEqualTo(2);
+        assertThat(netByMerchantStepExecutionCount()).isEqualTo(1);
+        // default mode is partition: reads/writes land on lineItemsWorkerStep:partitionN, not the manager step itself
         assertThat(lineItemsReadCount()).isEqualTo(40);
         assertThat(lineItemsWriteCount()).isEqualTo(40);
 
@@ -161,15 +162,23 @@ class SettlementJobIT {
                 .param("name", jobName).query(Long.class).single();
     }
 
-    private long stepExecutionCount() {
-        return db.sql("select count(*) from batch_step_execution").query(Long.class).single();
+    private long netByMerchantStepExecutionCount() {
+        return db.sql("select count(*) from batch_step_execution where step_name = 'netByMerchantStep'").query(Long.class).single();
     }
 
+    // in partition mode (the default) the manager step's own row is an aggregate of its lineItemsWorkerStep:partitionN
+    // children, not additional work — prefer the workers' sum, falling back to the plain step for the other modes
     private long lineItemsReadCount() {
-        return db.sql("select read_count from batch_step_execution where step_name = 'lineItemsStep'").query(Long.class).single();
+        return db.sql("""
+                select coalesce((select sum(read_count) from batch_step_execution where step_name like 'lineItemsWorkerStep:partition%'),
+                                (select sum(read_count) from batch_step_execution where step_name = 'lineItemsStep'))
+                """).query(Long.class).single();
     }
 
     private long lineItemsWriteCount() {
-        return db.sql("select write_count from batch_step_execution where step_name = 'lineItemsStep'").query(Long.class).single();
+        return db.sql("""
+                select coalesce((select sum(write_count) from batch_step_execution where step_name like 'lineItemsWorkerStep:partition%'),
+                                (select sum(write_count) from batch_step_execution where step_name = 'lineItemsStep'))
+                """).query(Long.class).single();
     }
 }
