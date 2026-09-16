@@ -24,9 +24,7 @@ x-service: &service
   # which ships no shell at all): bash is there, curl is not, so the check opens the socket itself.
   # `up --wait` then blocks until every service answers 200, not merely until the container started.
   healthcheck:
-    test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080 && printf 'GET /actuator/health HTTP/1.0
-
-' >&3 && head -1 <&3 | grep -q 200"]
+    test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080 && printf 'GET /actuator/health HTTP/1.0\r\n\r\n' >&3 && head -1 <&3 | grep -q 200"]
     interval: 5s
     timeout: 3s
     retries: 30
