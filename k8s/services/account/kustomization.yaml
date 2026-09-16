@@ -1,0 +1,19 @@
+namePrefix: account-
+resources: [../../base]
+labels:
+  - pairs: {app: account}
+    includeSelectors: true
+images:
+  - name: ledgerflow/service
+    newName: ledgerflow/account-service
+patches:
+  - target: {kind: Deployment}
+    patch: |
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value: {name: DB_URL, value: "jdbc:postgresql://postgres:5432/account"}
+  - target: {kind: Service}
+    patch: |
+      - op: add
+        path: /spec/ports/0/nodePort
+        value: 30080

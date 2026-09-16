@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: service}
+spec:
+  replicas: 2
+  selector: {matchLabels: {app: service}}
+  template:
+    metadata: {labels: {app: service}}
+    spec:
+      terminationGracePeriodSeconds: 45          # longer than the 30s graceful shutdown
+      containers:
+        - name: app
+          image: ledgerflow/service:1.0.0-SNAPSHOT
+          imagePullPolicy: IfNotPresent
+          ports: [{containerPort: 8080}]
+          envFrom:
+            - configMapRef: {name: ledgerflow-env}
+          env:
+            - name: DB_PASSWORD
+              valueFrom: {secretKeyRef: {name: ledgerflow-db, key: password}}
+            # the pod name: two replicas at the same port would otherwise share one static
+            # member id (group.instance.id) and fence each other - step 25's note promised this
+            - name: INSTANCE_ID
+              valueFrom: {fieldRef: {fieldPath: metadata.name}}
+          resources:
+            requests: {cpu: 200m, memory: 768Mi}
+            limits: {memory: 768Mi}
+            # 768Mi is step 25's measured number (310-417MiB RSS per JVM at 70%). No CPU limit:
+            # it throttles rather than kills, and a throttled JVM under GC is a latency mystery.
+          startupProbe:
+            httpGet: {path: /actuator/health/readiness, port: 8080}
+            periodSeconds: 5
+            failureThreshold: 30                 # 150s to boot before anything else judges it
+          readinessProbe:
+            httpGet: {path: /actuator/health/readiness, port: 8080}
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: {path: /actuator/health/liveness, port: 8080}
+            periodSeconds: 10

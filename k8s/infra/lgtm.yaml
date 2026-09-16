@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: Service
+metadata: {name: lgtm}
+spec:
+  selector: {app: lgtm}
+  ports:
+    - {name: grafana, port: 3000, targetPort: 3000, nodePort: 30000}
+    - {name: otlp-grpc, port: 4317, targetPort: 4317}
+    - {name: otlp-http, port: 4318, targetPort: 4318}
+  type: NodePort
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: lgtm}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: lgtm}}
+  template:
+    metadata: {labels: {app: lgtm}}
+    spec:
+      containers:
+        - name: lgtm
+          image: grafana/otel-lgtm:0.33.0
+          # Tempo, Prometheus and Loki stay inside the container: one image instead of four services.
+          # No config mount here (compose's prometheus.yaml + alert rule) - the decisions file scopes
+          # this infra Deployment to image + NodePort only, so the image's own defaults apply.
+          ports:
+            - {containerPort: 3000}
+            - {containerPort: 4317}
+            - {containerPort: 4318}
+          readinessProbe:
+            tcpSocket: {port: 3000}
+            periodSeconds: 5

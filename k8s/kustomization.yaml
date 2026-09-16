@@ -1,0 +1,27 @@
+namespace: ledgerflow
+resources:
+  - infra/postgres.yaml
+  - infra/redpanda.yaml
+  - infra/redis.yaml
+  - infra/lgtm.yaml
+  - services/account
+  - services/ledger
+  - services/notification
+  - services/balance
+  - services/risk
+  - services/payment
+  - services/issuer
+  - services/settlement
+configMapGenerator:
+  - name: ledgerflow-env
+    literals:
+      - DB_USER=ledgerflow
+      - KAFKA_BOOTSTRAP=redpanda:9092
+      - OTLP_ENDPOINT=http://lgtm:4318
+      - REDIS_HOST=redis
+      - OLLAMA_URL=http://host.docker.internal:11434/v1
+      - ACCOUNT_BASE_URL=http://account-service:8080
+      - ISSUER_BASE_URL=http://issuer-service:8080
+      - SERVER_PORT=8080
+      - JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=70
+generatorOptions: {disableNameSuffixHash: true}
