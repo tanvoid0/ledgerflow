@@ -1,0 +1,137 @@
+=== jfr summary (grep -i batch), top 30 ===
+ org.springframework.batch.core.observability.jfr.events.step.chunk.ItemReadEvent              200001       7602373
+ org.springframework.batch.core.observability.jfr.events.step.chunk.ItemProcessEvent           200000       7800270
+ org.springframework.batch.core.observability.jfr.events.step.chunk.ChunkTransactionEvent        2001         84042
+ org.springframework.batch.core.observability.jfr.events.step.chunk.ChunkWriteEvent              2000         80247
+ org.springframework.batch.core.observability.jfr.events.step.StepExecutionEvent                    2            80
+ org.springframework.batch.core.observability.jfr.events.job.JobExecutionEvent                      1            32
+ org.springframework.batch.core.observability.jfr.events.job.JobLaunchEvent                         1            20
+ org.springframework.batch.core.observability.jfr.events.step.tasklet.TaskletExecutionEvent         1            68
+
+=== jfr view hot-methods, top 30 ===
+
+                                           Java Methods that Execute the Most
+
+Method                                                                                                  Samples Percent
+------------------------------------------------------------------------------------------------------- ------- -------
+java.util.Comparator.lambda$comparing$77a9974f$1(Function, Object, Object)                                   32   3.17%
+java.util.ArrayList.grow(int)                                                                                31   3.07%
+java.util.HashMap.putVal(int, Object, Object, boolean, boolean)                                              19   1.88%
+java.lang.String.checkIndex(int, int)                                                                        17   1.68%
+io.opentelemetry.exporter.internal.marshal.CodedOutputStream$AbstractBufferedEncoder.bufferUInt32NoT...      15   1.49%
+java.util.concurrent.ConcurrentHashMap.get(Object)                                                           14   1.39%
+io.opentelemetry.api.common.ArrayBackedAttributesBuilder.build()                                             12   1.19%
+io.micrometer.tracing.otel.bridge.OtelFinishedSpan$MutableSpanData.getAttributes()                           12   1.19%
+java.lang.StringLatin1.toLowerCase(String, byte[], Locale)                                                   11   1.09%
+io.opentelemetry.exporter.internal.otlp.AttributeKeyValueStatelessMarshaler.writeTo(...)                     10   0.99%
+java.util.HashMap$HashIterator.nextNode()                                                                    10   0.99%
+jdk.internal.net.http.HttpClientImpl.sendAsync(...)                                                          10   0.99%
+java.util.concurrent.ConcurrentSkipListMap.doRemove(Object, Object)                                          10   0.99%
+java.lang.StringLatin1.compareToCI(byte[], byte[])                                                           10   0.99%
+java.util.HashMap.putMapEntries(Map, boolean)                                                                10   0.99%
+java.lang.ThreadLocal$ThreadLocalMap.getEntryAfterMiss(...)                                                  10   0.99%
+java.util.ComparableTimSort.countRunAndMakeAscending(Object[], int, int)                                      9   0.89%
+java.util.concurrent.ConcurrentHashMap.putVal(Object, Object, boolean)                                        9   0.89%
+java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor$Worker)                                  9   0.89%
+java.util.ArrayList.addAll(Collection)                                                                        9   0.89%
+io.micrometer.observation.docs.ObservationDocumentation.observation(...)                                      9   0.89%
+java.util.concurrent.ConcurrentHashMap$Traverser.advance()                                                    8   0.79%
+java.util.concurrent.CompletableFuture.postComplete()                                                         8   0.79%
+java.util.concurrent.ConcurrentSkipListMap.doPut(Object, Object, boolean)                                     8   0.79%
+java.lang.ThreadLocal$ThreadLocalMap.set(ThreadLocal, Object)                                                 8   0.79%
+
+=== jfr print --events ItemReadEvent, first event (top 30 lines) ===
+org.springframework.batch.core.observability.jfr.events.step.chunk.ItemReadEvent {
+  startTime = 00:11:10.935 (2026-09-17)
+  duration = 0.302 ms
+  stepName = "lineItemsStep"
+  stepExecutionId = 4
+  itemReadStatus = "SUCCESS"
+  eventThread = "http-nio-8087-exec-3" (javaThreadId = 89)
+  stackTrace = [
+    org.springframework.batch.core.step.item.ChunkOrientedStep.readItem(StepContribution) line: 631
+    org.springframework.batch.core.step.item.ChunkOrientedStep.readChunk(StepContribution) line: 585
+    org.springframework.batch.core.step.item.ChunkOrientedStep.processChunkSequentially(TransactionStatus, StepContribution, StepExecution) line: 530
+    org.springframework.batch.core.step.item.ChunkOrientedStep.processNextChunk(TransactionStatus, StepContribution, StepExecution) line: 406
+    org.springframework.batch.core.step.item.ChunkOrientedStep.lambda$doExecute$0(StepExecution, TransactionStatus) line: 377
+    ...
+  ]
+}
+
+org.springframework.batch.core.observability.jfr.events.step.chunk.ItemReadEvent {
+  startTime = 00:11:10.935 (2026-09-17)
+  duration = 0.101 ms
+  stepName = "lineItemsStep"
+  stepExecutionId = 4
+  itemReadStatus = "SUCCESS"
+  eventThread = "http-nio-8087-exec-3" (javaThreadId = 89)
+  stackTrace = [
+    org.springframework.batch.core.step.item.ChunkOrientedStep.readItem(StepContribution) line: 631
+    org.springframework.batch.core.step.item.ChunkOrientedStep.readChunk(StepContribution) line: 585
+    org.springframework.batch.core.step.item.ChunkOrientedStep.processChunkSequentially(TransactionStatus, StepContribution, StepExecution) line: 530
+    org.springframework.batch.core.step.item.ChunkOrientedStep.processNextChunk(TransactionStatus, StepContribution, StepExecution) line: 406
+    org.springframework.batch.core.step.item.ChunkOrientedStep.lambda$doExecute$0(StepExecution, TransactionStatus) line: 377
+
+=== jfr print --events ChunkWriteEvent, first event (top 30 lines) ===
+org.springframework.batch.core.observability.jfr.events.step.chunk.ChunkWriteEvent {
+  startTime = 00:11:10.983 (2026-09-17)
+  duration = 2.31 ms
+  stepName = "lineItemsStep"
+  stepExecutionId = 4
+  chunkWriteStatus = "SUCCESS"
+  itemCount = 100
+  eventThread = "http-nio-8087-exec-3" (javaThreadId = 89)
+  stackTrace = [
+    org.springframework.batch.core.step.item.ChunkOrientedStep.writeChunk(Chunk, StepContribution) line: 801
+    org.springframework.batch.core.step.item.ChunkOrientedStep.processChunkSequentially(TransactionStatus, StepContribution, StepExecution) line: 536
+    org.springframework.batch.core.step.item.ChunkOrientedStep.processNextChunk(TransactionStatus, StepContribution, StepExecution) line: 406
+    org.springframework.batch.core.step.item.ChunkOrientedStep.lambda$doExecute$0(StepExecution, TransactionStatus) line: 377
+    org.springframework.transaction.support.TransactionOperations.lambda$executeWithoutResult$0(Consumer, TransactionStatus) line: 68
+    ...
+  ]
+}
+
+org.springframework.batch.core.observability.jfr.events.step.chunk.ChunkWriteEvent {
+  startTime = 00:11:11.027 (2026-09-17)
+  duration = 1.55 ms
+  stepName = "lineItemsStep"
+  stepExecutionId = 4
+  chunkWriteStatus = "SUCCESS"
+  itemCount = 100
+  eventThread = "http-nio-8087-exec-3" (javaThreadId = 89)
+  stackTrace = [
+    org.springframework.batch.core.step.item.ChunkOrientedStep.writeChunk(Chunk, StepContribution) line: 801
+    org.springframework.batch.core.step.item.ChunkOrientedStep.processChunkSequentially(TransactionStatus, StepContribution, StepExecution) line: 536
+    org.springframework.batch.core.step.item.ChunkOrientedStep.processNextChunk(TransactionStatus, StepContribution, StepExecution) line: 406
+
+=== jfr print --events StepExecutionEvent, full (30 lines) ===
+org.springframework.batch.core.observability.jfr.events.step.StepExecutionEvent {
+  startTime = 00:11:10.822 (2026-09-17)
+  duration = 1 m 2 s
+  stepName = "lineItemsStep"
+  jobName = "nightlySettlementJob"
+  stepExecutionId = 4
+  jobExecutionId = 3
+  exitStatus = "COMPLETED"
+  eventThread = "http-nio-8087-exec-3" (javaThreadId = 89)
+  stackTrace = [
+    org.springframework.batch.core.step.AbstractStep.execute(StepExecution) line: 324
+    org.springframework.batch.core.job.SimpleStepHandler.handleStep(Step, JobExecution) line: 128
+    org.springframework.batch.core.job.AbstractJob.handleStep(Step, JobExecution) line: 397
+    org.springframework.batch.core.job.SimpleJob.doExecute(JobExecution) line: 129
+    org.springframework.batch.core.job.AbstractJob.execute(JobExecution) line: 293
+    ...
+  ]
+}
+
+org.springframework.batch.core.observability.jfr.events.step.StepExecutionEvent {
+  startTime = 00:12:12.622 (2026-09-17)
+  duration = 743 ms
+  stepName = "netByMerchantStep"
+  jobName = "nightlySettlementJob"
+  stepExecutionId = 5
+  jobExecutionId = 3
+  exitStatus = "COMPLETED"
+  eventThread = "http-nio-8087-exec-3" (javaThreadId = 89)
+  stackTrace = [
+    org.springframework.batch.core.step.AbstractStep.execute(StepExecution) line: 324
