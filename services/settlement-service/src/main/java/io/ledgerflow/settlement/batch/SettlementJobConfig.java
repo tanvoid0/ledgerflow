@@ -1,31 +1,43 @@
 package io.ledgerflow.settlement.batch;
 
 import io.ledgerflow.settlement.adapter.out.issuer.FxRateGateway;
+import io.ledgerflow.settlement.config.LineItemsProperties;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.job.Job;
 import org.springframework.batch.core.job.builder.JobBuilder;
+import org.springframework.batch.core.listener.StepExecutionListener;
+import org.springframework.batch.core.partition.Partitioner;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.Step;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.infrastructure.item.ItemProcessor;
+import org.springframework.batch.infrastructure.item.ItemReader;
 import org.springframework.batch.infrastructure.item.database.JdbcBatchItemWriter;
 import org.springframework.batch.infrastructure.item.database.JdbcCursorItemReader;
+import org.springframework.batch.infrastructure.item.database.JdbcPagingItemReader;
+import org.springframework.batch.infrastructure.item.database.Order;
 import org.springframework.batch.infrastructure.item.database.builder.JdbcBatchItemWriterBuilder;
 import org.springframework.batch.infrastructure.item.database.builder.JdbcCursorItemReaderBuilder;
+import org.springframework.batch.infrastructure.item.database.builder.JdbcPagingItemReaderBuilder;
+import org.springframework.batch.infrastructure.item.database.support.PostgresPagingQueryProvider;
 import org.springframework.batch.infrastructure.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.retry.RetryPolicy;
+import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.web.client.RestClientException;
 
 import javax.sql.DataSource;
 import java.sql.Date;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.Duration;
 import java.time.LocalDate;
+import java.util.Map;
 import java.util.UUID;
 
 /** The nightly job: settlement_item -> settlement_line (fee taken out) -> settlement_batch (netted per merchant). */
@@ -41,11 +53,75 @@ class SettlementJobConfig {
                 .sql("select id, payment_id, merchant_id, amount_minor, currency, business_date "
                         + "from settlement_item where business_date = ? and status = 'NEW' order by id")
                 .queryArguments(LocalDate.parse(businessDate))   // bound as DATE; the raw string left unparsed compares varchar = date and Postgres refuses it
-
-                .rowMapper((rs, rowNum) -> new SettlementItem(rs.getLong("id"), UUID.fromString(rs.getString("payment_id")),
-                        rs.getString("merchant_id"), rs.getLong("amount_minor"), rs.getString("currency"),
-                        rs.getDate("business_date").toLocalDate()))
+                .rowMapper(SettlementJobConfig::mapItem)
                 .build();
+    }
+
+    /** threads-paging's reader: same rows as itemReader, but a paging query so a race across 4 threads doesn't share one cursor. */
+    @Bean
+    @StepScope
+    JdbcPagingItemReader<SettlementItem> pagingItemReader(@Value("#{jobParameters['businessDate']}") String businessDate, DataSource ds)
+            throws Exception {
+        var queryProvider = new PostgresPagingQueryProvider();
+        queryProvider.setSelectClause("id, payment_id, merchant_id, amount_minor, currency, business_date");
+        queryProvider.setFromClause("settlement_item");
+        queryProvider.setWhereClause("status = 'NEW' and business_date = :businessDate");
+        queryProvider.setSortKeys(Map.of("id", Order.ASCENDING));
+
+        return new JdbcPagingItemReaderBuilder<SettlementItem>()
+                .name("settlementPagingItemReader")
+                .dataSource(ds)
+                .queryProvider(queryProvider)
+                .parameterValues(Map.of("businessDate", LocalDate.parse(businessDate)))
+                .pageSize(100)
+                .saveState(false)
+                .rowMapper(SettlementJobConfig::mapItem)
+                .build();
+    }
+
+    /** partition mode's reader: one contiguous id range per worker, so saveState is honest — each worker owns its own slice. */
+    @Bean
+    @StepScope
+    JdbcPagingItemReader<SettlementItem> partitionedItemReader(@Value("#{jobParameters['businessDate']}") String businessDate,
+                                                                 @Value("#{stepExecutionContext['minId']}") Long minId,
+                                                                 @Value("#{stepExecutionContext['maxId']}") Long maxId, DataSource ds)
+            throws Exception {
+        var queryProvider = new PostgresPagingQueryProvider();
+        queryProvider.setSelectClause("id, payment_id, merchant_id, amount_minor, currency, business_date");
+        queryProvider.setFromClause("settlement_item");
+        queryProvider.setWhereClause("status = 'NEW' and business_date = :businessDate and id between :minId and :maxId");
+        queryProvider.setSortKeys(Map.of("id", Order.ASCENDING));
+
+        return new JdbcPagingItemReaderBuilder<SettlementItem>()
+                .name("partitionedItemReader")
+                .dataSource(ds)
+                .queryProvider(queryProvider)
+                .parameterValues(Map.of("businessDate", LocalDate.parse(businessDate), "minId", minId, "maxId", maxId))
+                .pageSize(100)
+                .saveState(true)
+                .rowMapper(SettlementJobConfig::mapItem)
+                .build();
+    }
+
+    @Bean
+    @StepScope
+    Partitioner idRangePartitioner(@Value("#{jobParameters['businessDate']}") String businessDate, JdbcClient db, LineItemsProperties props) {
+        return new IdRangePartitioner(db, LocalDate.parse(businessDate), props.gridSize());
+    }
+
+    /** threads-cursor and threads-paging share this pool; partition mode also uses it, sized to the grid instead of a flat 4. */
+    @Bean
+    SimpleAsyncTaskExecutor settleExecutor(LineItemsProperties props) {
+        var executor = new SimpleAsyncTaskExecutor("settle-");
+        executor.setVirtualThreads(true);
+        executor.setConcurrencyLimit(props.lineItems() == LineItemsProperties.Mode.PARTITION ? props.gridSize() : 4);
+        return executor;
+    }
+
+    private static SettlementItem mapItem(ResultSet rs, int rowNum) throws SQLException {
+        return new SettlementItem(rs.getLong("id"), UUID.fromString(rs.getString("payment_id")),
+                rs.getString("merchant_id"), rs.getLong("amount_minor"), rs.getString("currency"),
+                rs.getDate("business_date").toLocalDate());
     }
 
     @Bean
@@ -97,21 +173,58 @@ class SettlementJobConfig {
                 .build();
     }
 
-    @Bean
-    Step lineItemsStep(JobRepository jobRepository, PlatformTransactionManager tx, JdbcCursorItemReader<SettlementItem> itemReader,
-                       ItemProcessor<SettlementItem, SettlementLine> lineProcessor, JdbcBatchItemWriter<SettlementLine> lineWriter,
-                       RetryPolicy transientOnly, RejectUnsettleableItems rejectUnsettleableItems) {
-        return new StepBuilder("lineItemsStep", jobRepository)
+    /** Shared by every mode: reader is the only thing that varies, executor only for the threaded ones. */
+    private static Step chunkStep(String name, JobRepository jobRepository, PlatformTransactionManager tx,
+                                   ItemReader<SettlementItem> reader, ItemProcessor<SettlementItem, SettlementLine> lineProcessor,
+                                   JdbcBatchItemWriter<SettlementLine> lineWriter, RetryPolicy transientOnly,
+                                   RejectUnsettleableItems rejectUnsettleableItems, SettlementMetrics metrics,
+                                   SimpleAsyncTaskExecutor executor) {
+        var builder = new StepBuilder(name, jobRepository)
                 .<SettlementItem, SettlementLine>chunk(100)
                 .transactionManager(tx)
-                .reader(itemReader)
+                .reader(reader)
                 .processor(lineProcessor)
                 .writer(lineWriter)
                 .faultTolerant()
                 .retryPolicy(transientOnly)
                 .skipPolicy(rejectUnsettleableItems)
                 .skipListener(rejectUnsettleableItems)
-                .build();
+                .listener((StepExecutionListener) metrics);
+        if (executor != null) {
+            builder.taskExecutor(executor);
+        }
+        return builder.build();
+    }
+
+    @Bean
+    Step lineItemsWorkerStep(JobRepository jobRepository, PlatformTransactionManager tx,
+                             JdbcPagingItemReader<SettlementItem> partitionedItemReader,
+                             ItemProcessor<SettlementItem, SettlementLine> lineProcessor, JdbcBatchItemWriter<SettlementLine> lineWriter,
+                             RetryPolicy transientOnly, RejectUnsettleableItems rejectUnsettleableItems, SettlementMetrics metrics) {
+        return chunkStep("lineItemsWorkerStep", jobRepository, tx, partitionedItemReader, lineProcessor, lineWriter, transientOnly,
+                rejectUnsettleableItems, metrics, null);
+    }
+
+    @Bean
+    Step lineItemsStep(JobRepository jobRepository, PlatformTransactionManager tx, LineItemsProperties props,
+                       JdbcCursorItemReader<SettlementItem> itemReader, JdbcPagingItemReader<SettlementItem> pagingItemReader,
+                       ItemProcessor<SettlementItem, SettlementLine> lineProcessor, JdbcBatchItemWriter<SettlementLine> lineWriter,
+                       RetryPolicy transientOnly, RejectUnsettleableItems rejectUnsettleableItems, SettlementMetrics metrics,
+                       SimpleAsyncTaskExecutor settleExecutor, Partitioner idRangePartitioner, Step lineItemsWorkerStep) {
+        return switch (props.lineItems()) {
+            case SINGLE -> chunkStep("lineItemsStep", jobRepository, tx, itemReader, lineProcessor, lineWriter, transientOnly,
+                    rejectUnsettleableItems, metrics, null);
+            case THREADS_CURSOR -> chunkStep("lineItemsStep", jobRepository, tx, itemReader, lineProcessor, lineWriter, transientOnly,
+                    rejectUnsettleableItems, metrics, settleExecutor);
+            case THREADS_PAGING -> chunkStep("lineItemsStep", jobRepository, tx, pagingItemReader, lineProcessor, lineWriter, transientOnly,
+                    rejectUnsettleableItems, metrics, settleExecutor);
+            case PARTITION -> new StepBuilder("lineItemsStep", jobRepository)
+                    .partitioner("lineItemsWorkerStep", idRangePartitioner)
+                    .step(lineItemsWorkerStep)
+                    .gridSize(props.gridSize())
+                    .taskExecutor(settleExecutor)
+                    .build();
+        };
     }
 
     /**
@@ -142,10 +255,12 @@ class SettlementJobConfig {
     }
 
     @Bean
-    Step netByMerchantStep(JobRepository jobRepository, PlatformTransactionManager tx, Tasklet netByMerchantTasklet) {
+    Step netByMerchantStep(JobRepository jobRepository, PlatformTransactionManager tx, Tasklet netByMerchantTasklet,
+                           SettlementMetrics metrics) {
         return new StepBuilder("netByMerchantStep", jobRepository)
                 .tasklet(netByMerchantTasklet)
                 .transactionManager(tx)
+                .listener((StepExecutionListener) metrics)
                 .build();
     }
 

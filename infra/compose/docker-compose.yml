@@ -58,6 +58,9 @@ services:
       # the image's own prometheus.yaml plus a rule_files line - no directory to mount a second file into otherwise
       - "./lgtm/prometheus.yaml:/otel-lgtm/prometheus.yaml"
       - "./lgtm/risk-scoring-slow.rules.yml:/etc/prometheus/rules/risk-scoring-slow.yml"
+      # LedgerFlow dashboard: provider yaml into the dashboards provisioning dir, json where the provider's path points
+      - "./lgtm/dashboards.yaml:/otel-lgtm/grafana/conf/provisioning/dashboards/ledgerflow.yaml"
+      - "./lgtm/dashboards:/otel-lgtm/ledgerflow-dashboards"
 
 volumes:
   pgdata:

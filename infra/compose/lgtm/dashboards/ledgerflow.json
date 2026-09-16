@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 39,
+  "title": "LedgerFlow",
+  "uid": "ledgerflow",
+  "timezone": "browser",
+  "panels": [
+    {
+      "id": 1,
+      "title": "HTTP p99",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.99, sum by (le, uri) (rate(http_server_requests_seconds_bucket[1m])))",
+          "legendFormat": "{{uri}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Batch job duration",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "spring_batch_job_seconds_max",
+          "legendFormat": "{{spring_batch_job_name}} max ({{spring_batch_job_status}})"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "spring_batch_job_seconds_sum / spring_batch_job_seconds_count",
+          "legendFormat": "{{spring_batch_job_name}} avg ({{spring_batch_job_status}})"
+        }
+      ]
+    }
+  ]
+}

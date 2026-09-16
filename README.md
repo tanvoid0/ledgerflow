@@ -171,6 +171,7 @@ and a CHECK constraint bring it to exactly one. `perf/race.sh` reproduces it,
 | A feed goes down, a row is wrong, a pod dies - the run finishes anyway | retry policy with includes/excludes, skip policy with a limit and a reject table, restart by execution id, recover for a killed JVM | `SettlementFaultToleranceTest`, `docs/measurements/step-24-failures.md` |
 | One script, a clean machine, the whole system in containers | Paketo images from the pom, `${ENV:default}` everywhere, one compose file, the same image as a one-shot job with an exit code | `scripts/demo-compose.sh`, `docs/measurements/step-25-containers.md` |
 | The cluster owns the timetable | kind + kustomize, three probes that mean three things, CronJobs with Forbid, a stranded execution recovered from a command line with the service scaled to zero | `scripts/k8s-up.sh`, `docs/measurements/step-26-kubernetes.md` |
+| A shared cursor reader races under threads; a partitioned step does not | `JdbcPagingItemReader` for a safe shared reader, `IdRangePartitioner` for one range and one reader per worker, restart re-runs only the failed partitions | `docs/measurements/step-27-batch-throughput.md` |
 
 ## Run it
 
