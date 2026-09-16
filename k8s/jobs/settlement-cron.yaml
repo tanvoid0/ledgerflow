@@ -1,0 +1,41 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata: {name: nightly-settlement}
+spec:
+  schedule: "5 1 * * *"                 # five fields here - this is not Spring's six-field cron
+  timeZone: "Europe/London"
+  concurrencyPolicy: Forbid             # never two settlement runs at once
+  startingDeadlineSeconds: 3600         # if the cluster was down, still run within the hour
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      backoffLimit: 2                   # two retries of the whole pod, then give up
+      activeDeadlineSeconds: 3600
+      ttlSecondsAfterFinished: 86400
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: job
+              image: ledgerflow/settlement-service:1.0.0-SNAPSHOT
+              imagePullPolicy: IfNotPresent
+              # bash, not a bare args list: businessDate has to be computed at run time (yesterday,
+              # as of whenever this pod actually starts), and /cnb/process/web is the buildpack
+              # launcher - exec into it so the env Boot needs is still set up underneath
+              command: ["bash", "-c"]
+              args:
+                - >-
+                  exec /cnb/process/web
+                  --spring.batch.job.enabled=true
+                  --spring.batch.job.name=nightlySettlementJob
+                  --spring.main.web-application-type=none
+                  businessDate=$(date -d yesterday +%F)
+              envFrom: [{configMapRef: {name: ledgerflow-env}}]
+              env:
+                - {name: DB_URL, value: "jdbc:postgresql://postgres:5432/settlement"}
+                - name: DB_PASSWORD
+                  valueFrom: {secretKeyRef: {name: ledgerflow-db, key: password}}
+              resources:
+                requests: {cpu: 500m, memory: 768Mi}
+                limits: {memory: 768Mi}

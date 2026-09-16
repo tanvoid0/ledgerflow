@@ -1,0 +1,15 @@
+namePrefix: balance-
+resources: [../../base]
+labels:
+  - pairs: {app: balance}
+    includeSelectors: true
+images:
+  - name: ledgerflow/service
+    newName: ledgerflow/balance-service
+patches:
+  # balance-service is Redis-only, rebuilt from the log - no datasource, no DB_URL, no Postgres dependency
+  - target: {kind: Service}
+    patch: |
+      - op: add
+        path: /spec/ports/0/nodePort
+        value: 30083

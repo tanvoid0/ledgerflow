@@ -1,0 +1,19 @@
+namePrefix: payment-
+resources: [../../base]
+labels:
+  - pairs: {app: payment}
+    includeSelectors: true
+images:
+  - name: ledgerflow/service
+    newName: ledgerflow/payment-service
+patches:
+  - target: {kind: Deployment}
+    patch: |
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value: {name: DB_URL, value: "jdbc:postgresql://postgres:5432/payment"}
+  - target: {kind: Service}
+    patch: |
+      - op: add
+        path: /spec/ports/0/nodePort
+        value: 30085
