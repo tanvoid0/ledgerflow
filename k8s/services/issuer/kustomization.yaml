@@ -1,0 +1,19 @@
+namePrefix: issuer-
+resources: [../../base]
+labels:
+  - pairs: {app: issuer}
+    includeSelectors: true
+images:
+  - name: ledgerflow/service
+    newName: ledgerflow/issuer-service
+patches:
+  - target: {kind: Deployment}
+    patch: |
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value: {name: DB_URL, value: "jdbc:postgresql://postgres:5432/issuer"}
+  - target: {kind: Service}
+    patch: |
+      - op: add
+        path: /spec/ports/0/nodePort
+        value: 30086

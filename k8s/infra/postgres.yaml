@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: Service
+metadata: {name: postgres}
+spec:
+  selector: {app: postgres}
+  ports: [{port: 5432, targetPort: 5432}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: postgres}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: postgres}}
+  template:
+    metadata: {labels: {app: postgres}}
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:17
+          # pg_stat_statements: what each database actually ran, by total time. CREATE EXTENSION once per database.
+          args: ["-c", "shared_preload_libraries=pg_stat_statements"]
+          env:
+            - {name: POSTGRES_USER, value: ledgerflow}
+            - {name: POSTGRES_DB, value: account}
+            - name: POSTGRES_PASSWORD
+              valueFrom: {secretKeyRef: {name: ledgerflow-db, key: password}}
+          ports: [{containerPort: 5432}]
+          readinessProbe:
+            exec: {command: ["pg_isready", "-U", "ledgerflow"]}
+            periodSeconds: 5
+          volumeMounts:
+            - {name: initdb, mountPath: /docker-entrypoint-initdb.d}
+      volumes:
+        # no PersistentVolumeClaim: the database dies with the pod, on purpose - this is a cluster
+        # created and deleted on a laptop, not somewhere a real Postgres belongs (see step's note)
+        - name: initdb
+          configMap: {name: init-databases, defaultMode: 0755}
