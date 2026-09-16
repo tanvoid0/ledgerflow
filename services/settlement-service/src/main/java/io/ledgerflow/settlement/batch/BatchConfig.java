@@ -2,6 +2,8 @@ package io.ledgerflow.settlement.batch;
 
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.configuration.annotation.EnableJdbcJobRepository;
+import org.springframework.batch.core.configuration.support.MapJobRegistry;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
@@ -18,4 +20,12 @@ import org.springframework.context.annotation.Configuration;
 @EnableBatchProcessing
 @EnableJdbcJobRepository
 class BatchConfig {
+
+    // The registrar wires a bean named jobRegistry into the JobOperator if one exists but never creates it,
+    // and CommandLineJobOperator needs one (that is where "start <jobName>" looks the job up). MapJobRegistry
+    // registers every Job bean itself once the context is up.
+    @Bean
+    MapJobRegistry jobRegistry() {
+        return new MapJobRegistry();
+    }
 }
