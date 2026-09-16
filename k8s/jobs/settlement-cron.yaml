@@ -16,6 +16,7 @@ spec:
       template:
         spec:
           restartPolicy: Never
+          terminationGracePeriodSeconds: 120   # a stop request has to outlast the current chunk, longer than one but short of the next 1:05 tick
           containers:
             - name: job
               image: ledgerflow/settlement-service:1.0.0-SNAPSHOT
@@ -31,6 +32,7 @@ spec:
                   --spring.batch.job.name=nightlySettlementJob
                   --spring.main.web-application-type=none
                   --spring.kafka.listener.auto-startup=false
+                  --spring.lifecycle.timeout-per-shutdown-phase=90s
                   businessDate=$(date -d yesterday +%F)
               envFrom: [{configMapRef: {name: ledgerflow-env}}]
               env:
