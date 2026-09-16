@@ -21,7 +21,7 @@ policy() {
 }
 
 for t in ledger.wallet-hold.events ledger.hold-rejected.events ledger.hold-closed.events account.entry.events \
-         issuer.authorization.events settlement.capture.events payment.requested.events; do
+         issuer.authorization.events settlement.capture.events settlement.merchant.events payment.requested.events; do
   policy "ledgerflow.$t.v1" 2592000000   # 30d: the outbox is the archive, the topic is the replay window
 done
 for t in ledger.hold.commands issuer.authorization.commands settlement.capture.commands; do

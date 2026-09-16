@@ -2,6 +2,7 @@ package io.ledgerflow.settlement.adapter.in.web;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.batch.core.job.JobExecution;
+import org.springframework.batch.core.launch.JobExecutionNotRunningException;
 import org.springframework.batch.core.launch.JobOperator;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.http.HttpStatus;
@@ -34,6 +35,19 @@ class BatchExecutionController {
         var execution = jobExecution(executionId);
         var recovered = jobOperator.recover(execution);
         return JobExecutionResponse.of(recovered.getJobInstance().getJobName(), recovered);
+    }
+
+    /** A stop is a request, not an abort: the step finishes its current chunk/tasklet and the run ends STOPPED, restartable later. */
+    @PostMapping("/{executionId}/stop")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    JobExecutionResponse stop(@PathVariable long executionId) {
+        var execution = jobExecution(executionId);
+        try {
+            jobOperator.stop(execution);
+        } catch (JobExecutionNotRunningException e) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
+        }
+        return JobExecutionResponse.of(execution.getJobInstance().getJobName(), jobRepository.getJobExecution(executionId));
     }
 
     private JobExecution jobExecution(long executionId) {
