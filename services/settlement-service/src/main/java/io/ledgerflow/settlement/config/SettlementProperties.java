@@ -15,4 +15,5 @@ public record SettlementProperties(
         @NotBlank String accountBaseUrl,
         @NotNull UUID settlementWalletId,   // where captured money lands
         @NotNull @DefaultValue("500ms") Duration accountConnectTimeout,
-        @NotNull @DefaultValue("800ms") Duration accountReadTimeout) {}
+        @NotNull @DefaultValue("800ms") Duration accountReadTimeout,
+        @NotBlank String issuerBaseUrl) {}

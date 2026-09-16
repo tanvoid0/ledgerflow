@@ -1,5 +1,7 @@
 package io.ledgerflow.settlement;
 
+import io.ledgerflow.settlement.adapter.out.issuer.FxRateGateway;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,6 +12,7 @@ import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 
 import java.io.IOException;
@@ -20,6 +23,8 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 /**
  * 40 captures across 2 merchants, netted for one business date; a rerun for the same date is a 409, not a double
@@ -42,6 +47,12 @@ class SettlementJobIT {
 
     @Autowired JdbcClient db;
     @Autowired MockMvcTester mvc;
+    @MockitoBean FxRateGateway fx;
+
+    @BeforeEach
+    void noUplift() {
+        when(fx.upliftBps(any())).thenReturn(0);
+    }
 
     /** The three cron triggers must not fire mid-test; "-" isn't a valid Quartz-style cron so @Scheduled just skips it. */
     @DynamicPropertySource

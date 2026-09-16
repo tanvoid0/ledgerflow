@@ -21,7 +21,6 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -37,14 +36,6 @@ class BatchLaunchController {
     private final List<Job> jobs;
 
     record LaunchRequest(@NotBlank String businessDate) {}
-
-    record JobExecutionResponse(String jobName, long executionId, String status, String exitCode,
-                                 LocalDateTime startTime, LocalDateTime endTime) {
-        static JobExecutionResponse of(String jobName, JobExecution e) {
-            return new JobExecutionResponse(jobName, e.getId(), e.getStatus().name(), e.getExitStatus().getExitCode(),
-                    e.getStartTime(), e.getEndTime());
-        }
-    }
 
     @GetMapping
     List<String> jobNames() {
