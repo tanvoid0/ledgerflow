@@ -11,13 +11,16 @@ import org.springframework.batch.core.launch.JobOperator;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -43,13 +46,32 @@ class BatchLaunchController {
         }
     }
 
+    @GetMapping
+    List<String> jobNames() {
+        return jobs.stream().map(Job::getName).toList();
+    }
+
     @PostMapping("/{name}")
     JobExecutionResponse launch(@PathVariable String name, @Valid @RequestBody LaunchRequest req) throws Exception {
-        var job = jobs.stream().filter(j -> j.getName().equals(name)).findFirst()
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "no job named " + name));
+        var job = jobFor(name);
         var execution = jobOperator.start(job,
                 new JobParametersBuilder().addString("businessDate", req.businessDate()).toJobParameters());
         return JobExecutionResponse.of(name, execution);
+    }
+
+    /** No identifying parameter but "now": each POST is its own run, never a rerun of a completed instance. */
+    @PostMapping("/{name}/now")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    JobExecutionResponse launchNow(@PathVariable String name) throws Exception {
+        var job = jobFor(name);
+        var execution = jobOperator.start(job,
+                new JobParametersBuilder().addString("runAt", Instant.now().toString()).toJobParameters());
+        return JobExecutionResponse.of(name, execution);
+    }
+
+    private Job jobFor(String name) {
+        return jobs.stream().filter(j -> j.getName().equals(name)).findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "no job named " + name));
     }
 
     /** A second POST for the same business date: the job already ran to completion for it, running it again is a no-op request, not a server error. */

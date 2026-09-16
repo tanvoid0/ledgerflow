@@ -13,6 +13,7 @@ spring:
   batch:
     job:
       enabled: false          # nothing runs at startup; step 26's CronJob turns this on
+
   mvc:
     problemdetails:
       enabled: true
@@ -74,3 +75,10 @@ logging:
 ledgerflow:
   account-base-url: http://localhost:8080
   settlement-wallet-id: 99999999-9999-9999-9999-999999999999   # TREASURY, seeded by account-service
+
+settlement:
+  batch:
+    export-dir: target/exports
+    settle-cron: "0 5 1 * * *"
+    export-cron: "0 0 2 * * *"
+    sweep-cron: "0 */15 * * * *"
