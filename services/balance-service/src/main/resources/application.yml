@@ -1,18 +1,22 @@
 server:
-  port: 8083
+  port: ${SERVER_PORT:8083}
+  shutdown: graceful
 
 spring:
   application:
     name: balance-service
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
   data:
     redis:
-      host: localhost
+      # addresses are env overrides with the host value as default; the compose file sets them
+      host: ${REDIS_HOST:localhost}
       port: 6379
   mvc:
     problemdetails:
       enabled: true   # a 404 here is a ResponseStatusException; same problem+json shape as the other services
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
     template:
       observation-enabled: true         # with the listener's, the trace crosses the broker instead of stopping at it
     consumer:
@@ -37,15 +41,15 @@ management:
     tracing:
       export:
         otlp:
-          endpoint: http://localhost:4318/v1/traces
+          endpoint: ${OTLP_ENDPOINT:http://localhost:4318}/v1/traces
     logging:
       export:
         otlp:
-          endpoint: http://localhost:4318/v1/logs
+          endpoint: ${OTLP_ENDPOINT:http://localhost:4318}/v1/logs
   otlp:
     metrics:
       export:
-        url: http://localhost:4318/v1/metrics
+        url: ${OTLP_ENDPOINT:http://localhost:4318}/v1/metrics
   endpoints:
     web:
       exposure:
