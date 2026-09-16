@@ -1,5 +1,6 @@
 package io.ledgerflow.settlement.batch;
 
+import io.ledgerflow.settlement.adapter.out.issuer.FxRateGateway;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.job.Job;
 import org.springframework.batch.core.job.builder.JobBuilder;
@@ -16,11 +17,14 @@ import org.springframework.batch.infrastructure.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.retry.RetryPolicy;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.web.client.RestClientException;
 
 import javax.sql.DataSource;
 import java.sql.Date;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -45,12 +49,30 @@ class SettlementJobConfig {
     }
 
     @Bean
-    ItemProcessor<SettlementItem, SettlementLine> lineProcessor() {
+    ItemProcessor<SettlementItem, SettlementLine> lineProcessor(FxRateGateway fx) {
         return item -> {
             long gross = item.amountMinor();
-            long fee = fee(gross);
+            if (gross <= 0) {
+                throw new UnsettleableItemException("item " + item.id() + " has amount " + gross);
+            }
+            long uplift = gross * fx.upliftBps(item.currency()) / 10_000;
+            long fee = fee(gross) + uplift;
             return new SettlementLine(item.id(), item.businessDate(), item.merchantId(), item.currency(), gross, fee, gross - fee);
         };
+    }
+
+    /** Transient-only: an fx call that timed out or 5xx'd is worth retrying, a bad row (see UnsettleableItemException) is not. */
+    @Bean
+    RetryPolicy transientOnly() {
+        return RetryPolicy.builder()
+                .maxRetries(4)
+                .delay(Duration.ofMillis(200))
+                .multiplier(2.0)
+                .maxDelay(Duration.ofSeconds(5))
+                .jitter(Duration.ofMillis(100))
+                .includes(RestClientException.class)
+                .excludes(UnsettleableItemException.class)
+                .build();
     }
 
     @Bean
@@ -77,20 +99,26 @@ class SettlementJobConfig {
 
     @Bean
     Step lineItemsStep(JobRepository jobRepository, PlatformTransactionManager tx, JdbcCursorItemReader<SettlementItem> itemReader,
-                       ItemProcessor<SettlementItem, SettlementLine> lineProcessor, JdbcBatchItemWriter<SettlementLine> lineWriter) {
+                       ItemProcessor<SettlementItem, SettlementLine> lineProcessor, JdbcBatchItemWriter<SettlementLine> lineWriter,
+                       RetryPolicy transientOnly, RejectUnsettleableItems rejectUnsettleableItems) {
         return new StepBuilder("lineItemsStep", jobRepository)
                 .<SettlementItem, SettlementLine>chunk(100)
                 .transactionManager(tx)
                 .reader(itemReader)
                 .processor(lineProcessor)
                 .writer(lineWriter)
+                .faultTolerant()
+                .retryPolicy(transientOnly)
+                .skipPolicy(rejectUnsettleableItems)
+                .skipListener(rejectUnsettleableItems)
                 .build();
     }
 
     /**
      * One transaction: net the day's lines into settlement_batch, then mark their items SETTLED. Both statements
      * are idempotent (upsert, and a status filter that only matches NEW), so if the JVM dies between them, step
-     * 24 reruns the whole tasklet and lands in the same place.
+     * 24 reruns the whole tasklet and lands in the same place. The second statement also requires a line to
+     * exist: a rejected row must not come out SETTLED.
      */
     @Bean
     @StepScope
@@ -105,8 +133,10 @@ class SettlementJobConfig {
                         gross_minor = excluded.gross_minor, fee_minor = excluded.fee_minor,
                         net_minor = excluded.net_minor, line_count = excluded.line_count
                     """).param("date", date).update();
-            db.sql("update settlement_item set status = 'SETTLED' where business_date = :date and status = 'NEW'")
-                    .param("date", date).update();
+            db.sql("""
+                    update settlement_item set status = 'SETTLED' where business_date = :date and status = 'NEW'
+                      and exists (select 1 from settlement_line l where l.item_id = settlement_item.id)
+                    """).param("date", date).update();
             return RepeatStatus.FINISHED;
         };
     }
