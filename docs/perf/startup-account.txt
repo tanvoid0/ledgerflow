@@ -1,0 +1,4 @@
+# account-service startup, 2026-09-16T11:05:19Z, AOT mode: one-step
+run 1: plain 2.816s  aot-cache 1.068s
+run 2: plain 2.759s  aot-cache 1.03s
+run 3: plain 3.166s  aot-cache 1.209s
