@@ -13,8 +13,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.client.ResourceAccessException;
 
@@ -40,13 +38,6 @@ class SettlementFaultToleranceTest {
 
     private static final LocalDate REJECT_DATE = LocalDate.of(2030, 1, 1);
     private static final LocalDate RETRY_DATE = LocalDate.of(2030, 1, 2);
-
-    @DynamicPropertySource
-    static void properties(DynamicPropertyRegistry registry) {
-        registry.add("settlement.batch.settle-cron", () -> "-");
-        registry.add("settlement.batch.export-cron", () -> "-");
-        registry.add("settlement.batch.sweep-cron", () -> "-");
-    }
 
     @Autowired JobOperatorTestUtils jobs;
     @Autowired @Qualifier("nightlySettlementJob") Job nightlySettlementJob;

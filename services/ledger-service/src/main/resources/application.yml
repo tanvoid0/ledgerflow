@@ -29,7 +29,7 @@ spring:
       isolation-level: read_committed
       properties:
         partition.assignment.strategy: org.apache.kafka.clients.consumer.CooperativeStickyAssignor   # only the moved partitions get revoked on a rebalance
-        group.instance.id: ledger-service-${server.port}   # a restart within session.timeout.ms rejoins as the same member: no rebalance at all
+        group.instance.id: ${INSTANCE_ID:ledger-service-${server.port}}   # a restart within session.timeout.ms rejoins as the same member: no rebalance at all, and two replicas at the same port never share this id and fence each other
         session.timeout.ms: 30000
     listener:
       observation-enabled: true
@@ -66,6 +66,11 @@ management:
   endpoint:
     health:
       show-details: always
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: readinessState,db
 
 logging:
   structured:

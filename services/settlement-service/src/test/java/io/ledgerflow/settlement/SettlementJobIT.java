@@ -54,13 +54,9 @@ class SettlementJobIT {
         when(fx.upliftBps(any())).thenReturn(0);
     }
 
-    /** The three cron triggers must not fire mid-test; "-" isn't a valid Quartz-style cron so @Scheduled just skips it. */
     @DynamicPropertySource
     static void properties(DynamicPropertyRegistry registry) {
         registry.add("settlement.batch.export-dir", () -> exportDir.toString());
-        registry.add("settlement.batch.settle-cron", () -> "-");
-        registry.add("settlement.batch.export-cron", () -> "-");
-        registry.add("settlement.batch.sweep-cron", () -> "-");
     }
 
     @Test
