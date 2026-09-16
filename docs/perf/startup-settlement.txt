@@ -1,0 +1,4 @@
+# settlement-service startup, 2026-09-16T12:11:33Z, AOT mode: one-step
+run 1: plain 2.608s  aot-cache 1.154s
+run 2: plain 2.599s  aot-cache 1.048s
+run 3: plain 2.585s  aot-cache 1.095s
