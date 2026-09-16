@@ -11,30 +11,9 @@ $COMPOSE down -v --remove-orphans
 
 ./scripts/build-images.sh
 
-# --wait blocks on the infra containers' own healthchecks (postgres, redpanda, redis, lgtm).
-# The eight app containers have no in-container healthcheck to wait on - their Paketo run
-# image ships no shell, so nothing in it can exec a check - so --wait only confirms they
-# started; the loop below polls actuator/health from the host, same as start-services.sh.
+# --wait blocks until every healthcheck passes - the infra ones and the eight services' own
+# (bash + /dev/tcp against actuator/health, see docker-compose.app.yml) - so there is no sleep-and-hope here.
 $COMPOSE up -d --wait
-
-echo "waiting for all eight service containers to answer healthy..."
-declare -A PORTS=(
-  [account]=8080 [ledger]=8081 [notification]=8082 [balance]=8083
-  [risk]=8084 [payment]=8085 [issuer]=8086 [settlement]=8087
-)
-deadline=$((SECONDS + 120))
-for svc in "${!PORTS[@]}"; do
-  port=${PORTS[$svc]}
-  until curl -sf "localhost:$port/actuator/health" > /dev/null 2>&1; do
-    if [ "$SECONDS" -ge "$deadline" ]; then
-      echo "$svc (port $port) never answered healthy - last 20 lines: docker compose logs $svc"
-      $COMPOSE logs --tail 20 "$svc"
-      exit 1
-    fi
-    sleep 2
-  done
-  echo "$svc is up ($port)"
-done
 
 ./scripts/topics.sh
 ./scripts/check-schemas.sh --register
