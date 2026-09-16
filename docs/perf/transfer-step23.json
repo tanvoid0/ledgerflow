@@ -1,0 +1,265 @@
+{
+  "root_group": {
+    "name": "",
+    "path": "",
+    "id": "d41d8cd98f00b204e9800998ecf8427e",
+    "groups": [],
+    "checks": [
+      {
+        "passes": 6301,
+        "fails": 0,
+        "name": "created or refused",
+        "path": "::created or refused",
+        "id": "f81b254da830b8553bef4cc2e97bf40a"
+      }
+    ]
+  },
+  "options": {
+    "summaryTrendStats": [
+      "avg",
+      "med",
+      "p(95)",
+      "p(99)",
+      "max"
+    ],
+    "summaryTimeUnit": "",
+    "noColor": false
+  },
+  "state": {
+    "isStdErrTTY": false,
+    "testRunDurationMs": 75015.6223,
+    "isStdOutTTY": false
+  },
+  "metrics": {
+    "http_req_tls_handshaking": {
+      "contains": "time",
+      "values": {
+        "max": 0,
+        "avg": 0,
+        "med": 0,
+        "p(95)": 0,
+        "p(99)": 0
+      },
+      "type": "trend"
+    },
+    "vus": {
+      "contains": "default",
+      "values": {
+        "value": 0,
+        "min": 0,
+        "max": 1
+      },
+      "type": "gauge"
+    },
+    "data_received": {
+      "values": {
+        "count": 1577035,
+        "rate": 21022.754349662977
+      },
+      "type": "counter",
+      "contains": "data"
+    },
+    "iterations": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 6301,
+        "rate": 83.99583722442839
+      }
+    },
+    "iteration_duration": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 6.301750674496119,
+        "med": 6.0035,
+        "p(95)": 7.5027,
+        "p(99)": 8.4989,
+        "max": 17.4976
+      }
+    },
+    "http_req_failed": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "rate": 0,
+        "passes": 0,
+        "fails": 6302
+      }
+    },
+    "http_req_blocked": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 0.0033409552523008556,
+        "med": 0,
+        "p(95)": 0,
+        "p(99)": 0,
+        "max": 8.0009
+      }
+    },
+    "http_req_duration": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(99)": 8.36870399999995,
+        "max": 17.4976,
+        "avg": 6.260752126309118,
+        "med": 6.0025,
+        "p(95)": 7.501095
+      }
+    },
+    "http_req_duration{expected_response:true}": {
+      "values": {
+        "avg": 6.260752126309118,
+        "med": 6.0025,
+        "p(95)": 7.501095,
+        "p(99)": 8.36870399999995,
+        "max": 17.4976
+      },
+      "type": "trend",
+      "contains": "time"
+    },
+    "http_req_connecting": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "med": 0,
+        "p(95)": 0,
+        "p(99)": 0,
+        "max": 0.5081,
+        "avg": 0.0019129324024119332
+      }
+    },
+    "vus_max": {
+      "type": "gauge",
+      "contains": "default",
+      "values": {
+        "value": 60,
+        "min": 60,
+        "max": 60
+      }
+    },
+    "checks": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "rate": 1,
+        "passes": 6301,
+        "fails": 0
+      }
+    },
+    "http_req_receiving": {
+      "values": {
+        "max": 1.024,
+        "avg": 0.03477026340844178,
+        "med": 0,
+        "p(95)": 0.4987,
+        "p(99)": 0.5023989999999999
+      },
+      "type": "trend",
+      "contains": "time"
+    },
+    "http_req_sending": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 0.0010340368137099333,
+        "med": 0,
+        "p(95)": 0,
+        "p(99)": 0,
+        "max": 0.5074
+      }
+    },
+    "http_reqs": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 6302,
+        "rate": 84.00916778104232
+      }
+    },
+    "http_req_waiting": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(99)": 8.037275,
+        "max": 17.4976,
+        "avg": 6.2249478260869715,
+        "med": 6.0018,
+        "p(95)": 7.5002
+      }
+    },
+    "http_req_duration{scenario:main}": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 6.2348990500000046,
+        "med": 6.002,
+        "p(95)": 7.500305,
+        "p(99)": 8.024981000000002,
+        "max": 10.0026
+      },
+      "thresholds": {
+        "p(99)<1000": {
+          "ok": true
+        }
+      }
+    },
+    "http_req_failed{scenario:main}": {
+      "contains": "default",
+      "values": {
+        "rate": 0,
+        "passes": 0,
+        "fails": 6000
+      },
+      "thresholds": {
+        "rate<0.01": {
+          "ok": true
+        }
+      },
+      "type": "rate"
+    },
+    "data_sent": {
+      "type": "counter",
+      "contains": "data",
+      "values": {
+        "count": 2141777,
+        "rate": 28551.079552932002
+      }
+    }
+  },
+  "setup_data": {
+    "wallets": [
+      "2b4cbf81-fb8d-4398-bd8d-e776404d1fa4",
+      "f9e8fcc9-8496-48c6-8f50-3f1ee52385c9",
+      "82a45a2f-7b3f-4f24-bc89-580e3cbf441b",
+      "4c305087-6136-4715-bb43-e95186b7035e",
+      "3d08954b-0d9b-4ed7-97c0-713369752202",
+      "ee569237-0072-4618-8f11-101f7ed349de",
+      "6c82d0eb-aa5e-489c-8211-4570a83e2616",
+      "9cc3dd9c-ce3c-4359-8ddd-d1851e761c36",
+      "c2f0ff2e-4bec-4294-b767-82641939a6c6",
+      "663aa175-116f-4917-9008-d2c30d46bfeb",
+      "2a65fe8c-5e88-4ab4-a95a-a446fb7f0014",
+      "0741a180-44a5-4d46-b210-de816f95fbcb",
+      "ef7ffd3f-3539-4311-8311-d17bc12a45d3",
+      "06eb2b62-aa64-4acd-b6a0-88793ea24f1e",
+      "b3c6a146-8064-4b55-bd84-5f2b457b2b71",
+      "bd854a46-680a-419e-94fc-c224695cdd30",
+      "949b75f4-44bf-4a94-9f80-5f1284534485",
+      "11b94979-a791-4f99-82ee-b35d3da49e5d",
+      "b826ec23-abf8-40a8-b140-d5cc17a3e680",
+      "be8403fc-ca1f-41c6-a51f-131e4b823db4"
+    ]
+  },
+  "meta": {
+    "rate": 100,
+    "duration": "60s",
+    "scenario": "transfer",
+    "label": "step23",
+    "commit": "015dbdd-dirty",
+    "date": "2026-09-16T10:07:58Z",
+    "host": "AMD Ryzen 9 9950X 16-Core Processor, 32 threads"
+  }
+}

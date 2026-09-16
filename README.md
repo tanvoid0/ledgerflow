@@ -165,6 +165,7 @@ and a CHECK constraint bring it to exactly one. `perf/race.sh` reproduces it,
 | The balance model rebuilds from a snapshot, not from history | compacted `ledgerflow.balance.snapshots.v1`, seeded then resumed from its source offsets | `docs/measurements/step-20-compaction.md` |
 | A broker dies mid-stream and nothing is lost | rf 3 on every topic under `scripts/cluster3.sh`, `acks=all`, the outbox holds what the cluster will not take | `docs/measurements/step-21-broker.md` |
 | A business day settles once | Spring Batch job instance = the date; a second run is a 409; both steps are idempotent upserts | `FeeTest`, `SettlementJobIT`, `docs/measurements/step-22-batch.md` |
+| Three jobs, one timetable, and a second replica doubles it | chunk to file, tasklet, `@Scheduled` per JVM; `runAt` vs `businessDate` decides whether a run may repeat | `SettlementJobIT`, `docs/measurements/step-23-schedule.md` |
 
 ## Run it
 
