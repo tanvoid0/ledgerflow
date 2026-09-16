@@ -38,6 +38,8 @@ to the 202, which takes 5ms at every load and says nothing.
 | Payment, the kept path, at 200/s | 200/s | 17717 | 44996 | 63% hit the deadline |
 | Payment with risk-service scoring every one beside it (`risk.score` p99 0.99ms; A/B off/on: within run-to-run spread) | 100/s | 391 | 996 | 0% |
 
+Startup, account-service, host JVM: plain 2.82 s -> AOT cache 1.07 s, median of 3 (`scripts/startup-time.sh`).
+
 The outbox poll, not the database, was the authorisation path: seven outbox
 hops at 500ms each put 1.75s of waiting into the mean payment, and one batch
 of 100 per tick capped every service at 200 rows a second, above which the
@@ -167,12 +169,15 @@ and a CHECK constraint bring it to exactly one. `perf/race.sh` reproduces it,
 | A business day settles once | Spring Batch job instance = the date; a second run is a 409; both steps are idempotent upserts | `FeeTest`, `SettlementJobIT`, `docs/measurements/step-22-batch.md` |
 | Three jobs, one timetable, and a second replica doubles it | chunk to file, tasklet, `@Scheduled` per JVM; `runAt` vs `businessDate` decides whether a run may repeat | `SettlementJobIT`, `docs/measurements/step-23-schedule.md` |
 | A feed goes down, a row is wrong, a pod dies - the run finishes anyway | retry policy with includes/excludes, skip policy with a limit and a reject table, restart by execution id, recover for a killed JVM | `SettlementFaultToleranceTest`, `docs/measurements/step-24-failures.md` |
+| One script, a clean machine, the whole system in containers | Paketo images from the pom, `${ENV:default}` everywhere, one compose file, the same image as a one-shot job with an exit code | `scripts/demo-compose.sh`, `docs/measurements/step-25-containers.md` |
 
 ## Run it
 
 ```bash
-./scripts/demo.sh    # compose --wait, topics + schema registration, build, start all eight, run three scenarios - a few minutes on a warm Maven cache
+./scripts/demo-compose.sh   # everything in containers: images from the pom, compose --wait, topics + schemas, three scenarios
+./scripts/demo.sh    # compose --wait, topics + schema registration, build, start all eight, run three scenarios - a few minutes on a warm Maven cache (host JVMs - what the perf numbers are taken on)
 ./scripts/stop-services.sh
+docker compose -f infra/compose/docker-compose.yml -f infra/compose/docker-compose.app.yml stop
 
 curl -s localhost:8080/api/v1/accounts | jq
 curl -s -X POST localhost:8081/api/v1/holds -H 'content-type: application/json' \
