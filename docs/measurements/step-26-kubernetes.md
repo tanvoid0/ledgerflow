@@ -25,7 +25,27 @@ Eight services at two replicas is sixteen application pods, spread across
 two workers by the scheduler's own judgment, not a rule this repo writes:
 
 ```
-{{R: nodes}}
+$ kubectl get pods -o wide            (NAME, READY, NODE; hashes trimmed)
+account-service       1/1  ledgerflow-worker     account-service       1/1  ledgerflow-worker2
+balance-service       1/1  ledgerflow-worker     balance-service       1/1  ledgerflow-worker2
+issuer-service        1/1  ledgerflow-worker     issuer-service        1/1  ledgerflow-worker2
+ledger-service        1/1  ledgerflow-worker     ledger-service        1/1  ledgerflow-worker2
+notification-service  1/1  ledgerflow-worker     notification-service  1/1  ledgerflow-worker2
+payment-service       1/1  ledgerflow-worker     payment-service       1/1  ledgerflow-worker2
+risk-service          1/1  ledgerflow-worker     risk-service          1/1  ledgerflow-worker2
+settlement-service    1/1  ledgerflow-worker     settlement-service    1/1  ledgerflow-worker2
+one replica of each service on each worker, 16 + 4, nothing on the control plane. The four infra pods land
+where the scheduler puts them: this cluster had postgres and redis on worker, redpanda and lgtm on worker2;
+the one rebuilt from nothing below had postgres, redpanda and lgtm all on worker2.
+
+$ kubectl exec deploy/redpanda -- rpk group describe -i <group>     (all seven)
+STATE Stable, TOTAL-LAG 0, MEMBERS 30 = 15 listener threads x 2 pods, every group.instance.id
+prefixed with the pod name: settlement-service-5bff4df948-s9qv7-org.springframework.kafka.KafkaListenerEndpointContainer_0-0
+
+The first thing that broke: FATAL: sorry, too many clients already, from Flyway, on the second replica
+of three services. 16 pods x Hikari's default pool of 10 is 160 connections; Postgres ships with
+max_connections=100, and compose's 8 containers never got near it. k8s/infra/postgres.yaml now
+starts it with -c max_connections=250; pg_stat_activity shows 146 with all sixteen up.
 ```
 
 ## One base, eight overlays
@@ -78,10 +98,26 @@ Base probe shape: `startupProbe` on `/actuator/health/readiness`, period
 5s, 30 failures allowed (150s to boot); `readinessProbe` the same path,
 period 5s; `livenessProbe` on `/actuator/health/liveness`, period 10s.
 
-Delete the Postgres pod and watch the split hold:
+Take Postgres away and watch the split hold (a deleted pod is back in six seconds, under what
+a readiness flip needs, so the outage below is a scale-to-zero held for a minute):
 
 ```
-{{R: probes}}
+$ kubectl delete pod -l app=postgres            the replacement was Running 6 s later - under the
+                                                 15 s a readiness flip needs (period 5 s x failureThreshold 3),
+                                                 so nothing left READY. Held it down instead:
+$ kubectl scale deploy/postgres --replicas=0     21:44:48
+   21:44:58  16/16 READY
+   21:45:02   6/16
+   21:45:07   2/16  <- and stays there: balance-service x2, whose readiness group is readinessState,redis
+$ kubectl scale deploy/postgres --replicas=1     21:45:49
+   21:46:02  15/16
+   21:46:06  16/16
+RESTARTS: unchanged on all sixteen (the column reads 2 on every pod: two Docker Desktop restarts
+earlier in the day, none from a probe). Inside a NotReady pod, 25 s into the outage:
+$ kubectl get pod settlement-service-... -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}'   False
+$ GET /actuator/health/liveness (via /dev/tcp - the run image has no curl)                            HTTP/1.1 200 {"status":"UP"}
+Through the NodePort the same probe answered 000 - a NotReady pod is out of the Service's endpoints, so
+there was nothing behind port 8087 to answer; kubelet asks the pod directly, which is the point.
 ```
 
 A rolling restart of a Deployment with a curl loop running against it
@@ -89,7 +125,18 @@ during the rollout, watching for the moment readiness is supposed to be
 doing its job:
 
 ```
-{{R: roll}}
+curl -s -o /dev/null -w %{http_code} localhost:8087/actuator/health, in a loop, during
+$ kubectl rollout restart deploy/settlement-service && kubectl rollout status deploy/settlement-service
+
+                                    samples   200   503   000
+without preStop                          85    82     2     1
+with preStop: {sleep: {seconds: 5}}     102   102     0     0
+
+Both 503s landed in the second an old pod got SIGTERM: Boot's graceful shutdown flips readiness to
+REFUSING_TRAFFIC at once, and kube-proxy takes about a second to stop routing to a pod that has just left
+the endpoints; the 000 is the request that was open when that JVM exited. The base Deployment now carries
+the native sleep preStop action (GA since 1.30 - no shell needed), which holds SIGTERM until the endpoint
+change has propagated. New pods Ready in 6-10 s each; grep -c '^5' on the loop's log = 0.
 ```
 
 ## Requests, limits, and the one we left out
@@ -152,7 +199,31 @@ A manual run from the CronJob's own definition, so it is identical to the
 scheduled one down to the image and the args:
 
 ```
-{{R: cron}}
+$ kubectl get cronjob nightly-settlement -o jsonpath='{.spec.concurrencyPolicy}'     Forbid
+$ kubectl create job settle-now --from=cronjob/nightly-settlement
+$ kubectl wait --for=condition=complete job/settle-now --timeout=300s                condition met
+$ kubectl get pod -l job-name=settle-now -o jsonpath='{..exitCode}'                  0
+$ kubectl logs job/settle-now
+21:44:11.725 Started SettlementServiceApplication in 3.457 seconds
+21:44:11.728 Running default command line with: [businessDate=2026-09-15]      <- $(date -d yesterday +%F), chosen by the pod
+21:44:11.789 Job: [SimpleJob: [name=nightlySettlementJob]] launched ... businessDate=2026-09-15
+21:44:11.815 Executing step: [lineItemsStep]          231ms
+21:44:12.068 Executing step: [netByMerchantStep]       19ms
+21:44:12.110 ... completed ... status: [COMPLETED] in 309ms
+20 NEW items seeded for 2026-09-15 -> 20 SETTLED, 20 settlement_line, 5 settlement_batch. Pod alive 7 s for a 309 ms job.
+$ kubectl create job sweep-now --from=cronjob/aged-item-sweep                        exit 0, COMPLETED in 50ms, swept 0 rows
+
+Two things the first scheduled ticks showed, both fixed in this step:
+- settlement-recover had failed on every tick since the cluster came up: "required a bean of type
+  JobRegistry that could not be found". Spring Batch 6's registrar wires a bean *named* jobRegistry into
+  the operator if one exists and never creates it; Boot's autoconfig would have, and backs off under
+  @EnableBatchProcessing. The web profile never needed one. BatchConfig now declares a MapJobRegistry.
+- every job pod joined the settlement-service consumer group. The job is the service image, listeners and
+  all, with no INSTANCE_ID in its template, so 15 static members named settlement-service-8080-... came and
+  went with each run; a static member that exits without LeaveGroup holds its partitions for
+  session.timeout.ms (30 s). rpk showed 45 members and CompletingRebalance straight after sweep-now, back
+  to 30 Stable half a minute later - a rebalance per tick, four an hour from the sweep alone.
+  --spring.kafka.listener.auto-startup=false on all four CronJobs; the rerun built no consumers.
 ```
 
 ## Three layers of retry
@@ -186,7 +257,22 @@ got to finish, `STARTED` with no `end_time`, the same shape step 24
 produced by hand with a killed JVM:
 
 ```
-{{R: kill}}
+20000 NEW rows for 2026-09-01; settle-crash from the CronJob's dry-run YAML with businessDate=2026-09-01
+(a Job's args are fixed at creation). Pod force-deleted one second after "Executing step: [lineItemsStep]".
+
+batch_job_execution   8 | STARTED | UNKNOWN | end_time NULL
+batch_step_execution  lineItemsStep | STARTED | commit_count 2 | write_count 200      <- two chunks of 100 committed, the third in flight
+
+$ kubectl get job settle-crash -o jsonpath='{.status.failed} {.status.succeeded}'   (backoffLimit 2)
+22:48:56  failed=1  active=1   settle-crash-9cv8r  Error
+22:49:02  failed=2             settle-crash-9cv8r  Error
+22:49:17  failed=2  active=1   settle-crash-g4drm  Running
+22:49:23  failed=3             settle-crash-g4drm  Error      conditions: Failed, reason BackoffLimitExceeded
+
+Both retry pods exit 1 within a second of starting the job:
+  JobExecutionAlreadyRunningException: A job execution for this job is already running: JobInstance: id=8
+Kubernetes retried the pod as designed; the repository refused every retry because execution 8 still says
+STARTED. That is the stranded case - a retry cannot get past it, only recovery can.
 ```
 
 The recovery path is not the curl-based sweeper a first draft would
@@ -203,7 +289,24 @@ Deployment for anything.
 Run it that way - the point is it not needing the service to be up:
 
 ```
-{{R: recover}}
+$ kubectl scale deploy/settlement-service --replicas=0             0 settlement pods
+$ kubectl create job recover-now --from=cronjob/settlement-recover
+$ kubectl wait --for=condition=complete job/recover-now            condition met, exit 0
+21:49:54.975 Started SettlementServiceApplication in 2.925 seconds
+21:49:55.000 CommandLineJobOperator | Recovering job execution with ID: 8
+21:49:55.012 TaskExecutorJobOperator | Recovering job execution: JobExecution: id=8, status=STARTED, endTime=null
+
+select job_execution_id, status, end_time from batch_job_execution order by 1 desc limit 4
+ 8 | FAILED    | 2026-09-16 21:49:55.018      <- was STARTED, NULL
+ 7 | COMPLETED | 2026-09-16 21:46:39.826
+ 6 | COMPLETED | 2026-09-16 21:45:04.255
+ 5 | COMPLETED | 2026-09-16 21:44:54.435
+select count(*) from batch_job_execution where status='STARTED' and end_time is null     0
+
+$ kubectl scale deploy/settlement-service --replicas=2
+And the same Job definition once more (same businessDate, so the same JobInstance): execution 9 COMPLETED,
+lineItemsStep read 19800 / write 19800 / 198 commits, 16.5 s - it began at the 200 rows execution 8 had
+committed. 20000 SETTLED, 20000 settlement_line: nothing settled twice, nothing lost.
 ```
 
 ## The operator as a command
@@ -246,7 +349,25 @@ Timed end to end, from a cluster that does not exist to one Kubernetes
 calls Available:
 
 ```
-{{R: up}}
+$ scripts/k8s-down.sh                                   22:51:27 -> 22:51:33   (6 s)
+$ scripts/k8s-up.sh                                     22:51:33 -> 23:06:28   "cluster up" after 895 s, 14m55s
+   kind create cluster                    ~1 min    (node image cached)
+   scripts/build-images.sh                ~6 min    (install + eight build-image, every layer cached)
+   kind load docker-image x 8             ~5 min    (~1 GB each, into three nodes; the namespace is empty until the last one)
+   apply -k, apply -f k8s/jobs/, wait, topics + schemas   ~3 min
+At "cluster up": 20/20 pods 1/1, 11 subjects registered, the README payment Captured in 4 s.
+
+Every service pod restarted four times inside those three minutes: apply -k lands infra and services
+together, Postgres takes ~40 s to accept connections, and a service that boots first fails Flyway and
+exits 1 - CrashLoopBackOff's 10/20/40/80 s ladder is what the wait is mostly waiting for. Kubernetes
+converges on it; an initContainer polling pg_isready would make the boot quieter, not faster.
+
+Step 25's demo-compose.sh from nothing: 8m46s. The difference is the eight loads - a registry turns
+them into one push and a pull per node.
+
+The proof, on the fresh cluster:
+$ kubectl create job settle-proof --from=cronjob/nightly-settlement       complete, exit 0
+select count(*) from batch_job_execution where status='COMPLETED'         1
 ```
 
 ## Checkpoint
@@ -261,7 +382,31 @@ sits between a curl and a pod in a way `docker compose`'s bridge network
 did not.
 
 ```
-{{R: bench}}
+perf/bench.sh step26 (PSQL="kubectl exec deploy/postgres -- psql" - run.sh/settled.sh read the payment database
+through that now, the way topics.sh takes RPK), commit f99f918-dirty, k6 on the host through the NodePorts:
+
+scenario   load            p50    p95    p99      failed
+transfer   100/s for 60s   4ms    7ms    22ms     0%        (step 25: 4 / 6 / 9, 4.31% failed)
+holds      50/s for 30s    9ms    64ms   1261ms   0%        (step 25: 7 / 14 / 78)
+payments   100/s for 180s  5ms    8ms    12ms     0%        (step 25: 5 / - / 33)
+settled                    243ms  331ms  378ms    captured 18005, failed 0     (step 25: 316 / - / 3351)
+
+The holds p99 is warm-up, not the cluster: the ledger pods were 3.5 minutes old with no /holds traffic
+behind them, and two replicas means two cold JIT profiles to pay for at 50/s instead of one; 15 of 1501
+requests took over a second, max 1.9 s. The same scenario again on the same pods, warm
+(perf/run.sh holds warm26): p50 7ms, p95 10ms, p99 12ms, max 62ms.
+
+docker stats --no-stream, during the payments phase (two samples, 23:10:33 and 23:11:25):
+ledgerflow-control-plane   cpu  12% /  12%    mem  954MiB           net 15MB / 33MB
+ledgerflow-worker          cpu 251% / 176%    mem 3.44GiB           net 164MB / 269MB
+ledgerflow-worker2         cpu 424% / 318%    mem 7.60GiB           net 2.32GB / 184MB
+worker2 holds postgres, redpanda and lgtm as well as its eight service pods, which is where the memory
+and the inbound bytes go; the control plane does nothing but the API server, as it should.
+
+Settled p99 3351 -> 378 ms with the same 18005 captured. The p50s match compose (5 ms per request,
+243 vs 316 ms settled); what changed is the tail. Two of everything is the one difference in the path -
+every saga hop has a second consumer to land on - but this step did not isolate it: a one-replica bench
+on the same cluster would, and is the first thing to run if that number is ever doubted.
 ```
 
 Step 25, for the number this is measured against: settled p50 316ms,

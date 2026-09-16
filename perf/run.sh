@@ -10,7 +10,8 @@ OUT="docs/perf/${SCENARIO}-${LABEL}.json"
 mkdir -p docs/perf
 
 # the payments scenario is measured twice: the POST by k6, the settled payment by the database (see settled.sh)
-[ "$SCENARIO" = payments ] && SINCE=$(docker exec ledgerflow-postgres psql -U ledgerflow -d payment -tAc 'SELECT now()')
+PSQL=${PSQL:-docker exec ledgerflow-postgres psql}   # see settled.sh
+[ "$SCENARIO" = payments ] && SINCE=$($PSQL -U ledgerflow -d payment -tAc 'SELECT now()')
 
 k6 run -e SUMMARY="$OUT" ${RATE:+-e RATE=$RATE} ${DURATION:+-e DURATION=$DURATION} \
        ${BASE_URL:+-e BASE_URL=$BASE_URL} ${TOKEN:+-e TOKEN=$TOKEN} ${P99_MS:+-e P99_MS=$P99_MS} \
