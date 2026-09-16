@@ -143,6 +143,20 @@
                         </compilerArgs>
                     </configuration>
                 </plugin>
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <configuration>
+                        <image>
+                            <name>ledgerflow/${project.artifactId}:${project.version}</name>
+                            <!-- base, not the default tiny stack: tiny has no shell, so nothing in the container can run a healthcheck -->
+                            <builder>paketobuildpacks/builder-noble-base</builder>
+                            <env>
+                                <BP_JVM_VERSION>25</BP_JVM_VERSION>
+                            </env>
+                        </image>
+                    </configuration>
+                </plugin>
             </plugins>
         </pluginManagement>
     </build>
