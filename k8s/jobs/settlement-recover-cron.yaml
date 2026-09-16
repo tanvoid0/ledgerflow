@@ -24,6 +24,7 @@ spec:
               args:
                 - --spring.profiles.active=cli
                 - --spring.main.web-application-type=none
+                - --spring.kafka.listener.auto-startup=false
                 - recover-stranded
               envFrom: [{configMapRef: {name: ledgerflow-env}}]
               env:
