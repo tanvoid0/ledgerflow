@@ -27,6 +27,7 @@ spec:
                   --spring.batch.job.enabled=true
                   --spring.batch.job.name=statementExportJob
                   --spring.main.web-application-type=none
+                  --spring.kafka.listener.auto-startup=false
                   businessDate=$(date -d yesterday +%F)
               envFrom: [{configMapRef: {name: ledgerflow-env}}]
               env:

@@ -22,6 +22,10 @@ spec:
             # member id (group.instance.id) and fence each other - step 25's note promised this
             - name: INSTANCE_ID
               valueFrom: {fieldRef: {fieldPath: metadata.name}}
+          # SIGTERM flips readiness to 503 at once; kube-proxy takes about a second to stop routing to
+          # the pod. Measured without this: two 503s and one dropped connection per rolling restart.
+          lifecycle:
+            preStop: {sleep: {seconds: 5}}
           resources:
             requests: {cpu: 200m, memory: 768Mi}
             limits: {memory: 768Mi}

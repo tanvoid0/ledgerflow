@@ -19,6 +19,9 @@ spec:
             - name: job
               image: ledgerflow/settlement-service:1.0.0-SNAPSHOT
               imagePullPolicy: IfNotPresent
+              # the job is the service image, listeners and all: without this every run joins the
+              # settlement-service consumer group as a static member and, exiting without LeaveGroup,
+              # holds its partitions for session.timeout.ms (30 s) - a rebalance per cron tick
               command: ["bash", "-c"]
               args:
                 - >-
@@ -26,6 +29,7 @@ spec:
                   --spring.batch.job.enabled=true
                   --spring.batch.job.name=agedItemSweepJob
                   --spring.main.web-application-type=none
+                  --spring.kafka.listener.auto-startup=false
                   runAt=$(date -u +%FT%TZ)
               envFrom: [{configMapRef: {name: ledgerflow-env}}]
               env:

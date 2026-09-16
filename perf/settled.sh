@@ -5,7 +5,10 @@
 # so `METRIC=payment_settled perf/compare.sh` prints the end-to-end row. One clock (Postgres) on both ends.
 set -euo pipefail
 OUT="${1:?summary.json}"; SINCE="${2:?since}"
-sql() { docker exec ledgerflow-postgres psql -U ledgerflow -d payment -tA -c "$1"; }
+# PSQL: how to reach the payment database. Compose by default; the kind cluster has no container by that name
+# (PSQL="kubectl exec deploy/postgres -- psql" - same shape as topics.sh's RPK).
+PSQL=${PSQL:-docker exec ledgerflow-postgres psql}
+sql() { $PSQL -U ledgerflow -d payment -tA -c "$1"; }
 WINDOW="created_at >= '$SINCE'::timestamptz + interval '30 seconds'"   # payments.js warms up for 30s
 
 # the tail: every open saga either answers or hits its 15s step deadline
