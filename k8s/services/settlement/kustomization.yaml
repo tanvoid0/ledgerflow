@@ -1,0 +1,19 @@
+namePrefix: settlement-
+resources: [../../base]
+labels:
+  - pairs: {app: settlement}
+    includeSelectors: true
+images:
+  - name: ledgerflow/service
+    newName: ledgerflow/settlement-service
+patches:
+  - target: {kind: Deployment}
+    patch: |
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value: {name: DB_URL, value: "jdbc:postgresql://postgres:5432/settlement"}
+  - target: {kind: Service}
+    patch: |
+      - op: add
+        path: /spec/ports/0/nodePort
+        value: 30087

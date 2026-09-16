@@ -1,0 +1,26 @@
+namePrefix: risk-
+resources: [../../base]
+labels:
+  - pairs: {app: risk}
+    includeSelectors: true
+images:
+  - name: ledgerflow/service
+    newName: ledgerflow/risk-service
+patches:
+  - target: {kind: Deployment}
+    patch: |
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value: {name: DB_URL, value: "jdbc:postgresql://postgres:5432/risk"}
+      # risk connects as its own role, not ledgerflow - see infra/compose/risk-role.sql for why
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value: {name: DB_USER, value: risk}
+      - op: replace
+        path: /spec/template/spec/containers/0/env/0
+        value: {name: DB_PASSWORD, value: risk}
+  - target: {kind: Service}
+    patch: |
+      - op: add
+        path: /spec/ports/0/nodePort
+        value: 30084

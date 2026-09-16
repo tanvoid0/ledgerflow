@@ -1,0 +1,37 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata: {name: aged-item-sweep}
+spec:
+  schedule: "*/15 * * * *"
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 3600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 3600
+      ttlSecondsAfterFinished: 86400
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: job
+              image: ledgerflow/settlement-service:1.0.0-SNAPSHOT
+              imagePullPolicy: IfNotPresent
+              command: ["bash", "-c"]
+              args:
+                - >-
+                  exec /cnb/process/web
+                  --spring.batch.job.enabled=true
+                  --spring.batch.job.name=agedItemSweepJob
+                  --spring.main.web-application-type=none
+                  runAt=$(date -u +%FT%TZ)
+              envFrom: [{configMapRef: {name: ledgerflow-env}}]
+              env:
+                - {name: DB_URL, value: "jdbc:postgresql://postgres:5432/settlement"}
+                - name: DB_PASSWORD
+                  valueFrom: {secretKeyRef: {name: ledgerflow-db, key: password}}
+              resources:
+                requests: {cpu: 500m, memory: 768Mi}
+                limits: {memory: 768Mi}

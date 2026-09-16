@@ -170,6 +170,7 @@ and a CHECK constraint bring it to exactly one. `perf/race.sh` reproduces it,
 | Three jobs, one timetable, and a second replica doubles it | chunk to file, tasklet, `@Scheduled` per JVM; `runAt` vs `businessDate` decides whether a run may repeat | `SettlementJobIT`, `docs/measurements/step-23-schedule.md` |
 | A feed goes down, a row is wrong, a pod dies - the run finishes anyway | retry policy with includes/excludes, skip policy with a limit and a reject table, restart by execution id, recover for a killed JVM | `SettlementFaultToleranceTest`, `docs/measurements/step-24-failures.md` |
 | One script, a clean machine, the whole system in containers | Paketo images from the pom, `${ENV:default}` everywhere, one compose file, the same image as a one-shot job with an exit code | `scripts/demo-compose.sh`, `docs/measurements/step-25-containers.md` |
+| The cluster owns the timetable | kind + kustomize, three probes that mean three things, CronJobs with Forbid, a stranded execution recovered from a command line with the service scaled to zero | `scripts/k8s-up.sh`, `docs/measurements/step-26-kubernetes.md` |
 
 ## Run it
 
@@ -178,6 +179,9 @@ and a CHECK constraint bring it to exactly one. `perf/race.sh` reproduces it,
 ./scripts/demo.sh    # compose --wait, topics + schema registration, build, start all eight, run three scenarios - a few minutes on a warm Maven cache (host JVMs - what the perf numbers are taken on)
 ./scripts/stop-services.sh
 docker compose -f infra/compose/docker-compose.yml -f infra/compose/docker-compose.app.yml stop
+
+./scripts/k8s-up.sh    # a kind cluster instead: images from the pom, kind load, kustomize apply, the four CronJobs, topics + schemas - refuses while the compose infra above is still up (same host ports)
+./scripts/k8s-down.sh  # kind delete cluster - gives the host ports back
 
 curl -s localhost:8080/api/v1/accounts | jq
 curl -s -X POST localhost:8081/api/v1/holds -H 'content-type: application/json' \

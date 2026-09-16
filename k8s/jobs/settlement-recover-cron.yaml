@@ -1,0 +1,35 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata: {name: settlement-recover}
+spec:
+  schedule: "*/10 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      backoffLimit: 0                   # no HTTP, no service dependency - a failed sweep just waits for the next tick
+      activeDeadlineSeconds: 600
+      ttlSecondsAfterFinished: 86400
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            # the settlement image itself, not a curl sidecar: this runs the CLI operator directly
+            # against the job repository, so it works even with the settlement Deployment scaled to
+            # zero - a sweeper that needs the service it is sweeping for is a circular runbook
+            - name: recover
+              image: ledgerflow/settlement-service:1.0.0-SNAPSHOT
+              imagePullPolicy: IfNotPresent
+              args:
+                - --spring.profiles.active=cli
+                - --spring.main.web-application-type=none
+                - recover-stranded
+              envFrom: [{configMapRef: {name: ledgerflow-env}}]
+              env:
+                - {name: DB_URL, value: "jdbc:postgresql://postgres:5432/settlement"}
+                - name: DB_PASSWORD
+                  valueFrom: {secretKeyRef: {name: ledgerflow-db, key: password}}
+              resources:
+                requests: {cpu: 200m, memory: 768Mi}
+                limits: {memory: 768Mi}
