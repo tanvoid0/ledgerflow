@@ -2,9 +2,16 @@ package io.ledgerflow.settlement.batch;
 
 import io.ledgerflow.settlement.adapter.out.issuer.FxRateGateway;
 import io.ledgerflow.settlement.config.LineItemsProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.batch.core.ExitStatus;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.job.Job;
 import org.springframework.batch.core.job.builder.JobBuilder;
+import org.springframework.batch.core.job.flow.Flow;
+import org.springframework.batch.core.job.flow.support.SimpleFlow;
+import org.springframework.batch.core.job.builder.FlowBuilder;
+import org.springframework.batch.core.listener.ExecutionContextPromotionListener;
 import org.springframework.batch.core.listener.StepExecutionListener;
 import org.springframework.batch.core.partition.Partitioner;
 import org.springframework.batch.core.repository.JobRepository;
@@ -13,6 +20,7 @@ import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.infrastructure.item.ItemProcessor;
 import org.springframework.batch.infrastructure.item.ItemReader;
+import org.springframework.batch.infrastructure.item.ItemWriter;
 import org.springframework.batch.infrastructure.item.database.JdbcBatchItemWriter;
 import org.springframework.batch.infrastructure.item.database.JdbcCursorItemReader;
 import org.springframework.batch.infrastructure.item.database.JdbcPagingItemReader;
@@ -37,12 +45,15 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Duration;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.Map;
 import java.util.UUID;
 
 /** The nightly job: settlement_item -> settlement_line (fee taken out) -> settlement_batch (netted per merchant). */
 @Configuration
 class SettlementJobConfig {
+
+    private static final Logger log = LoggerFactory.getLogger(SettlementJobConfig.class);
 
     @Bean
     @StepScope
@@ -173,18 +184,18 @@ class SettlementJobConfig {
                 .build();
     }
 
-    /** Shared by every mode: reader is the only thing that varies, executor only for the threaded ones. */
+    /** Shared by every mode: reader is the only thing that varies, executor and outcome listener only for the manager step. */
     private static Step chunkStep(String name, JobRepository jobRepository, PlatformTransactionManager tx,
                                    ItemReader<SettlementItem> reader, ItemProcessor<SettlementItem, SettlementLine> lineProcessor,
-                                   JdbcBatchItemWriter<SettlementLine> lineWriter, RetryPolicy transientOnly,
+                                   ItemWriter<SettlementLine> routedLineWriter, RetryPolicy transientOnly,
                                    RejectUnsettleableItems rejectUnsettleableItems, SettlementMetrics metrics,
-                                   SimpleAsyncTaskExecutor executor) {
+                                   SimpleAsyncTaskExecutor executor, ClassifySettlementOutcome classifySettlementOutcome) {
         var builder = new StepBuilder(name, jobRepository)
                 .<SettlementItem, SettlementLine>chunk(100)
                 .transactionManager(tx)
                 .reader(reader)
                 .processor(lineProcessor)
-                .writer(lineWriter)
+                .writer(routedLineWriter)
                 .faultTolerant()
                 .retryPolicy(transientOnly)
                 .skipPolicy(rejectUnsettleableItems)
@@ -193,45 +204,52 @@ class SettlementJobConfig {
         if (executor != null) {
             builder.taskExecutor(executor);
         }
+        if (classifySettlementOutcome != null) {
+            builder.listener((StepExecutionListener) classifySettlementOutcome);
+        }
         return builder.build();
     }
 
     @Bean
     Step lineItemsWorkerStep(JobRepository jobRepository, PlatformTransactionManager tx,
                              JdbcPagingItemReader<SettlementItem> partitionedItemReader,
-                             ItemProcessor<SettlementItem, SettlementLine> lineProcessor, JdbcBatchItemWriter<SettlementLine> lineWriter,
+                             ItemProcessor<SettlementItem, SettlementLine> lineProcessor, ItemWriter<SettlementLine> routedLineWriter,
                              RetryPolicy transientOnly, RejectUnsettleableItems rejectUnsettleableItems, SettlementMetrics metrics) {
-        return chunkStep("lineItemsWorkerStep", jobRepository, tx, partitionedItemReader, lineProcessor, lineWriter, transientOnly,
-                rejectUnsettleableItems, metrics, null);
+        return chunkStep("lineItemsWorkerStep", jobRepository, tx, partitionedItemReader, lineProcessor, routedLineWriter, transientOnly,
+                rejectUnsettleableItems, metrics, null, null);
     }
 
     @Bean
     Step lineItemsStep(JobRepository jobRepository, PlatformTransactionManager tx, LineItemsProperties props,
                        JdbcCursorItemReader<SettlementItem> itemReader, JdbcPagingItemReader<SettlementItem> pagingItemReader,
-                       ItemProcessor<SettlementItem, SettlementLine> lineProcessor, JdbcBatchItemWriter<SettlementLine> lineWriter,
+                       ItemProcessor<SettlementItem, SettlementLine> lineProcessor, ItemWriter<SettlementLine> routedLineWriter,
                        RetryPolicy transientOnly, RejectUnsettleableItems rejectUnsettleableItems, SettlementMetrics metrics,
-                       SimpleAsyncTaskExecutor settleExecutor, Partitioner idRangePartitioner, Step lineItemsWorkerStep) {
+                       SimpleAsyncTaskExecutor settleExecutor, Partitioner idRangePartitioner, Step lineItemsWorkerStep,
+                       ClassifySettlementOutcome classifySettlementOutcome) {
         return switch (props.lineItems()) {
-            case SINGLE -> chunkStep("lineItemsStep", jobRepository, tx, itemReader, lineProcessor, lineWriter, transientOnly,
-                    rejectUnsettleableItems, metrics, null);
-            case THREADS_CURSOR -> chunkStep("lineItemsStep", jobRepository, tx, itemReader, lineProcessor, lineWriter, transientOnly,
-                    rejectUnsettleableItems, metrics, settleExecutor);
-            case THREADS_PAGING -> chunkStep("lineItemsStep", jobRepository, tx, pagingItemReader, lineProcessor, lineWriter, transientOnly,
-                    rejectUnsettleableItems, metrics, settleExecutor);
+            case SINGLE -> chunkStep("lineItemsStep", jobRepository, tx, itemReader, lineProcessor, routedLineWriter, transientOnly,
+                    rejectUnsettleableItems, metrics, null, classifySettlementOutcome);
+            case THREADS_CURSOR -> chunkStep("lineItemsStep", jobRepository, tx, itemReader, lineProcessor, routedLineWriter, transientOnly,
+                    rejectUnsettleableItems, metrics, settleExecutor, classifySettlementOutcome);
+            case THREADS_PAGING -> chunkStep("lineItemsStep", jobRepository, tx, pagingItemReader, lineProcessor, routedLineWriter,
+                    transientOnly, rejectUnsettleableItems, metrics, settleExecutor, classifySettlementOutcome);
             case PARTITION -> new StepBuilder("lineItemsStep", jobRepository)
                     .partitioner("lineItemsWorkerStep", idRangePartitioner)
                     .step(lineItemsWorkerStep)
                     .gridSize(props.gridSize())
                     .taskExecutor(settleExecutor)
+                    .listener((StepExecutionListener) classifySettlementOutcome)
                     .build();
         };
     }
 
     /**
-     * One transaction: net the day's lines into settlement_batch, then mark their items SETTLED. Both statements
-     * are idempotent (upsert, and a status filter that only matches NEW), so if the JVM dies between them, step
-     * 24 reruns the whole tasklet and lands in the same place. The second statement also requires a line to
-     * exist: a rejected row must not come out SETTLED.
+     * One transaction: net the day's lines (GBP settlement_line and every other currency's settlement_line_fx)
+     * into settlement_batch, then mark their items SETTLED. Both statements are idempotent (upsert, and a status
+     * filter that only matches NEW), so if the JVM dies between them, step 24 reruns the whole tasklet and lands
+     * in the same place. The second statement also requires a line in either table: a rejected row must not come
+     * out SETTLED. The two summary numbers computed after the insert go into the step execution context for
+     * ExecutionContextPromotionListener to lift into the job execution context.
      */
     @Bean
     @StepScope
@@ -241,34 +259,150 @@ class SettlementJobConfig {
             db.sql("""
                     insert into settlement_batch (business_date, merchant_id, currency, gross_minor, fee_minor, net_minor, line_count)
                     select business_date, merchant_id, currency, sum(gross_minor), sum(fee_minor), sum(net_minor), count(*)
-                      from settlement_line where business_date = :date group by 1, 2, 3
-                    on conflict (business_date, merchant_id) do update set
+                      from (
+                          select business_date, merchant_id, currency, gross_minor, fee_minor, net_minor
+                            from settlement_line where business_date = :date
+                          union all
+                          select business_date, merchant_id, currency, gross_minor, fee_minor, net_minor
+                            from settlement_line_fx where business_date = :date
+                      ) l group by 1, 2, 3
+                    on conflict (business_date, merchant_id, currency) do update set
                         gross_minor = excluded.gross_minor, fee_minor = excluded.fee_minor,
                         net_minor = excluded.net_minor, line_count = excluded.line_count
                     """).param("date", date).update();
             db.sql("""
                     update settlement_item set status = 'SETTLED' where business_date = :date and status = 'NEW'
-                      and exists (select 1 from settlement_line l where l.item_id = settlement_item.id)
+                      and exists (
+                          select 1 from settlement_line l where l.item_id = settlement_item.id
+                          union all
+                          select 1 from settlement_line_fx l where l.item_id = settlement_item.id
+                      )
                     """).param("date", date).update();
+
+            long netTotalMinor = db.sql("select coalesce(sum(net_minor), 0) from settlement_batch where business_date = :date")
+                    .param("date", date).query(Long.class).single();
+            long merchantCount = db.sql("select count(*) from settlement_batch where business_date = :date")
+                    .param("date", date).query(Long.class).single();
+            var executionContext = chunkContext.getStepContext().getStepExecution().getExecutionContext();
+            executionContext.putLong("netTotalMinor", netTotalMinor);
+            executionContext.putLong("merchantCount", merchantCount);
             return RepeatStatus.FINISHED;
         };
     }
 
     @Bean
+    ExecutionContextPromotionListener netTotalsPromotionListener() {
+        var listener = new ExecutionContextPromotionListener();
+        listener.setKeys(new String[] {"netTotalMinor", "merchantCount"});
+        listener.setStrict(false);
+        return listener;
+    }
+
+    @Bean
     Step netByMerchantStep(JobRepository jobRepository, PlatformTransactionManager tx, Tasklet netByMerchantTasklet,
-                           SettlementMetrics metrics) {
+                           SettlementMetrics metrics, ExecutionContextPromotionListener netTotalsPromotionListener) {
         return new StepBuilder("netByMerchantStep", jobRepository)
                 .tasklet(netByMerchantTasklet)
                 .transactionManager(tx)
                 .listener((StepExecutionListener) metrics)
+                .listener((StepExecutionListener) netTotalsPromotionListener)
                 .build();
     }
 
+    /** lineItemsStep read nothing for the day: nothing to net, nothing to export, nothing to notify. */
     @Bean
-    Job nightlySettlementJob(JobRepository jobRepository, Step lineItemsStep, Step netByMerchantStep) {
+    Step noopStep(JobRepository jobRepository, PlatformTransactionManager tx) {
+        return new StepBuilder("noopStep", jobRepository)
+                .tasklet((contribution, chunkContext) -> RepeatStatus.FINISHED, tx)
+                .build();
+    }
+
+    /** How many items a business date rejected, and what they were worth — one log line, nothing more; the reject rows themselves are the record. */
+    @Bean
+    @StepScope
+    Tasklet rejectReportTasklet(@Value("#{jobParameters['businessDate']}") String businessDate, JdbcClient db) {
+        return (contribution, chunkContext) -> {
+            LocalDate date = LocalDate.parse(businessDate);
+            long rejectCount = db.sql("select count(*) from settlement_reject where business_date = :date")
+                    .param("date", date).query(Long.class).single();
+            long rejectedMinor = db.sql("""
+                    select coalesce(sum(i.amount_minor), 0) from settlement_reject r
+                      join settlement_item i on i.id = r.item_id where r.business_date = :date
+                    """).param("date", date).query(Long.class).single();
+            log.warn("business date {}: {} rejected items totalling {} minor", date, rejectCount, rejectedMinor);
+            chunkContext.getStepContext().getStepExecution().getExecutionContext().putLong("rejectCount", rejectCount);
+            return RepeatStatus.FINISHED;
+        };
+    }
+
+    @Bean
+    Step rejectReportStep(JobRepository jobRepository, PlatformTransactionManager tx, Tasklet rejectReportTasklet) {
+        return new StepBuilder("rejectReportStep", jobRepository)
+                .tasklet(rejectReportTasklet)
+                .transactionManager(tx)
+                .build();
+    }
+
+    /** Month-end only: settlement_batch's fee total for the month should equal what the lines actually took out. A mismatch doesn't stop the flow, just flags it. */
+    @Bean
+    @StepScope
+    Tasklet feeReconciliationTasklet(@Value("#{jobParameters['businessDate']}") String businessDate, JdbcClient db) {
+        return (contribution, chunkContext) -> {
+            LocalDate month = YearMonth.from(LocalDate.parse(businessDate)).atDay(1);
+            long batchFee = db.sql("select coalesce(sum(fee_minor), 0) from settlement_batch where date_trunc('month', business_date) = :month")
+                    .param("month", month).query(Long.class).single();
+            long lineFee = db.sql("""
+                    select coalesce(sum(fee_minor), 0) from (
+                        select fee_minor from settlement_line where date_trunc('month', business_date) = :month
+                        union all
+                        select fee_minor from settlement_line_fx where date_trunc('month', business_date) = :month
+                    ) l
+                    """).param("month", month).query(Long.class).single();
+            log.info("fee reconciliation {}: settlement_batch={} settlement_line(+fx)={}", month, batchFee, lineFee);
+            if (batchFee != lineFee) {
+                contribution.setExitStatus(new ExitStatus("MISMATCH"));
+            }
+            return RepeatStatus.FINISHED;
+        };
+    }
+
+    @Bean
+    Step feeReconciliationStep(JobRepository jobRepository, PlatformTransactionManager tx, Tasklet feeReconciliationTasklet) {
+        return new StepBuilder("feeReconciliationStep", jobRepository)
+                .tasklet(feeReconciliationTasklet)
+                .transactionManager(tx)
+                .build();
+    }
+
+    /** export and notify don't depend on each other, so they run side by side once netting (and, month-end, reconciliation) is done. */
+    @Bean
+    SimpleAsyncTaskExecutor eodExecutor() {
+        var executor = new SimpleAsyncTaskExecutor("eod-");
+        executor.setVirtualThreads(true);
+        executor.setConcurrencyLimit(2);
+        return executor;
+    }
+
+    @Bean
+    Flow afterNetting(SimpleAsyncTaskExecutor eodExecutor, Step statementExportStep, Step notifyMerchantsStep) {
+        Flow exportFlow = new FlowBuilder<SimpleFlow>("exportFlow").start(statementExportStep).build();
+        Flow notifyMerchantsFlow = new FlowBuilder<SimpleFlow>("notifyMerchantsFlow").start(notifyMerchantsStep).build();
+        return new FlowBuilder<SimpleFlow>("afterNetting").split(eodExecutor).add(exportFlow, notifyMerchantsFlow).build();
+    }
+
+    @Bean
+    Job nightlySettlementJob(JobRepository jobRepository, Step lineItemsStep, Step noopStep, Step rejectReportStep,
+                             Step netByMerchantStep, MonthEndDecider monthEndDecider, Step feeReconciliationStep, Flow afterNetting) {
         return new JobBuilder("nightlySettlementJob", jobRepository)
                 .start(lineItemsStep)
-                .next(netByMerchantStep)
+                    .on("NOTHING_TO_DO").to(noopStep)
+                .from(lineItemsStep).on("COMPLETED_WITH_REJECTS").to(rejectReportStep).next(netByMerchantStep)
+                .from(lineItemsStep).on("COMPLETED").to(netByMerchantStep)
+                .from(lineItemsStep).on("*").fail()
+                .from(netByMerchantStep).on("*").to(monthEndDecider)
+                    .on("MONTH_END").to(feeReconciliationStep).next(afterNetting)
+                .from(monthEndDecider).on("*").to(afterNetting)
+                .end()
                 .build();
     }
 
