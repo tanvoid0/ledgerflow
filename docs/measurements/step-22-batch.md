@@ -99,6 +99,44 @@ select i.job_name, e.status, s.step_name, s.read_count, s.write_count, s.commit_
 One instance, one execution, two step executions - the second call added
 neither.
 
+## Checkpoint
+
+`perf/bench.sh step22` on the committed jars: transfer p99 11 ms, holds p99
+11 ms, payment POST p99 14 ms, settled p50 431 ms / p99 10.6 s, 18,006
+captured, none failed. Step 21 was 438 ms / 9.9 s / none failed. The Batch
+wiring costs the capture path nothing: mid-run, `spring_kafka_listener_milliseconds`
+had settlement-service's capture listener at 20.8 ms a record against step
+18's 21.2, payment-service's reply threads at 6.8 (7.0), ledger-service at
+8.1 (8.4), all three threads of each within 0.1 ms of one another.
+
+That row took six runs, and the five bad ones were two host faults, neither
+in this step's code:
+
+- **Lost consumer offsets.** Three times the stack came back from a hard
+  stop (the JVMs, k6 and Docker Desktop's backend killed together) and
+  payment-service logged `Found no committed offset for partition ...` /
+  `Resetting offset ... to position offset=0` on some partitions and not
+  others. Redpanda had lost part of the group's committed offsets, and
+  `auto-offset-reset: earliest` did the rest: 100-190k old reply events
+  replayed through the inbox's dedupe at ~1.6k/s, so the payments phase
+  started with the reply threads already 60-90 s behind and every saga in
+  the first minutes timed out at ISSUE. The signature is `rpk group describe
+  payment-service` showing lag on some partitions and zero on others while
+  nothing is producing - checked *after* the consumers have joined, not
+  while the JVMs are starting (the group reports 0 with no members).
+- **Two JIT crashes.** risk-service on the 15th (`EXCEPTION_ACCESS_VIOLATION`
+  in C2-compiled `FetchRequestData.addSize`), ledger-service on the 16th
+  (`EXCEPTION_ILLEGAL_INSTRUCTION` in C2-compiled
+  `NetworkClient$DefaultMetadataUpdater.isUpdateDue`, on a legal `vmovsd`),
+  both on a Kafka consumer thread ~3 minutes into load, Temurin 25.0.4+7 on
+  Zen 5. Application code is not in either frame. Every saga waiting on the
+  dead service ran to its deadline; the run is discarded, not recorded.
+
+Both leave the same shape in the settled numbers - a p50 in seconds and a
+few hundred `TIMED_OUT at ISSUE` - which is why the box's first suspect,
+Batch's transaction wiring next to Boot's, was checked with the listener
+histogram before rerunning rather than after.
+
 ## Kept
 
 - `spring.batch.job.enabled: false` by default; `true` only inside step
