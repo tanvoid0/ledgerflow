@@ -9,5 +9,5 @@ import org.springframework.validation.annotation.Validated;
 @ConfigurationProperties(prefix = "ledgerflow.settlement")
 public record LineItemsProperties(@DefaultValue("partition") Mode lineItems, @DefaultValue("8") int gridSize) {
 
-    public enum Mode {SINGLE, THREADS_CURSOR, THREADS_PAGING, PARTITION}
+    public enum Mode {SINGLE, THREADS_CURSOR, THREADS_PAGING, PARTITION, REMOTE}
 }

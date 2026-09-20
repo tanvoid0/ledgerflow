@@ -71,6 +71,7 @@ Redpanda has no volume, so `scripts/demo.sh` sets these on every run (create wit
 | `*.retry-1000\|3000\|9000`     | 86400000 (1d)          | delete         | same lifetime as the topic they retry |
 | `*.dlt`                        | 2592000000 (30d)       | delete         | someone has to look |
 | `ledgerflow.balance.snapshots.v1` | n/a                 | compact        | keyed by `accountId:label`, keeps the latest snapshot per wallet instead of a window of history; `segment.ms=10000` in dev only (with the cluster floor `log_segment_ms_min` lowered to match, or Redpanda ignores it), so the cleaner runs often enough to watch - never in production |
+| `ledgerflow.settlement.{partition-requests,chunk-requests,chunk-replies}.v1` | 86400000 (1d) | delete | Spring Batch's own remote wire, not a domain event - no schema in `ledgerflow-events`, no registry subject |
 
 Replication is a topic property too, set by `scripts/topics.sh`: rf 1 daily, rf 3 under
 `scripts/cluster3.sh` - `docs/measurements/step-21-broker.md`.

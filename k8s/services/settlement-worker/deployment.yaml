@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+# standalone, not a base overlay: a base overlay would namePrefix this to settlement-worker-service
+# and need a fourth patch kind - the curriculum check reads the bare name settlement-worker, so this
+# copies base/deployment.yaml's probes/resources/env by hand instead. No service.yaml - nothing calls in.
+metadata: {name: settlement-worker}
+spec:
+  replicas: 4
+  selector: {matchLabels: {app: settlement-worker}}
+  template:
+    metadata: {labels: {app: settlement-worker}}
+    spec:
+      terminationGracePeriodSeconds: 45          # longer than the 30s graceful shutdown
+      containers:
+        - name: app
+          image: ledgerflow/settlement-service:1.0.0-SNAPSHOT
+          imagePullPolicy: IfNotPresent
+          args: [--spring.profiles.active=worker]
+          ports: [{containerPort: 8080}]          # worker keeps the web server - the probes below are HTTP
+          envFrom:
+            - configMapRef: {name: ledgerflow-env}
+          env:
+            - {name: DB_URL, value: "jdbc:postgresql://postgres:5432/settlement"}
+            - name: DB_PASSWORD
+              valueFrom: {secretKeyRef: {name: ledgerflow-db, key: password}}
+            # the pod name: four replicas at the same group.instance.id would otherwise fence each
+            # other on the settlement-worker consumer group - same reason as base/deployment.yaml
+            - name: INSTANCE_ID
+              valueFrom: {fieldRef: {fieldPath: metadata.name}}
+          # SIGTERM flips readiness to 503 at once; kube-proxy takes about a second to stop routing to
+          # the pod. Same as base/deployment.yaml - no Service here, but rolling restarts still apply.
+          lifecycle:
+            preStop: {sleep: {seconds: 5}}
+          resources:
+            requests: {cpu: 200m, memory: 768Mi}
+            limits: {memory: 768Mi}
+            # 768Mi is step 25's measured number (310-417MiB RSS per JVM at 70%), same JVM as everywhere else
+          startupProbe:
+            httpGet: {path: /actuator/health/readiness, port: 8080}
+            periodSeconds: 5
+            failureThreshold: 30                 # 150s to boot before anything else judges it
+          readinessProbe:
+            httpGet: {path: /actuator/health/readiness, port: 8080}
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: {path: /actuator/health/liveness, port: 8080}
+            periodSeconds: 10

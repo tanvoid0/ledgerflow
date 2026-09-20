@@ -32,6 +32,14 @@ $RPK topic create ledgerflow.balance.snapshots.v1 -p 3 -r "$RF" "${isr[@]}" \
 # Redpanda silently clamps a topic's segment.ms to this cluster floor (10 minutes by default); dev only, like the segment.ms above
 $RPK cluster config set log_segment_ms_min 1000 > /dev/null
 
+# step 29's remote partitioning: the batch's private wire, no schema in ledgerflow-events. -p 8 = the
+# manager's gridSize(), not policy()'s hard-coded -p 3, so it can't go through policy().
+$RPK topic create ledgerflow.settlement.partition-requests.v1 -p 8 -r "$RF" "${isr[@]}" -c "retention.ms=86400000" > /dev/null 2>&1 || true
+$RPK topic alter-config ledgerflow.settlement.partition-requests.v1 --set "retention.ms=86400000" > /dev/null
+for t in settlement.chunk-requests settlement.chunk-replies; do   # remote chunking's request/reply pair, same private wire
+  policy "ledgerflow.$t.v1" 86400000   # 1d, same as the commands above
+done
+
 # the retry and dlt topics only exist once a consumer has started - a no-op the first time this runs
 existing_topics=$($RPK topic list | awk 'NR>1{print $1}')
 for t in $(echo "$existing_topics" | grep -E '\.retry-[0-9]+$' || true); do
