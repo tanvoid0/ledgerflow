@@ -15,6 +15,7 @@ import org.springframework.batch.core.listener.ExecutionContextPromotionListener
 import org.springframework.batch.core.listener.StepExecutionListener;
 import org.springframework.batch.core.partition.Partitioner;
 import org.springframework.batch.core.repository.JobRepository;
+import org.springframework.batch.integration.partition.RemotePartitioningManagerStepBuilder;
 import org.springframework.batch.core.step.Step;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.core.step.tasklet.Tasklet;
@@ -33,9 +34,11 @@ import org.springframework.batch.infrastructure.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.core.retry.RetryPolicy;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.messaging.MessageChannel;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.web.client.RestClientException;
 
@@ -184,14 +187,13 @@ class SettlementJobConfig {
                 .build();
     }
 
-    /** Shared by every mode: reader is the only thing that varies, executor and outcome listener only for the manager step. */
-    private static Step chunkStep(String name, JobRepository jobRepository, PlatformTransactionManager tx,
-                                   ItemReader<SettlementItem> reader, ItemProcessor<SettlementItem, SettlementLine> lineProcessor,
-                                   ItemWriter<SettlementLine> routedLineWriter, RetryPolicy transientOnly,
-                                   RejectUnsettleableItems rejectUnsettleableItems, SettlementMetrics metrics,
-                                   SimpleAsyncTaskExecutor executor, ClassifySettlementOutcome classifySettlementOutcome) {
-        var builder = new StepBuilder(name, jobRepository)
-                .<SettlementItem, SettlementLine>chunk(100)
+    /** Shared by every mode: the builder (plain, or remote's worker builder) is the only thing that varies, executor and outcome listener only for the manager step. */
+    static Step chunkStep(StepBuilder builder, PlatformTransactionManager tx,
+                           ItemReader<SettlementItem> reader, ItemProcessor<SettlementItem, SettlementLine> lineProcessor,
+                           ItemWriter<SettlementLine> routedLineWriter, RetryPolicy transientOnly,
+                           RejectUnsettleableItems rejectUnsettleableItems, SettlementMetrics metrics,
+                           SimpleAsyncTaskExecutor executor, ClassifySettlementOutcome classifySettlementOutcome) {
+        var chunkBuilder = builder.<SettlementItem, SettlementLine>chunk(100)
                 .transactionManager(tx)
                 .reader(reader)
                 .processor(lineProcessor)
@@ -202,21 +204,23 @@ class SettlementJobConfig {
                 .skipListener(rejectUnsettleableItems)
                 .listener((StepExecutionListener) metrics);
         if (executor != null) {
-            builder.taskExecutor(executor);
+            chunkBuilder.taskExecutor(executor);
         }
         if (classifySettlementOutcome != null) {
-            builder.listener((StepExecutionListener) classifySettlementOutcome);
+            chunkBuilder.listener((StepExecutionListener) classifySettlementOutcome);
         }
-        return builder.build();
+        return chunkBuilder.build();
     }
 
+    /** In-JVM worker step: every mode but remote, where RemotePartitioningConfig builds the same-named step off the wire instead. */
     @Bean
+    @Profile("!worker")
     Step lineItemsWorkerStep(JobRepository jobRepository, PlatformTransactionManager tx,
                              JdbcPagingItemReader<SettlementItem> partitionedItemReader,
                              ItemProcessor<SettlementItem, SettlementLine> lineProcessor, ItemWriter<SettlementLine> routedLineWriter,
                              RetryPolicy transientOnly, RejectUnsettleableItems rejectUnsettleableItems, SettlementMetrics metrics) {
-        return chunkStep("lineItemsWorkerStep", jobRepository, tx, partitionedItemReader, lineProcessor, routedLineWriter, transientOnly,
-                rejectUnsettleableItems, metrics, null, null);
+        return chunkStep(new StepBuilder("lineItemsWorkerStep", jobRepository), tx, partitionedItemReader, lineProcessor, routedLineWriter,
+                transientOnly, rejectUnsettleableItems, metrics, null, null);
     }
 
     @Bean
@@ -225,19 +229,30 @@ class SettlementJobConfig {
                        ItemProcessor<SettlementItem, SettlementLine> lineProcessor, ItemWriter<SettlementLine> routedLineWriter,
                        RetryPolicy transientOnly, RejectUnsettleableItems rejectUnsettleableItems, SettlementMetrics metrics,
                        SimpleAsyncTaskExecutor settleExecutor, Partitioner idRangePartitioner, Step lineItemsWorkerStep,
-                       ClassifySettlementOutcome classifySettlementOutcome) {
+                       ClassifySettlementOutcome classifySettlementOutcome, MessageChannel partitionRequestsOut) {
         return switch (props.lineItems()) {
-            case SINGLE -> chunkStep("lineItemsStep", jobRepository, tx, itemReader, lineProcessor, routedLineWriter, transientOnly,
-                    rejectUnsettleableItems, metrics, null, classifySettlementOutcome);
-            case THREADS_CURSOR -> chunkStep("lineItemsStep", jobRepository, tx, itemReader, lineProcessor, routedLineWriter, transientOnly,
-                    rejectUnsettleableItems, metrics, settleExecutor, classifySettlementOutcome);
-            case THREADS_PAGING -> chunkStep("lineItemsStep", jobRepository, tx, pagingItemReader, lineProcessor, routedLineWriter,
+            case SINGLE -> chunkStep(new StepBuilder("lineItemsStep", jobRepository), tx, itemReader, lineProcessor, routedLineWriter,
+                    transientOnly, rejectUnsettleableItems, metrics, null, classifySettlementOutcome);
+            case THREADS_CURSOR -> chunkStep(new StepBuilder("lineItemsStep", jobRepository), tx, itemReader, lineProcessor, routedLineWriter,
                     transientOnly, rejectUnsettleableItems, metrics, settleExecutor, classifySettlementOutcome);
+            case THREADS_PAGING -> chunkStep(new StepBuilder("lineItemsStep", jobRepository), tx, pagingItemReader, lineProcessor,
+                    routedLineWriter, transientOnly, rejectUnsettleableItems, metrics, settleExecutor, classifySettlementOutcome);
             case PARTITION -> new StepBuilder("lineItemsStep", jobRepository)
                     .partitioner("lineItemsWorkerStep", idRangePartitioner)
                     .step(lineItemsWorkerStep)
                     .gridSize(props.gridSize())
                     .taskExecutor(settleExecutor)
+                    .listener((StepExecutionListener) classifySettlementOutcome)
+                    .build();
+            // no in-JVM step: partitioner and gridSize pick the workers, the manager polls batch_step_execution
+            // for their status instead of aggregating replies (no inputChannel), so a worker that dies without
+            // replying can't hang it.
+            case REMOTE -> new RemotePartitioningManagerStepBuilder("lineItemsStep", jobRepository)
+                    .partitioner("lineItemsWorkerStep", idRangePartitioner)
+                    .gridSize(props.gridSize())
+                    .outputChannel(partitionRequestsOut)
+                    .pollInterval(1000)
+                    .timeout(600_000)
                     .listener((StepExecutionListener) classifySettlementOutcome)
                     .build();
         };

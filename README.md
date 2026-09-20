@@ -173,6 +173,7 @@ and a CHECK constraint bring it to exactly one. `perf/race.sh` reproduces it,
 | The cluster owns the timetable | kind + kustomize, three probes that mean three things, CronJobs with Forbid, a stranded execution recovered from a command line with the service scaled to zero | `scripts/k8s-up.sh`, `docs/measurements/step-26-kubernetes.md` |
 | A shared cursor reader races under threads; a partitioned step does not | `JdbcPagingItemReader` for a safe shared reader, `IdRangePartitioner` for one range and one reader per worker, restart re-runs only the failed partitions | `docs/measurements/step-27-batch-throughput.md` |
 | One job branches on the day's outcome, routes to two tables, runs two flows at once, and stops on request instead of dying | exit-status classification + `on()`/`to()` transitions, a `JobExecutionDecider` for month end, `ClassifierCompositeItemWriter`, a split of two independent steps, `JobOperator.stop()` | `docs/measurements/step-28-job-graph.md` |
+| A batch step scales past one JVM's cores by dispatching to a pool of pods instead of reading itself | `RemotePartitioningManagerStepBuilder` polling `batch_step_execution`, partitions keyed by step execution id on a Kafka topic, workers as their own scalable Deployment | `docs/measurements/step-29-remote-workers.md` |
 
 ## Run it
 
@@ -182,7 +183,7 @@ and a CHECK constraint bring it to exactly one. `perf/race.sh` reproduces it,
 ./scripts/stop-services.sh
 docker compose -f infra/compose/docker-compose.yml -f infra/compose/docker-compose.app.yml stop
 
-./scripts/k8s-up.sh    # a kind cluster instead: images from the pom, kind load, kustomize apply, the four CronJobs, topics + schemas - refuses while the compose infra above is still up (same host ports)
+./scripts/k8s-up.sh    # a kind cluster instead: images from the pom, kind load, kustomize apply (now including the settlement worker pool the nightly job's manager profile dispatches partitions to), the four CronJobs, topics + schemas - refuses while the compose infra above is still up (same host ports)
 ./scripts/k8s-down.sh  # kind delete cluster - gives the host ports back
 
 curl -s localhost:8080/api/v1/accounts | jq
