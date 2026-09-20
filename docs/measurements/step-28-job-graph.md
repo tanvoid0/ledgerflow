@@ -47,19 +47,43 @@ Four rules govern what happens next, and all four matter to this job:
 ## Which steps ran
 
 ```text
-{{R: rejects}}
+2026-10-08, 1,000 rows seeded, n % 100 = 0 -> amount_minor = 0 (10 rejects), execution 10
+lineItemsStep                    COMPLETED  COMPLETED_WITH_REJECTS
+rejectReportStep                 COMPLETED  COMPLETED
+netByMerchantStep                COMPLETED  COMPLETED
+statementExportStep              COMPLETED  COMPLETED
+notifyMerchantsStep              COMPLETED  COMPLETED
+select count(*) from settlement_reject where business_date='2026-10-08'  -> 10
 ```
 
 ```text
-{{R: clean}}
+2026-10-09, 1,000 rows, no rejects, execution 11
+lineItemsStep                    COMPLETED  COMPLETED
+netByMerchantStep                COMPLETED  COMPLETED
+statementExportStep              COMPLETED  COMPLETED
+notifyMerchantsStep              COMPLETED  COMPLETED
+no rejectReportStep row - the specific pattern did not match, "*" did
 ```
 
 ```text
-{{R: empty}}
+2026-10-10, nothing seeded, execution 12
+lineItemsStep                    COMPLETED  NOTHING_TO_DO
+noopStep                         COMPLETED  COMPLETED
+job status COMPLETED - the only step after lineItemsStep is noopStep
 ```
 
 ```text
-{{R: month-end}}
+2026-10-30, execution 13: lineItems -> netByMerchant -> {statementExport, notifyMerchants}; no feeReconciliationStep
+2026-10-31, execution 14:
+lineItemsStep           COMPLETED  COMPLETED
+netByMerchantStep       COMPLETED  COMPLETED
+feeReconciliationStep   COMPLETED  COMPLETED        (not MISMATCH)
+statementExportStep     COMPLETED  COMPLETED
+notifyMerchantsStep     COMPLETED  COMPLETED
+settlement log: fee reconciliation 2026-10-01: settlement_batch=1878632923 settlement_line(+fx)=1878632923
+
+select distinct exit_code from batch_step_execution where step_name like 'lineItems%'
+COMPLETED, COMPLETED_WITH_REJECTS, NOTHING_TO_DO, FAILED, EXECUTING   (5 across every run so far)
 ```
 
 ## The value handed forward
@@ -76,7 +100,10 @@ instance, and promoting everything a step happens to compute would grow
 that row for no reason anyone downstream reads.
 
 ```text
-{{R: promoted}}
+execution 11 (2026-10-09), batch_job_execution_context.short_context (decoded):
+merchantCount=200  netTotalMinor=18046716
+select sum(net_minor) from settlement_batch where business_date='2026-10-09'  -> 18046716
+two keys promoted, nothing else from the step context, and the copied value is the step's own sum
 ```
 
 ## Two flows at once
@@ -95,7 +122,13 @@ before `end`: the job cannot finish "half split," and a failure in either
 flow fails the split node, not one thread quietly swallowed.
 
 ```text
-{{R: split}}
+execution 11, batch_step_execution start/end:
+statementExportStep   01:01:18.852023 - 01:01:18.883026
+notifyMerchantsStep   01:01:18.853024 - 01:01:19.022845
+each starts before the other ends - two flows in flight, not two flows back to back
+outbox rows settlement.MerchantSettled for 2026-10-09        -> 200  (one per merchant)
+rpk topic consume ledgerflow.settlement.merchant.events.v1  -> events flowing (relay publishing to the new topic)
+target/exports/settlement-2026-10-09.csv                    -> 201 lines (header + 200 merchants)
 ```
 
 ## Two tables, no if
@@ -119,7 +152,10 @@ always grouped by currency, and only the seed data's merchant/currency
 correlation kept two rows from colliding on the old key.
 
 ```text
-{{R: routed}}
+2026-10-09, seed n % 20 = 0 -> EUR:
+settlement_line     (GBP)  950
+settlement_line_fx  (EUR)   50      950 + 50 = 1,000 = the seed
+settlement_batch pkey: (business_date, merchant_id, currency)   flyway version 8 applied
 ```
 
 ## Stop, not kill
@@ -143,7 +179,18 @@ interchangeable:
   need Batch 6's `StoppableStep` to see the same flag.
 
 ```text
-{{R: stop}}
+2026-10-11, 200,000 rows, execution 15
+start 01:03:04.465 -> POST /api/v1/batch/executions/15/stop at 01:03:11 -> 202
+{"executionId":15,"status":"STOPPED","exitCode":"STOPPED","endTime":"2026-09-17T01:03:11.777705"}
+lineItemsStep                     STOPPED  commit=1151  write=115100
+lineItemsWorkerStep:partition0-7  STOPPED  commit~144   write=14400 each
+request -> STOPPED under a second: the flag is read between chunks, and a chunk is ~100 rows
+
+POST /api/v1/batch/executions/15/restart -> execution 16, STARTED 01:03:23.081, COMPLETED 01:03:29.403
+lineItemsStep                     COMPLETED  commit=849   write=84900     (115,100 + 84,900 = 200,000)
+netByMerchantStep / statementExportStep (write=200) / notifyMerchantsStep  COMPLETED
+settlement_line + settlement_line_fx for 2026-10-11 = 200,000; count(distinct item_id) = count(*) in both - no gap, no dup
+select count(*) from batch_job_execution where status='STOPPED' -> 1
 ```
 
 ## Checkpoint
@@ -152,5 +199,16 @@ interchangeable:
 (host stack, single-instance JVMs):
 
 ```text
-{{R: bench}}
+step28 (all eight services up, settlement in partition/gridSize8 mode, host stack, lag 0 on every group):
+  transfer:  p50=8ms  p95=10ms p99=12ms  rps≈100  failed=0%   (step27: p50=6 p95=9 p99=10)
+  hold:      p50=9ms  p95=12ms p99=14ms  failed=0%            (step27: p50=8 p95=12 p99=16)
+  payment:   POST p50=6ms p99=12ms                            (step27: p50=6 p99=13)
+             settled p50=391ms p95=1572ms p99=3852ms captured=18007 failed=0
+             (step27: settled p50=414ms p95=8648ms p99=11782ms, captured=18006, failed=0)
+
+Same topology as step 27 (single-instance host JVMs against compose), so the two are comparable. transfer and hold
+within noise; settled p50 391 vs 414 and the tail a third of step 27's — the graph adds nothing to the payment path
+(the nightly job does not run during the bench), so the tail is host variance, not this step. The first run of this
+checkpoint was thrown away: an Ollama llama-server (128k context, ~1 core, 3.4 GB) started mid-bench and 3,327
+payments failed at the 15 s deadline with settled p99 42,745 ms; killed it and reran on a quiet host.
 ```
