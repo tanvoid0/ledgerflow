@@ -28,6 +28,7 @@ spec:
               args:
                 - >-
                   exec /cnb/process/web
+                  --spring.profiles.active=manager
                   --spring.batch.job.enabled=true
                   --spring.batch.job.name=nightlySettlementJob
                   --spring.main.web-application-type=none

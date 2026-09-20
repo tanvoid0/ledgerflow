@@ -12,6 +12,7 @@ resources:
   - services/payment
   - services/issuer
   - services/settlement
+  - services/settlement-worker
 configMapGenerator:
   - name: ledgerflow-env
     literals:

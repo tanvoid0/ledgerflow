@@ -88,9 +88,32 @@ ledgerflow:
   settlement-wallet-id: 99999999-9999-9999-9999-999999999999   # TREASURY, seeded by account-service
   issuer-base-url: ${ISSUER_BASE_URL:http://localhost:8086}
   settlement:
-    line-items: ${LINE_ITEMS_MODE:partition}   # single | threads-cursor | threads-paging | partition
+    line-items: ${LINE_ITEMS_MODE:partition}   # single | threads-cursor | threads-paging | partition | remote
     grid-size: ${GRID_SIZE:8}
 
 settlement:
   batch:
     export-dir: target/exports
+
+---
+spring:
+  config:
+    activate:
+      on-profile: manager
+ledgerflow:
+  settlement:
+    line-items: remote
+
+---
+spring:
+  config:
+    activate:
+      on-profile: worker
+  kafka:
+    listener:
+      auto-startup: false   # no CaptureCommandListener, no settlement-service group membership on the worker
+  flyway:
+    enabled: false           # the manager migrates; both roles share Flyway-managed tables
+ledgerflow:
+  settlement:
+    line-items: remote
