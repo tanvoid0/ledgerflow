@@ -30,7 +30,7 @@
              and every number in docs/perf would be a dev-mode number; the services measured are the ones run -->
         <spring-boot.run.optimizedLaunch>false</spring-boot.run.optimizedLaunch>
         <onnxruntime.version>1.22.0</onnxruntime.version>
-        <archunit.version>1.4.1</archunit.version>
+        <archunit.version>1.5.0</archunit.version>
         <!-- Boot 4.1.1 pins 11.0.24: trivy's first scan found 3 CRITICAL CVEs (2026-65182, -65905, -68525) in
              tomcat-embed-core, all fixed in 11.0.25; no Boot 4.1.2 yet, so bump the property here -->
         <tomcat.version>11.0.26</tomcat.version>
