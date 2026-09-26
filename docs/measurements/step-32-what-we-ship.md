@@ -39,7 +39,7 @@ One `scripts/build-images.sh` run — `mvnw -T1C install -DskipTests` across the
 
 ## The bot
 
-`.github/dependabot.yml`: four ecosystems (`maven`, `github-actions`, `docker-compose`, `docker`), maven grouped so a Spring Boot bump doesn't arrive as fifteen separate PRs. {{C: PRs}}
+`.github/dependabot.yml`: four ecosystems (`maven`, `github-actions`, `docker-compose`, `docker`), maven grouped so a Spring Boot bump doesn't arrive as fifteen separate PRs. Pushing the file ran it at once: eleven PRs inside two minutes — Keycloak 26.3 -> 26.7, Redpanda v25.2.1 -> v26.2.3 and otel-lgtm 0.33.0 -> 0.33.1, each twice (once for `/infra/compose`, once for `/k8s/infra`, the price of pinning in two places), `actions/checkout` 4 -> 7, `actions/setup-java` 4 -> 6, onnxruntime 1.22.0 -> 1.30.0, the OTel logback appender 2.28.0-alpha -> 2.31.1-alpha, ArchUnit 1.4.1 -> 1.5.0. Nothing for Postgres or Redis: the pinned digest is still what `17` and `7-alpine` point at. Nothing for Spring or Tomcat either — Boot 4.1.1 is the newest there is, and `tomcat.version` 11.0.26 is already Tomcat's latest. Two of the four jobs ended red with every PR still opened: the compose and manifest scans also asked Docker Hub for `ledgerflow/*-service`, images that are only ever built on this machine, and got `UNAUTHORIZED`; both entries now ignore `ledgerflow/*`. None of the eleven is merged here — each one is a CI run and a decision, which is the point.
 
 ## Where the cost is
 
