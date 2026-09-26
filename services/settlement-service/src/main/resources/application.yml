@@ -63,6 +63,11 @@ spring:
         enable.idempotence: true
 
 management:
+  info:
+    git:
+      mode: full
+    java:
+      enabled: true
   tracing:
     sampling:
       probability: 1.0                  # every trace, locally; 0.01-0.1 in production
@@ -82,7 +87,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus
+        include: health,info,metrics,prometheus,sbom  # SbomEndpoint; behind the ops token like metrics
   endpoint:
     health:
       show-details: always

@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: postgres
-          image: postgres:17
+          image: postgres:17@sha256:d74eeac9a635390a49bc21bd49fccd973de707e2a53a76ac49b552b8712ec46f  # pinned to the digest the cluster runs
           # pg_stat_statements: what each database actually ran, by total time. CREATE EXTENSION once per database.
           # max_connections: 16 service pods x Hikari's default pool of 10 is 160; the default 100 was enough
           # for compose's 8 containers and turned the second replica of every service into a CrashLoopBackOff.

@@ -1,0 +1,29 @@
+name: image-scan
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: 25
+          distribution: temurin
+          cache: maven
+      # one image, not eight: every service shares builder-jammy-base + JVM 25, so the OS/JDK
+      # layers are identical; the jar layer that differs per service is already covered by
+      # ci.yml's trivy-sbom loop on every PR.
+      - run: ./mvnw -B -q -pl services/account-service -am install -DskipTests
+      - run: ./mvnw -B -q -pl services/account-service spring-boot:build-image
+      - uses: aquasecurity/setup-trivy@v0.3.1
+        with:
+          version: v0.74.0
+          cache: true
+      - run: trivy image --severity CRITICAL --exit-code 1 --ignore-unfixed ledgerflow/account-service:1.0.0-SNAPSHOT
