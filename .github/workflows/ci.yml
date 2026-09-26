@@ -21,3 +21,13 @@ jobs:
       # No -T1C: the Redpanda Testcontainers image segfaults (exit 139) when two modules
       # start one concurrently, so modules build one at a time.
       - run: ./mvnw -B verify
+      - uses: aquasecurity/setup-trivy@v0.3.1
+        with:
+          version: v0.74.0
+          cache: true
+      # each service jar serves this exact SBOM at /actuator/sbom/application — scanning it here
+      # is scanning what we ship, not a rebuilt image; the OS/JDK layer is image-scan.yml's job.
+      - run: |
+          for f in services/*/target/classes/META-INF/sbom/application.cdx.json; do
+            trivy sbom --quiet --severity CRITICAL --exit-code 1 --ignore-unfixed "$f"
+          done

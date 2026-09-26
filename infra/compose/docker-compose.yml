@@ -2,7 +2,8 @@ name: ledgerflow   # the group Docker Desktop shows, and the prefix on the volum
 
 services:
   postgres:
-    image: postgres:17
+    # pinned to the digest the cluster runs, not just the tag - see k8s/infra/postgres.yaml
+    image: postgres:17@sha256:d74eeac9a635390a49bc21bd49fccd973de707e2a53a76ac49b552b8712ec46f
     container_name: ledgerflow-postgres
     environment:
       POSTGRES_USER: ledgerflow
@@ -21,7 +22,7 @@ services:
       retries: 10
 
   redpanda:
-    image: redpandadata/redpanda:v25.2.1
+    image: redpandadata/redpanda:v25.2.1@sha256:218469e5d088757bb2c3ff4c5e272f7eebdc4e94c933e6e15aff10b845cbcd07
     container_name: ledgerflow-redpanda
     command:
       - redpanda start
@@ -39,7 +40,7 @@ services:
       retries: 20
 
   redis:
-    image: redis:7-alpine
+    image: redis:7-alpine@sha256:858f009f9709ce576febc734aa78b8f6d624b82571f9ddb6bda4377c833b3499
     container_name: ledgerflow-redis
     # the balance read model. No volume on purpose: it is rebuilt from the log (scripts/rebuild-balance.sh)
     ports: ["6379:6379"]
@@ -49,7 +50,7 @@ services:
       retries: 10
 
   keycloak:
-    image: quay.io/keycloak/keycloak:26.3
+    image: quay.io/keycloak/keycloak:26.3@sha256:357829ec7c4693397533035092ad13b0644bcc95ded311f33a3738c4d9e9bdba
     container_name: ledgerflow-keycloak
     command: ["start-dev", "--import-realm"]
     environment:
@@ -69,7 +70,7 @@ services:
       start_period: 30s
 
   lgtm:
-    image: grafana/otel-lgtm:0.33.0
+    image: grafana/otel-lgtm:0.33.0@sha256:475319e883b66594d1a2f22ef168c2459802bb94548e6f25d9782bd5f5c19a3a
     container_name: ledgerflow-lgtm
     # Grafana on 3000 (admin / admin); the services push traces, metrics and logs to 4318 (OTLP over HTTP).
     # Tempo, Prometheus and Loki stay inside the container: one image instead of four services to run.

@@ -31,6 +31,9 @@
         <spring-boot.run.optimizedLaunch>false</spring-boot.run.optimizedLaunch>
         <onnxruntime.version>1.22.0</onnxruntime.version>
         <archunit.version>1.4.1</archunit.version>
+        <!-- Boot 4.1.1 pins 11.0.24: trivy's first scan found 3 CRITICAL CVEs (2026-65182, -65905, -68525) in
+             tomcat-embed-core, all fixed in 11.0.25; no Boot 4.1.2 yet, so bump the property here -->
+        <tomcat.version>11.0.26</tomcat.version>
     </properties>
 
     <modules>
@@ -152,6 +155,14 @@
                 <plugin>
                     <groupId>org.springframework.boot</groupId>
                     <artifactId>spring-boot-maven-plugin</artifactId>
+                    <executions>
+                        <execution>
+                            <id>build-info</id>
+                            <goals>
+                                <goal>build-info</goal>
+                            </goals>
+                        </execution>
+                    </executions>
                     <configuration>
                         <image>
                             <name>ledgerflow/${project.artifactId}:${project.version}</name>
@@ -161,6 +172,21 @@
                                 <BP_JVM_VERSION>25</BP_JVM_VERSION>
                             </env>
                         </image>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <!-- default file carries the author's email and the remote URL into an image; GitProperties only needs commit.id -->
+                    <groupId>io.github.git-commit-id</groupId>
+                    <artifactId>git-commit-id-maven-plugin</artifactId>
+                    <configuration>
+                        <verbose>false</verbose>
+                        <includeOnlyProperties>
+                            <includeOnlyProperty>^git.branch$</includeOnlyProperty>
+                            <includeOnlyProperty>^git.commit.id$</includeOnlyProperty>
+                            <includeOnlyProperty>^git.commit.id.abbrev$</includeOnlyProperty>
+                            <includeOnlyProperty>^git.commit.time$</includeOnlyProperty>
+                            <includeOnlyProperty>^git.dirty$</includeOnlyProperty>
+                        </includeOnlyProperties>
                     </configuration>
                 </plugin>
             </plugins>
