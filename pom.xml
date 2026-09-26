@@ -23,7 +23,7 @@
         <mapstruct.version>1.6.3</mapstruct.version>
         <lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
         <!-- the logback bridge is not in Boot's BOM; 2.28 is the instrumentation line built against OTel 1.62, which Boot 4.1 manages -->
-        <opentelemetry-logback-appender.version>2.28.0-alpha</opentelemetry-logback-appender.version>
+        <opentelemetry-logback-appender.version>2.31.1-alpha</opentelemetry-logback-appender.version>
         <!-- surefire reads this as the JUnit tags to skip; -DexcludedGroups=none runs them -->
         <excludedGroups>perf</excludedGroups>
         <!-- spring-boot:run would otherwise pin the JIT at C1 (-XX:TieredStopAtLevel=1) for faster startup,
