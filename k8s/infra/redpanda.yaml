@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: redpanda
-          image: redpandadata/redpanda:v25.2.1@sha256:218469e5d088757bb2c3ff4c5e272f7eebdc4e94c933e6e15aff10b845cbcd07
+          image: redpandadata/redpanda:v26.2.3@sha256:9e83cfa99278f30d0133271c26bf670cd69c94ffa6ba0b42830dd0c3bd9dcfd9
           # two listeners, same idea as compose: pods reach it as redpanda:9092, the host as
           # localhost:9092 (the OUTSIDE listener, forwarded through the NodePort and kind's
           # extraPortMappings). Get the advertised address wrong and sends time out, they don't fail.
