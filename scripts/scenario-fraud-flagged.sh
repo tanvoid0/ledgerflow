@@ -6,6 +6,7 @@
 #   scripts/scenario-fraud-flagged.sh
 set -euo pipefail
 cd "$(dirname "$0")/.."
+PSQL="${PSQL:-docker exec ledgerflow-postgres psql}"   # on the cluster: PSQL="kubectl exec deploy/postgres -- psql"
 
 ACCOUNT=11111111-1111-1111-1111-111111111111
 ACCOUNT_URL=http://localhost:8080
@@ -54,11 +55,11 @@ sleep 5
 
 echo
 echo "-- risk_decision --"
-docker exec ledgerflow-postgres psql -U risk -d risk -c \
+$PSQL -U risk -d risk -c \
   "SELECT decision, count(*) FROM risk_decision GROUP BY 1 ORDER BY 1"
 
-review=$(docker exec ledgerflow-postgres psql -U risk -d risk -tAc "SELECT count(*) FROM risk_decision WHERE decision = 'REVIEW'")
-block=$(docker exec ledgerflow-postgres psql -U risk -d risk -tAc "SELECT count(*) FROM risk_decision WHERE decision = 'BLOCK'")
+review=$($PSQL -U risk -d risk -tAc "SELECT count(*) FROM risk_decision WHERE decision = 'REVIEW'")
+block=$($PSQL -U risk -d risk -tAc "SELECT count(*) FROM risk_decision WHERE decision = 'BLOCK'")
 [ "$review" -gt 0 ] && [ "$block" -gt 0 ] \
   || { echo "expected at least one REVIEW and one BLOCK, got REVIEW=$review BLOCK=$block"; exit 1; }
 
