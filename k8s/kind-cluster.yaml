@@ -20,5 +20,6 @@ nodes:
       - {containerPort: 30181, hostPort: 18081}  # schema registry
       # grafana, host side matches compose's 3000
       - {containerPort: 30000, hostPort: 3000}   # grafana
+      - {containerPort: 30180, hostPort: 8180}   # keycloak
   - role: worker
   - role: worker

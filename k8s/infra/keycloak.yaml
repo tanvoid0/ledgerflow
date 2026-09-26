@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: Service
+metadata: {name: keycloak}
+spec:
+  selector: {app: keycloak}
+  ports: [{port: 8080, targetPort: 8080, nodePort: 30180}]
+  type: NodePort
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: keycloak}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: keycloak}}
+  template:
+    metadata: {labels: {app: keycloak}}
+    spec:
+      containers:
+        - name: keycloak
+          image: quay.io/keycloak/keycloak:26.3
+          command: ["/opt/keycloak/bin/kc.sh", "start-dev", "--import-realm"]
+          env:
+            - {name: KC_BOOTSTRAP_ADMIN_USERNAME, value: admin}
+            - {name: KC_BOOTSTRAP_ADMIN_PASSWORD, value: admin}
+            # hostname v2 takes a full URL; a pod minting through keycloak:8080 still gets this iss
+            - {name: KC_HOSTNAME, value: "http://localhost:8180"}
+            - {name: KC_HEALTH_ENABLED, value: "true"}   # otherwise no /health/ready on 9000
+          ports: [{containerPort: 8080}, {containerPort: 9000}]
+          resources:
+            requests: {cpu: 200m, memory: 512Mi}
+            limits: {memory: 1Gi}
+          readinessProbe:
+            httpGet: {path: /health/ready, port: 9000}
+            periodSeconds: 5
+          startupProbe:
+            httpGet: {path: /health/ready, port: 9000}
+            periodSeconds: 5
+            failureThreshold: 30                 # 150s to boot before anything else judges it
+          volumeMounts:
+            - {name: realm, mountPath: /opt/keycloak/data/import}
+      volumes:
+        - name: realm
+          configMap: {name: keycloak-realm}

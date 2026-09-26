@@ -2,7 +2,9 @@
 # Resets wallet A-20 to exactly 100.00 via a balancing entry, then fires 50 concurrent 80.00 transfers at it.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-PSQL="docker exec ledgerflow-postgres psql -U ledgerflow -d account -tAc"
+PSQL="${PSQL:-docker exec ledgerflow-postgres psql} -U ledgerflow -d account -tAc"
+# tokens live 300s: mint one per run, not once and cache it. k6 sets Authorization: Bearer $TOKEN itself.
+TOKEN=${TOKEN:-$(scripts/token.sh ops)}
 FROM=$($PSQL "SELECT id FROM wallets WHERE label='A-20'")
 TO=$($PSQL "SELECT id FROM wallets WHERE label='A-19'")
 TREASURY=$($PSQL "SELECT id FROM wallets WHERE label='TREASURY'")

@@ -23,6 +23,8 @@ spec:
             - {name: DB_URL, value: "jdbc:postgresql://postgres:5432/settlement"}
             - name: DB_PASSWORD
               valueFrom: {secretKeyRef: {name: ledgerflow-db, key: password}}
+            - name: OIDC_CLIENT_SECRET
+              valueFrom: {secretKeyRef: {name: oidc-clients, key: settlement-service}}
             # the pod name: four replicas at the same group.instance.id would otherwise fence each
             # other on the settlement-worker consumer group - same reason as base/deployment.yaml
             - name: INSTANCE_ID

@@ -11,9 +11,11 @@ cd "$(dirname "$0")/.."
 ACCOUNT=11111111-1111-1111-1111-111111111111
 BASE=http://localhost:8085
 BURST="burst-$(date +%s)"   # one fresh beneficiary for the whole burst: every payment is "new" to it
+TOKEN=${TOKEN:-$(scripts/token.sh ops)}
+AUTH=(-H "Authorization: Bearer $TOKEN")
 
 pay() {  # pay <wallet> <beneficiary> -> prints the payment id
-  curl -sf -X POST "$BASE/api/v1/payments" -H 'Content-Type: application/json' -d "$(jq -n \
+  curl -sf -X POST "${AUTH[@]}" "$BASE/api/v1/payments" -H 'Content-Type: application/json' -d "$(jq -n \
       --arg a "$ACCOUNT" --arg w "$1" --arg b "$2" \
       '{accountId: $a, wallets: [$w], amountMinor: 5000, currency: "GBP", beneficiary: $b}')" \
     | jq -r .paymentId
@@ -37,10 +39,10 @@ docker exec ledgerflow-postgres psql -U risk -d risk -c \
   "SELECT decision, count(*) FROM risk_decision GROUP BY 1 ORDER BY 1"
 
 echo "-- first case --"
-curl -s localhost:8084/api/v1/cases | jq '.[0]'
+curl -s "${AUTH[@]}" localhost:8084/api/v1/cases | jq '.[0]'
 
 echo "-- saga states of the 31 payments (untouched by the decision above) --"
-for id in "${ids[@]}"; do curl -s "$BASE/api/v1/payments/$id" | jq -r .state; done | sort | uniq -c
+for id in "${ids[@]}"; do curl -s "${AUTH[@]}" "$BASE/api/v1/payments/$id" | jq -r .state; done | sort | uniq -c
 
 REVIEW=$(docker exec ledgerflow-postgres psql -U risk -d risk -tAc "SELECT count(*) FROM risk_decision WHERE decision = 'REVIEW'")
 BLOCK=$(docker exec ledgerflow-postgres psql -U risk -d risk -tAc "SELECT count(*) FROM risk_decision WHERE decision = 'BLOCK'")

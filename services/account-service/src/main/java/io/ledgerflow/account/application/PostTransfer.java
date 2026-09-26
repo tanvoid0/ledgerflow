@@ -8,6 +8,8 @@ import io.ledgerflow.starter.messaging.OutboxAppender;
 import io.ledgerflow.starter.web.RequestIdFilter;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.MDC;
+import org.springframework.resilience.annotation.ConcurrencyLimit;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +28,8 @@ public class PostTransfer {
      * Postgres takes for it is what serialises two racing requests, and the CHECK
      * constraint on the column catches anything that ever gets past it.
      */
+    @PreAuthorize("hasRole('ledger-write')")
+    @ConcurrencyLimit(10)   // = Hikari's default pool; callers past it queue in the JVM (ThrottlePolicy.BLOCK is the default)
     @Transactional
     public JournalEntry transfer(String idempotencyKey, UUID from, UUID to, Money amount, String description) {
         if (amount.minorUnits() <= 0) throw new IllegalArgumentException("amount must be positive");

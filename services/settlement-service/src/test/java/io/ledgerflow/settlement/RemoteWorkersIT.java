@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
@@ -40,6 +41,7 @@ import static org.mockito.Mockito.when;
 // context alongside the others for the rest of the module's run is what starved a later class's Redpanda
 // container of resources (exit 139) — close it, and its containers, the moment this class is done
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
+@WithMockUser
 class RemoteWorkersIT {
 
     private static final LocalDate PARTITION_DATE = LocalDate.of(2026, 9, 20);

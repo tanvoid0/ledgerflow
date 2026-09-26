@@ -1,11 +1,13 @@
 package io.ledgerflow.account.adapter.in.web;
 
 import io.ledgerflow.account.application.AccountRepository;
+import io.ledgerflow.starter.web.LedgerflowSecurityAutoConfiguration;
 import io.ledgerflow.starter.web.LedgerflowWebAutoConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -22,7 +24,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(AccountController.class)
-@ImportAutoConfiguration(LedgerflowWebAutoConfiguration.class)   // the slice does not scan our starter
+@ImportAutoConfiguration({LedgerflowWebAutoConfiguration.class, LedgerflowSecurityAutoConfiguration.class})   // the slice does not scan our starter
+@WithMockUser
 class AccountControllerTest {
 
     @Autowired

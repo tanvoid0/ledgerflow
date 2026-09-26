@@ -3,6 +3,7 @@ package io.ledgerflow.settlement.adapter.out.issuer;
 import io.ledgerflow.settlement.config.SettlementProperties;
 import org.springframework.boot.http.client.ClientHttpRequestFactoryBuilder;
 import org.springframework.boot.http.client.HttpClientSettings;
+import org.springframework.security.oauth2.client.web.client.OAuth2ClientHttpRequestInterceptor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -12,12 +13,13 @@ public class FxRateGateway {
 
     private final RestClient rest;
 
-    public FxRateGateway(RestClient.Builder builder, SettlementProperties props) {
+    public FxRateGateway(RestClient.Builder builder, SettlementProperties props, OAuth2ClientHttpRequestInterceptor serviceBearer) {
         var settings = HttpClientSettings.defaults()
                 .withConnectTimeout(props.accountConnectTimeout())
                 .withReadTimeout(props.accountReadTimeout());
         this.rest = builder.baseUrl(props.issuerBaseUrl())
                 .requestFactory(ClientHttpRequestFactoryBuilder.detect().build(settings))
+                .requestInterceptor(serviceBearer)
                 .build();
     }
 

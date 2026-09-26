@@ -9,6 +9,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
@@ -25,6 +26,7 @@ import static org.mockito.Mockito.when;
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
 @TestPropertySource(properties = {"ledgerflow.settlement.line-items=partition", "ledgerflow.settlement.grid-size=4"})
+@WithMockUser
 class LineItemsPartitionModeIT {
 
     private static final LocalDate BUSINESS_DATE = LocalDate.of(2026, 9, 3);
