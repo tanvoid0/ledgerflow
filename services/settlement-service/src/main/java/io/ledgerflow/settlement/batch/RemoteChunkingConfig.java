@@ -14,7 +14,6 @@ import org.springframework.batch.infrastructure.item.ItemWriter;
 import org.springframework.batch.infrastructure.item.database.JdbcPagingItemReader;
 import org.springframework.batch.integration.chunk.RemoteChunkingManagerStepBuilder;
 import org.springframework.batch.integration.chunk.RemoteChunkingWorkerBuilder;
-import org.springframework.boot.kafka.autoconfigure.KafkaProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -23,9 +22,11 @@ import org.springframework.integration.channel.QueueChannel;
 import org.springframework.integration.dsl.IntegrationFlow;
 import org.springframework.integration.dsl.Transformers;
 import org.springframework.integration.kafka.dsl.Kafka;
+import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
 import org.springframework.kafka.listener.ContainerProperties;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -87,8 +88,8 @@ class RemoteChunkingConfig {
     /** Manager: requests out, JDK-serialised. */
     @Bean
     @Profile("manager")
-    IntegrationFlow chunkRequestsOutboundFlow(DirectChannel chunkRequestsOut, KafkaProperties kafkaProps) {
-        var kafka = new KafkaTemplate<>(byteProducerFactory(kafkaProps));
+    IntegrationFlow chunkRequestsOutboundFlow(DirectChannel chunkRequestsOut, ProducerFactory<?, ?> bootProducers) {
+        var kafka = new KafkaTemplate<>(byteProducerFactory(bootProducers));
         return IntegrationFlow.from(chunkRequestsOut)
                 .transform(Transformers.serializer())
                 .handle(Kafka.outboundChannelAdapter(kafka).topic(CHUNK_REQUESTS_TOPIC))
@@ -98,8 +99,8 @@ class RemoteChunkingConfig {
     /** Manager: replies in, on its own group — one manager JVM at a time, or a second one eats the first's replies. */
     @Bean
     @Profile("manager")
-    IntegrationFlow chunkRepliesInboundFlow(QueueChannel chunkReplies, KafkaProperties kafkaProps) {
-        var container = byteListenerContainer(kafkaProps, "settlement-chunk-manager", CHUNK_REPLIES_TOPIC);
+    IntegrationFlow chunkRepliesInboundFlow(QueueChannel chunkReplies, ConsumerFactory<?, ?> bootConsumers) {
+        var container = byteListenerContainer(bootConsumers, "settlement-chunk-manager", CHUNK_REPLIES_TOPIC);
         return IntegrationFlow.from(Kafka.messageDrivenChannelAdapter(container))
                 .transform(Transformers.deserializer(ALLOWED_CLASSES))
                 .channel(chunkReplies)
@@ -134,8 +135,8 @@ class RemoteChunkingConfig {
 
     @Bean
     @Profile("worker")
-    IntegrationFlow chunkRequestsInboundFlow(DirectChannel chunkRequestsIn, KafkaProperties kafkaProps) {
-        var container = byteListenerContainer(kafkaProps, "settlement-chunk-worker", CHUNK_REQUESTS_TOPIC);
+    IntegrationFlow chunkRequestsInboundFlow(DirectChannel chunkRequestsIn, ConsumerFactory<?, ?> bootConsumers) {
+        var container = byteListenerContainer(bootConsumers, "settlement-chunk-worker", CHUNK_REQUESTS_TOPIC);
         return IntegrationFlow.from(Kafka.messageDrivenChannelAdapter(container))
                 .transform(Transformers.deserializer(ALLOWED_CLASSES))
                 .channel(chunkRequestsIn)
@@ -144,23 +145,26 @@ class RemoteChunkingConfig {
 
     @Bean
     @Profile("worker")
-    IntegrationFlow chunkRepliesOutboundFlow(DirectChannel chunkRepliesOut, KafkaProperties kafkaProps) {
-        var kafka = new KafkaTemplate<>(byteProducerFactory(kafkaProps));
+    IntegrationFlow chunkRepliesOutboundFlow(DirectChannel chunkRepliesOut, ProducerFactory<?, ?> bootProducers) {
+        var kafka = new KafkaTemplate<>(byteProducerFactory(bootProducers));
         return IntegrationFlow.from(chunkRepliesOut)
                 .transform(Transformers.serializer())
                 .handle(Kafka.outboundChannelAdapter(kafka).topic(CHUNK_REPLIES_TOPIC))
                 .get();
     }
 
-    private static DefaultKafkaProducerFactory<byte[], byte[]> byteProducerFactory(KafkaProperties props) {
-        Map<String, Object> config = new HashMap<>(props.buildProducerProperties());
+    // copied from Boot's own factories, not rebuilt from KafkaProperties: theirs carry the connection details
+    // (KAFKA_BOOTSTRAP, a test's @ServiceConnection); KafkaProperties alone sent RemoteWorkersIT's chunks to
+    // whatever broker held localhost:9092 - the kind cluster's, whose workers took them
+    private static DefaultKafkaProducerFactory<byte[], byte[]> byteProducerFactory(ProducerFactory<?, ?> boot) {
+        Map<String, Object> config = new HashMap<>(boot.getConfigurationProperties());
         config.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class);
         config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class);
         return new DefaultKafkaProducerFactory<>(config);
     }
 
-    private static ConcurrentMessageListenerContainer<byte[], byte[]> byteListenerContainer(KafkaProperties props, String groupId, String topic) {
-        Map<String, Object> config = new HashMap<>(props.buildConsumerProperties());
+    private static ConcurrentMessageListenerContainer<byte[], byte[]> byteListenerContainer(ConsumerFactory<?, ?> boot, String groupId, String topic) {
+        Map<String, Object> config = new HashMap<>(boot.getConfigurationProperties());
         config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class);
         config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class);
         config.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);

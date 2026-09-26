@@ -1,5 +1,6 @@
 package io.ledgerflow.settlement.batch;
 
+import io.ledgerflow.settlement.config.LineItemsProperties;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.Step;
 import org.springframework.batch.infrastructure.item.ItemProcessor;
@@ -22,6 +23,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
 import org.springframework.kafka.listener.ContainerProperties;
 import org.springframework.kafka.support.KafkaHeaders;
+import org.springframework.messaging.Message;
 import org.springframework.transaction.PlatformTransactionManager;
 
 /**
@@ -46,19 +48,29 @@ class RemotePartitioningConfig {
         return new DirectChannel();
     }
 
-    /** Manager: a StepExecutionRequest goes out as JSON, keyed by its step execution id so eight keys spread over the topic's eight partitions. */
+    /**
+     * Manager: a StepExecutionRequest goes out as JSON, keyed by its step execution id and sent to partition id % gridSize.
+     * Hashing the key put 8 requests on 5 partitions at step 29 (three waves, 65 s against 25 s in-JVM); one job's step
+     * executions get consecutive ids from the splitter's loop, so the modulo lands them one per partition.
+     */
     @Bean
     @ConditionalOnProperty(prefix = "ledgerflow.settlement", name = "line-items", havingValue = "remote")
-    IntegrationFlow partitionRequestsOutboundFlow(DirectChannel partitionRequestsOut, KafkaTemplate<String, String> kafka) {
+    IntegrationFlow partitionRequestsOutboundFlow(DirectChannel partitionRequestsOut, KafkaTemplate<String, String> kafka,
+                                                  LineItemsProperties props) {
         return IntegrationFlow.from(partitionRequestsOut)
-                .enrichHeaders(h -> h.headerFunction(KafkaHeaders.KEY,
-                        m -> Long.toString(((StepExecutionRequest) m.getPayload()).getStepExecutionId())))
+                .enrichHeaders(h -> h
+                        .headerFunction(KafkaHeaders.KEY, m -> Long.toString(stepExecutionId(m)))
+                        .headerFunction(KafkaHeaders.PARTITION, m -> (int) (stepExecutionId(m) % props.gridSize())))
                 .transform(Transformers.toJson())
                 // Transformers.toJson() adds Jackson type headers for a receiver with no target class; ours (fromJson(StepExecutionRequest.class))
                 // has one, and the default header mapper can't JSON-encode json_resolvableType's self-referencing ResolvableType to send it anyway.
                 .headerFilter("json*")
                 .handle(Kafka.outboundChannelAdapter(kafka).topic(PARTITION_REQUESTS_TOPIC))
                 .get();
+    }
+
+    private static long stepExecutionId(Message<?> m) {
+        return ((StepExecutionRequest) m.getPayload()).getStepExecutionId();
     }
 
     /**

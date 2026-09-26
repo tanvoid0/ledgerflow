@@ -25,14 +25,19 @@ kubectl create secret generic ledgerflow-db --from-literal=password=ledgerflow \
 kubectl create configmap init-databases --from-file=infra/compose/init-databases.sh \
   --dry-run=client -o yaml | kubectl apply -f -
 
+# topics before any client: redpanda auto-creates a topic at 1 partition for the first producer
+# or consumer that asks, and topics.sh's create is a no-op after that (step 29 found all of them at 1)
+kubectl apply -f k8s/infra/redpanda.yaml
+kubectl wait --for=condition=Available deploy/redpanda --timeout=300s
+RPK="kubectl exec deploy/redpanda -- rpk" ./scripts/topics.sh
+./scripts/check-schemas.sh --register
+
 kubectl apply -k k8s/
 kubectl apply -f k8s/jobs/
 kubectl wait --for=condition=Available deploy --all --timeout=600s
 
 # the retry/dlt topics only exist once a consumer has started, so a second pass lands their
 # policy after the services do - same two-pass shape as demo-compose.sh
-RPK="kubectl exec deploy/redpanda -- rpk" ./scripts/topics.sh
-./scripts/check-schemas.sh --register
 RPK="kubectl exec deploy/redpanda -- rpk" ./scripts/topics.sh
 
 echo "cluster up"

@@ -4,9 +4,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.batch.core.job.JobExecution;
 import org.springframework.batch.core.launch.support.CommandLineJobOperator;
 import org.springframework.batch.core.repository.JobRepository;
+import org.springframework.batch.core.step.StepExecution;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
@@ -71,15 +73,36 @@ class BatchCliConfigTest {
     }
 
     @Test
-    void recoverStrandedRecoversEveryRunningExecutionOfTheSettlementJobOnly() throws Exception {
-        var stranded = mock(JobExecution.class);
-        when(stranded.getId()).thenReturn(42L);
+    void recoverStrandedRecoversAQuietRunningExecutionOfTheSettlementJobOnly() throws Exception {
+        var stranded = running(42L, LocalDateTime.now().minusMinutes(11));
         when(jobRepository.findRunningJobExecutions("nightlySettlementJob")).thenReturn(Set.of(stranded));
 
         runner.run(argsOf("recover-stranded"));
 
         assertThat(exitCode.getExitCode()).isEqualTo(0);
         verify(operator).recover(42L);
+    }
+
+    @Test
+    void recoverStrandedLeavesARunWhoseStepsAreStillCommitting() throws Exception {
+        // started long ago, but a worker's partition row moved seconds ago: alive
+        var live = running(43L, LocalDateTime.now().minusMinutes(30));
+        var step = mock(StepExecution.class);
+        when(step.getLastUpdated()).thenReturn(LocalDateTime.now().minusSeconds(3));
+        when(live.getStepExecutions()).thenReturn(List.of(step));
+        when(jobRepository.findRunningJobExecutions("nightlySettlementJob")).thenReturn(Set.of(live));
+
+        runner.run(argsOf("recover-stranded"));
+
+        verify(operator, never()).recover(anyLong());
+    }
+
+    private static JobExecution running(long id, LocalDateTime lastSeen) {
+        var execution = mock(JobExecution.class);
+        when(execution.getId()).thenReturn(id);
+        when(execution.getStartTime()).thenReturn(lastSeen);
+        when(execution.getLastUpdated()).thenReturn(lastSeen);
+        return execution;
     }
 
     private static ApplicationArguments argsOf(String... nonOptionArgs) {
