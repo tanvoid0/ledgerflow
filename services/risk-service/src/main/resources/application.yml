@@ -5,6 +5,12 @@ server:
 spring:
   application:
     name: risk-service
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${OIDC_ISSUER_URI:http://localhost:8180/realms/ledgerflow}   # the string inside the token; KC_HOSTNAME pins it
+          jwk-set-uri: ${OIDC_REALM_URL:http://localhost:8180/realms/ledgerflow}/protocol/openid-connect/certs   # where this process reaches the realm
   lifecycle:
     timeout-per-shutdown-phase: 30s
   datasource:

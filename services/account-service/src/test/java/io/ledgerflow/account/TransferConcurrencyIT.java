@@ -9,6 +9,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.security.concurrent.DelegatingSecurityContextExecutorService;
+import org.springframework.security.test.context.support.WithMockUser;
 
 import java.util.UUID;
 import java.util.concurrent.Executors;
@@ -25,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Tag("perf")
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
+@WithMockUser(roles = "ledger-write")
 class TransferConcurrencyIT {
 
     @Autowired
@@ -38,7 +41,8 @@ class TransferConcurrencyIT {
         UUID from = walletId("A-20"), to = walletId("A-19");       // A-20 holds exactly 100.00 from V4
 
         long started = System.nanoTime();
-        try (var pool = Executors.newVirtualThreadPerTaskExecutor()) {
+        // virtual threads don't inherit the test's security context on their own; this propagates it to each task
+        try (var pool = new DelegatingSecurityContextExecutorService(Executors.newVirtualThreadPerTaskExecutor())) {
             var results = IntStream.range(0, 50).mapToObj(i -> pool.submit(() -> {
                 try {
                     transfer.transfer("race-" + i, from, to, Money.gbp(8000), "race");

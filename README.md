@@ -174,6 +174,7 @@ and a CHECK constraint bring it to exactly one. `perf/race.sh` reproduces it,
 | A shared cursor reader races under threads; a partitioned step does not | `JdbcPagingItemReader` for a safe shared reader, `IdRangePartitioner` for one range and one reader per worker, restart re-runs only the failed partitions | `docs/measurements/step-27-batch-throughput.md` |
 | One job branches on the day's outcome, routes to two tables, runs two flows at once, and stops on request instead of dying | exit-status classification + `on()`/`to()` transitions, a `JobExecutionDecider` for month end, `ClassifierCompositeItemWriter`, a split of two independent steps, `JobOperator.stop()` | `docs/measurements/step-28-job-graph.md` |
 | A batch step scales past one JVM's cores by dispatching to a pool of pods instead of reading itself | `RemotePartitioningManagerStepBuilder` polling `batch_step_execution`, partitions keyed by step execution id on a Kafka topic, workers as their own scalable Deployment | `docs/measurements/step-29-remote-workers.md` |
+| No token means no API - a token without ledger-write cannot move money, ledger and settlement authenticate to account as themselves | shared resource-server auto-configuration, `@PreAuthorize("hasRole('ledger-write')")` on the transfer use case, client-credentials interceptor per service | `TransferControllerTest`, `docs/measurements/step-31-locked-doors.md` |
 
 ## Run it
 
@@ -183,20 +184,21 @@ and a CHECK constraint bring it to exactly one. `perf/race.sh` reproduces it,
 ./scripts/stop-services.sh
 docker compose -f infra/compose/docker-compose.yml -f infra/compose/docker-compose.app.yml stop
 
-./scripts/k8s-up.sh    # a kind cluster instead: images from the pom, kind load, kustomize apply (now including the settlement worker pool the nightly job's manager profile dispatches partitions to), the four CronJobs, topics + schemas - refuses while the compose infra above is still up (same host ports)
+./scripts/k8s-up.sh    # a kind cluster instead: images from the pom, kind load, kustomize apply (now including the settlement worker pool the nightly job's manager profile dispatches partitions to), the four CronJobs, topics + schemas, Keycloak on 8180 (25 pods) - refuses while the compose infra above is still up (same host ports)
 ./scripts/k8s-down.sh  # kind delete cluster - gives the host ports back
 
-curl -s localhost:8080/api/v1/accounts | jq
-curl -s -X POST localhost:8081/api/v1/holds -H 'content-type: application/json' \
+TOKEN=$(scripts/token.sh ops)   # every /api route wants one now; scripts/token.sh mints one, good for 300s
+curl -s -H "Authorization: Bearer $TOKEN" localhost:8080/api/v1/accounts | jq
+curl -s -X POST -H "Authorization: Bearer $TOKEN" localhost:8081/api/v1/holds -H 'content-type: application/json' \
   -d '{"accountId":"11111111-1111-1111-1111-111111111111","wallets":["A-12"],"amountMinor":4500,"currency":"GBP"}' | jq
-PAYMENT=$(curl -s -X POST localhost:8085/api/v1/payments -H 'content-type: application/json'   -d '{"accountId":"11111111-1111-1111-1111-111111111111","wallets":["A-13"],"amountMinor":4500,"currency":"GBP"}' | jq -r .paymentId)
-sleep 3; curl -s localhost:8085/api/v1/payments/$PAYMENT | jq       # Captured. amountMinor 1: declined. 20000: capture fails. freeze.sh 8086: times out.
-curl -s localhost:8083/api/v1/balances/11111111-1111-1111-1111-111111111111 | jq '.wallets[] | select(.label=="A-13")'   # balance 55.00, held 0
+PAYMENT=$(curl -s -X POST -H "Authorization: Bearer $TOKEN" localhost:8085/api/v1/payments -H 'content-type: application/json'   -d '{"accountId":"11111111-1111-1111-1111-111111111111","wallets":["A-13"],"amountMinor":4500,"currency":"GBP"}' | jq -r .paymentId)
+sleep 3; curl -s -H "Authorization: Bearer $TOKEN" localhost:8085/api/v1/payments/$PAYMENT | jq       # Captured. amountMinor 1: declined. 20000: capture fails. freeze.sh 8086: times out.
+curl -s -H "Authorization: Bearer $TOKEN" localhost:8083/api/v1/balances/11111111-1111-1111-1111-111111111111 | jq '.wallets[] | select(.label=="A-13")'   # balance 55.00, held 0
 ```
 
 See it: http://localhost:3000 (admin / admin), Explore -> Tempo, search by service `payment-service`, open the trace; "Logs for this span" jumps to Loki.
 Throw the balance view away and watch it come back: `scripts/rebuild-balance.sh`.
-Read your own write: `curl -si localhost:8083/api/v1/balances/<account>/A-12?after=<the X-Request-Id a POST answered with>`.
+Read your own write: `curl -si -H "Authorization: Bearer $TOKEN" localhost:8083/api/v1/balances/<account>/A-12?after=<the X-Request-Id a POST answered with>`.
 Score a burst without moving any money: `scripts/replay-fraud.sh` - 30 payments from one account plus one
 blocked beneficiary, watched into `risk_decision` as REVIEW and BLOCK rows with a first case note, saga
 states in payment-service untouched throughout.

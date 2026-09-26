@@ -16,6 +16,7 @@ x-service: &service
     OLLAMA_URL: http://host.docker.internal:11434/v1
     ACCOUNT_BASE_URL: http://account:8080
     ISSUER_BASE_URL: http://issuer:8080
+    OIDC_REALM_URL: http://keycloak:8080/realms/ledgerflow
     # the Paketo run user can't write /workspace; settlement's statement export lands in /tmp instead
     SETTLEMENT_BATCH_EXPORTDIR: /tmp/exports
     # every container's own actuator listens on 8080 inside the network; only the host-side
@@ -52,6 +53,7 @@ services:
     environment:
       <<: *env
       DB_URL: jdbc:postgresql://postgres:5432/ledger
+      OIDC_CLIENT_SECRET: ${LEDGER_SERVICE_SECRET:?set it in infra/compose/.env}
     ports: ["8081:8080"]
 
   notification:
@@ -116,4 +118,5 @@ services:
     environment:
       <<: *env
       DB_URL: jdbc:postgresql://postgres:5432/settlement
+      OIDC_CLIENT_SECRET: ${SETTLEMENT_SERVICE_SECRET:?set it in infra/compose/.env}
     ports: ["8087:8080"]

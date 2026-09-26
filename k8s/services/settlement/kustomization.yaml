@@ -12,6 +12,9 @@ patches:
       - op: add
         path: /spec/template/spec/containers/0/env/-
         value: {name: DB_URL, value: "jdbc:postgresql://postgres:5432/settlement"}
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value: {name: OIDC_CLIENT_SECRET, valueFrom: {secretKeyRef: {name: oidc-clients, key: settlement-service}}}
   - target: {kind: Service}
     patch: |
       - op: add

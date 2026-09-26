@@ -40,6 +40,8 @@ spec:
                 - {name: DB_URL, value: "jdbc:postgresql://postgres:5432/settlement"}
                 - name: DB_PASSWORD
                   valueFrom: {secretKeyRef: {name: ledgerflow-db, key: password}}
+                - name: OIDC_CLIENT_SECRET
+                  valueFrom: {secretKeyRef: {name: oidc-clients, key: settlement-service}}
               resources:
                 requests: {cpu: 500m, memory: 768Mi}
                 limits: {memory: 768Mi}

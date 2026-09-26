@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.security.test.context.support.WithMockUser;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -21,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 /** Every entry in the book is also an event in the outbox: the ones posted from now on, and the ones before the topic existed. */
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
+@WithMockUser(roles = "ledger-write")
 class PostTransferIT {
 
     @Autowired PostTransfer transfer;
