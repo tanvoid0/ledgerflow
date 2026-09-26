@@ -23,6 +23,7 @@ configMapGenerator:
       - OLLAMA_URL=http://host.docker.internal:11434/v1
       - ACCOUNT_BASE_URL=http://account-service:8080
       - ISSUER_BASE_URL=http://issuer-service:8080
+      - SETTLEMENT_BATCH_EXPORTDIR=/tmp/exports   # the Paketo run user cannot write /workspace
       - SERVER_PORT=8080
       - JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=70
 generatorOptions: {disableNameSuffixHash: true}
