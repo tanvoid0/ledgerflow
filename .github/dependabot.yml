@@ -19,8 +19,14 @@ updates:
     directory: /infra/compose
     schedule:
       interval: weekly
+    # our own images are built locally, never pushed: a registry lookup for them only fails the job
+    ignore:
+      - dependency-name: "ledgerflow/*"
 
   - package-ecosystem: docker
     directory: /k8s/infra
     schedule:
       interval: weekly
+    # our own images are built locally, never pushed: a registry lookup for them only fails the job
+    ignore:
+      - dependency-name: "ledgerflow/*"

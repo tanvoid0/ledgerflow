@@ -14,7 +14,9 @@ One command to a fraud case narrated by a local model, in ninety seconds: `docs/
 ## Measured, not claimed
 
 Open model (k6 constant-arrival-rate), one machine (Ryzen 9 9950X, 32 threads),
-Postgres 17, Redpanda and Redis in Docker Desktop, eight services as local JVMs.
+Postgres 17, Redpanda and Redis in Docker Desktop, eight services as local JVMs —
+except the last four rows, which run on the kind cluster (three nodes, two replicas
+of every service) and compare only with each other.
 Every raw run is in `docs/perf/`; `perf/compare.sh <before> <after>` reproduces
 any row. Each row below is one change against the row above it. A payment is
 timed from the POST to its saga row reaching Captured (`perf/settled.sh`), not
@@ -37,6 +39,10 @@ to the 202, which takes 5ms at every load and says nothing.
 | Payment, the kept path, at 150/s | 150/s | 6791 | 39299 | 16% hit the deadline |
 | Payment, the kept path, at 200/s | 200/s | 17717 | 44996 | 63% hit the deadline |
 | Payment with risk-service scoring every one beside it (`risk.score` p99 0.99ms; A/B off/on: within run-to-run spread) | 100/s | 391 | 996 | 0% |
+| Payment settled, kind cluster, two replicas per service | 100/s | 243 | 378 | 0% |
+| Payment settled, cluster, four remote batch workers deployed beside it | 100/s | 247 | 360 | 0% |
+| Payment settled, cluster, a JWT checked on every request | 100/s | 260 | 472 | 0% |
+| Payment settled, cluster, Tomcat 11.0.24 -> 11.0.26 (the image scanner's first finding) | 100/s | 265 | 449 | 0% |
 
 Startup, account-service, host JVM: plain 2.82 s -> AOT cache 1.07 s, median of 3 (`scripts/startup-time.sh`).
 
