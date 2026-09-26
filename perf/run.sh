@@ -13,6 +13,8 @@ mkdir -p docs/perf
 PSQL=${PSQL:-docker exec ledgerflow-postgres psql}   # see settled.sh
 [ "$SCENARIO" = payments ] && SINCE=$($PSQL -U ledgerflow -d payment -tAc 'SELECT now()')
 
+# tokens live 300s: mint one per run, not once and cache it. k6 sets Authorization: Bearer $TOKEN itself.
+TOKEN=${TOKEN:-$(scripts/token.sh ops)}
 k6 run -e SUMMARY="$OUT" ${RATE:+-e RATE=$RATE} ${DURATION:+-e DURATION=$DURATION} \
        ${BASE_URL:+-e BASE_URL=$BASE_URL} ${TOKEN:+-e TOKEN=$TOKEN} ${P99_MS:+-e P99_MS=$P99_MS} \
        "perf/k6/${SCENARIO}.js" || echo "k6 exit $? (99 = a threshold failed; the summary is still written)"

@@ -11,6 +11,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.JacksonMapperUtils;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -24,6 +25,7 @@ import static org.awaitility.Awaitility.await;
 @SpringBootTest(properties = "risk.narrator.url=")   // never call out to Ollama from a test run
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
+@WithMockUser
 class RiskFlowIT {
 
     static final JsonMapper json = JacksonMapperUtils.enhancedJsonMapper();

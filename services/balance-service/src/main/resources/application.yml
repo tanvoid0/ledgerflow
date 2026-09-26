@@ -5,6 +5,12 @@ server:
 spring:
   application:
     name: balance-service
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${OIDC_ISSUER_URI:http://localhost:8180/realms/ledgerflow}   # the string inside the token; KC_HOSTNAME pins it
+          jwk-set-uri: ${OIDC_REALM_URL:http://localhost:8180/realms/ledgerflow}/protocol/openid-connect/certs   # where this process reaches the realm
   lifecycle:
     timeout-per-shutdown-phase: 30s
   data:
@@ -65,7 +71,7 @@ management:
     shutdown:
       # scripts/rebuild-balance.sh stops the service through this: a clean stop leaves the consumer
       # group at once, a killed JVM holds its partitions for session.timeout.ms and the rewind waits 45s.
-      # Fine on a projection that owns nothing; step 31 puts a token in front of it.
+      # Fine on a projection that owns nothing; a token in front of it since step 31.
       access: unrestricted
 
 logging:

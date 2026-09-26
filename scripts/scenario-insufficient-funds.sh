@@ -9,14 +9,16 @@ cd "$(dirname "$0")/.."
 ACCOUNT=11111111-1111-1111-1111-111111111111
 PAYMENT_URL=http://localhost:8085
 BALANCE_URL=http://localhost:8083
+TOKEN=${TOKEN:-$(scripts/token.sh ops)}
+AUTH=(-H "Authorization: Bearer $TOKEN")
 
-balance_of() { curl -sf "$BALANCE_URL/api/v1/balances/$ACCOUNT/A-2" | jq -r .balanceMinor; }
+balance_of() { curl -sf "${AUTH[@]}" "$BALANCE_URL/api/v1/balances/$ACCOUNT/A-2" | jq -r .balanceMinor; }
 
 before=$(balance_of)
 amount=$(( before * 10 > 1000000 ? before * 10 : 1000000 ))
 echo "A-2 balance: $before minor. requesting $amount minor (10x that, at least 1,000,000)..."
 
-resp=$(curl -sf -X POST "$PAYMENT_URL/api/v1/payments" -H 'Content-Type: application/json' \
+resp=$(curl -sf -X POST "${AUTH[@]}" "$PAYMENT_URL/api/v1/payments" -H 'Content-Type: application/json' \
   -d "$(jq -n --arg a "$ACCOUNT" --argjson amt "$amount" '{accountId: $a, wallets: ["A-2"], amountMinor: $amt, currency: "GBP"}')")
 id=$(jq -r .paymentId <<< "$resp")
 echo "payment $id"
@@ -25,7 +27,7 @@ deadline=$((SECONDS + 20))
 last=""
 body=""
 while :; do
-  body=$(curl -sf "$PAYMENT_URL/api/v1/payments/$id")
+  body=$(curl -sf "${AUTH[@]}" "$PAYMENT_URL/api/v1/payments/$id")
   state=$(jq -r .state <<< "$body")
   if [ "$state" != "$last" ]; then echo "$(date -u +%T) $state"; last=$state; fi
   [ "$state" = Failed ] && break

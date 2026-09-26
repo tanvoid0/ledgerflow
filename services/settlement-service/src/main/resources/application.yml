@@ -7,6 +7,22 @@ spring:
     name: settlement-service
   lifecycle:
     timeout-per-shutdown-phase: 30s
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${OIDC_ISSUER_URI:http://localhost:8180/realms/ledgerflow}   # the string inside the token; KC_HOSTNAME pins it
+          jwk-set-uri: ${OIDC_REALM_URL:http://localhost:8180/realms/ledgerflow}/protocol/openid-connect/certs   # where this process reaches the realm
+      client:
+        registration:
+          settlement-service:
+            provider: keycloak
+            client-id: settlement-service
+            client-secret: ${OIDC_CLIENT_SECRET:}
+            authorization-grant-type: client_credentials
+        provider:
+          keycloak:
+            token-uri: ${OIDC_REALM_URL:http://localhost:8180/realms/ledgerflow}/protocol/openid-connect/token
   datasource:
     # addresses are env overrides with the host value as default; the compose file sets them
     url: ${DB_URL:jdbc:postgresql://localhost:5433/settlement}

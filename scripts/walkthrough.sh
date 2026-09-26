@@ -8,7 +8,9 @@ cd "$(dirname "$0")/.."
 next() { read -rp "-- enter for beat $1 -- " _; }
 
 PORTS=(8080 8081 8082 8083 8084 8085 8086 8087)
-up() { curl -sf "localhost:$1/actuator/health" > /dev/null 2>&1; }
+up() { curl -sf "localhost:$1/actuator/health" > /dev/null 2>&1; }   # health stays open, no token
+TOKEN=${TOKEN:-$(scripts/token.sh ops)}
+AUTH=(-H "Authorization: Bearer $TOKEN")
 
 echo "== 1. Up =="
 for p in "${PORTS[@]}"; do
@@ -37,4 +39,4 @@ echo "== 4. A burst, a flagged case =="
 ./scripts/scenario-fraud-flagged.sh
 echo
 echo "-- GET /api/v1/cases (first case) --"
-curl -s localhost:8084/api/v1/cases | jq '.[0]'
+curl -s "${AUTH[@]}" localhost:8084/api/v1/cases | jq '.[0]'

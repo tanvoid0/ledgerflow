@@ -21,8 +21,9 @@ $COMPOSE up -d --wait
 # the retry and dlt topics only exist once a consumer has started, so their policy lands after the services do
 ./scripts/topics.sh
 
-curl -fsS localhost:8087/actuator/health | jq -e '.status == "UP"'
-curl -fsS localhost:8087/api/v1/batch/jobs | jq -e 'length >= 3'
+TOKEN=${TOKEN:-$(scripts/token.sh ops)}
+curl -fsS localhost:8087/actuator/health | jq -e '.status == "UP"'   # health stays open, no token
+curl -fsS -H "Authorization: Bearer $TOKEN" localhost:8087/api/v1/batch/jobs | jq -e 'length >= 3'
 
 ./scripts/scenario-authorize-capture.sh
 ./scripts/scenario-insufficient-funds.sh

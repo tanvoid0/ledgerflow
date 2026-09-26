@@ -1,0 +1,71 @@
+{
+  "realm": "ledgerflow",
+  "enabled": true,
+  "sslRequired": "none",
+  "requiredActions": [
+    {"alias": "VERIFY_PROFILE", "name": "Verify Profile", "providerId": "VERIFY_PROFILE", "enabled": false, "defaultAction": false, "priority": 90}
+  ],
+  "roles": {
+    "realm": [
+      {"name": "ledger-write", "description": "can move money"},
+      {"name": "account-read", "description": "can read accounts and balances"}
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "ledgerflow-cli",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": true
+    },
+    {
+      "clientId": "ledger-service",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "ledger-service-secret",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false
+    },
+    {
+      "clientId": "settlement-service",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "settlement-service-secret",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false
+    }
+  ],
+  "users": [
+    {
+      "username": "ops",
+      "enabled": true,
+      "emailVerified": true,
+      "requiredActions": [],
+      "credentials": [{"type": "password", "value": "ops", "temporary": false}],
+      "realmRoles": ["ledger-write", "account-read"]
+    },
+    {
+      "username": "reader",
+      "enabled": true,
+      "emailVerified": true,
+      "requiredActions": [],
+      "credentials": [{"type": "password", "value": "reader", "temporary": false}],
+      "realmRoles": ["account-read"]
+    },
+    {
+      "username": "service-account-ledger-service",
+      "enabled": true,
+      "serviceAccountClientId": "ledger-service",
+      "realmRoles": ["account-read"]
+    },
+    {
+      "username": "service-account-settlement-service",
+      "enabled": true,
+      "serviceAccountClientId": "settlement-service",
+      "realmRoles": ["account-read", "ledger-write"]
+    }
+  ]
+}

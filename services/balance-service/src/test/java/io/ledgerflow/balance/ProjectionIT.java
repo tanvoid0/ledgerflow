@@ -18,6 +18,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.JacksonMapperUtils;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import org.testcontainers.redpanda.RedpandaContainer;
 import tools.jackson.databind.json.JsonMapper;
@@ -35,7 +36,14 @@ import static org.awaitility.Awaitility.await;
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
+@WithMockUser
 class ProjectionIT {
+
+    static {
+        // await() polls on its own thread by default; @WithMockUser's SecurityContext is a ThreadLocal on
+        // the test thread, so a token-authenticated request from the poller would otherwise come back 401.
+        org.awaitility.Awaitility.pollInSameThread();
+    }
 
     static final JsonMapper json = JacksonMapperUtils.enhancedJsonMapper();
     static final UUID ACCOUNT = UUID.randomUUID();

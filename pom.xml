@@ -99,6 +99,12 @@
             <artifactId>spring-boot-starter-opentelemetry-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <!-- every module's tests: jwt()/@WithMockUser support for the resource-server chain -->
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

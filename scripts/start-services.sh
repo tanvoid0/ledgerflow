@@ -10,6 +10,9 @@ cd "$(dirname "$0")/.."
 SERVICES=(account ledger notification balance risk payment issuer settlement)
 PORTS=(8080 8081 8082 8083 8084 8085 8086 8087)
 
+[ -f infra/compose/.env ] && source infra/compose/.env
+export OIDC_REALM_URL=${OIDC_REALM_URL:-http://localhost:8180/realms/ledgerflow}
+
 up() { curl -sf "localhost:$1/actuator/health" > /dev/null 2>&1; }
 
 for i in "${!SERVICES[@]}"; do
@@ -25,7 +28,12 @@ for i in "${!SERVICES[@]}"; do
   svc=${SERVICES[$i]}
   jar="services/$svc-service/target/$svc-service-1.0.0-SNAPSHOT.jar"
   [ -f "$jar" ] || { echo "missing $jar - run ./mvnw -q -T1C package -DskipTests first"; exit 1; }
-  java -jar "$jar" > ".local/logs/$svc-service.log" 2>&1 &
+  # one env name per process: only ledger and settlement call out as themselves
+  case "$svc" in
+    ledger)     OIDC_CLIENT_SECRET=${LEDGER_SERVICE_SECRET:-} java -jar "$jar" > ".local/logs/$svc-service.log" 2>&1 & ;;
+    settlement) OIDC_CLIENT_SECRET=${SETTLEMENT_SERVICE_SECRET:-} java -jar "$jar" > ".local/logs/$svc-service.log" 2>&1 & ;;
+    *)          java -jar "$jar" > ".local/logs/$svc-service.log" 2>&1 & ;;
+  esac
   echo $! >> .local/pids
   echo "started $svc-service (pid $!)"
 done

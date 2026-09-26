@@ -19,7 +19,8 @@ started=$(date +%s)
 
 # a clean stop leaves the group at once; a killed JVM keeps its partitions for session.timeout.ms (30s, static membership)
 echo "stopping $group..."
-curl -sf -X POST localhost:8083/actuator/shutdown > /dev/null || true
+TOKEN=${TOKEN:-$(scripts/token.sh ops)}
+curl -sf -X POST -H "Authorization: Bearer $TOKEN" localhost:8083/actuator/shutdown > /dev/null || true
 until describe | grep -q '^STATE *Empty'; do sleep 1; done
 
 echo "dropping the read model..."

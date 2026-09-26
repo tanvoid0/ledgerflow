@@ -25,6 +25,15 @@ kubectl create secret generic ledgerflow-db --from-literal=password=ledgerflow \
 kubectl create configmap init-databases --from-file=infra/compose/init-databases.sh \
   --dry-run=client -o yaml | kubectl apply -f -
 
+kubectl create configmap keycloak-realm --from-file=infra/compose/keycloak/ledgerflow-realm.json \
+  --dry-run=client -o yaml | kubectl apply -f -
+# .env's dev secrets if start-services.sh has already sourced one, else the realm file's own dev values
+[ -f infra/compose/.env ] && source infra/compose/.env
+kubectl create secret generic oidc-clients \
+  --from-literal=ledger-service="${LEDGER_SERVICE_SECRET:-ledger-service-secret}" \
+  --from-literal=settlement-service="${SETTLEMENT_SERVICE_SECRET:-settlement-service-secret}" \
+  --dry-run=client -o yaml | kubectl apply -f -
+
 # topics before any client: redpanda auto-creates a topic at 1 partition for the first producer
 # or consumer that asks, and topics.sh's create is a no-op after that (step 29 found all of them at 1)
 kubectl apply -f k8s/infra/redpanda.yaml

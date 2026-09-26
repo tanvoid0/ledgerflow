@@ -9,16 +9,18 @@ ACCOUNT=11111111-1111-1111-1111-111111111111
 ACCOUNT_URL=http://localhost:8080
 PAYMENT_URL=http://localhost:8085
 BALANCE_URL=http://localhost:8083
+TOKEN=${TOKEN:-$(scripts/token.sh ops)}
+AUTH=(-H "Authorization: Bearer $TOKEN")
 
-balance_of() { curl -sf "$BALANCE_URL/api/v1/balances/$ACCOUNT/A-1" | jq -r .balanceMinor; }
+balance_of() { curl -sf "${AUTH[@]}" "$BALANCE_URL/api/v1/balances/$ACCOUNT/A-1" | jq -r .balanceMinor; }
 
 bal=$(balance_of)
 if [ "$bal" -lt 100 ]; then
   echo "A-1 is at $bal minor, funding it from TREASURY first..."
-  wallets=$(curl -sf "$ACCOUNT_URL/api/v1/accounts/$ACCOUNT" | jq -c .wallets)
+  wallets=$(curl -sf "${AUTH[@]}" "$ACCOUNT_URL/api/v1/accounts/$ACCOUNT" | jq -c .wallets)
   treasury=$(jq -r '.[] | select(.label=="TREASURY") | .id' <<< "$wallets")
   target=$(jq -r '.[] | select(.label=="A-1") | .id' <<< "$wallets")
-  curl -sf -X POST "$ACCOUNT_URL/api/v1/transfers" -H 'Content-Type: application/json' \
+  curl -sf -X POST "${AUTH[@]}" "$ACCOUNT_URL/api/v1/transfers" -H 'Content-Type: application/json' \
     -H "Idempotency-Key: demo-fund-a1-$(date +%s)" \
     -d "$(jq -n --arg f "$treasury" --arg t "$target" \
         '{fromWalletId: $f, toWalletId: $t, amountMinor: 10000, currency: "GBP", description: "demo funding"}')" > /dev/null
@@ -27,7 +29,7 @@ fi
 echo "A-1 balance before: $bal minor"
 
 echo "POST /api/v1/payments: 100 minor GBP on A-1 to shop-1..."
-resp=$(curl -si -X POST "$PAYMENT_URL/api/v1/payments" -H 'Content-Type: application/json' \
+resp=$(curl -si -X POST "${AUTH[@]}" "$PAYMENT_URL/api/v1/payments" -H 'Content-Type: application/json' \
   -d "$(jq -n --arg a "$ACCOUNT" '{accountId: $a, wallets: ["A-1"], amountMinor: 100, currency: "GBP", beneficiary: "shop-1"}')")
 request_id=$(tr -d '\r' <<< "$resp" | grep -i '^x-request-id:' | head -1 | cut -d' ' -f2)
 body=$(tr -d '\r' <<< "$resp" | sed -n '/^{/,$p')
@@ -38,7 +40,7 @@ echo "polling for Captured..."
 deadline=$((SECONDS + 20))
 last=""
 while :; do
-  state=$(curl -sf "$PAYMENT_URL/api/v1/payments/$id" | jq -r .state)
+  state=$(curl -sf "${AUTH[@]}" "$PAYMENT_URL/api/v1/payments/$id" | jq -r .state)
   if [ "$state" != "$last" ]; then echo "$(date -u +%T) $state"; last=$state; fi
   [ "$state" = Captured ] && break
   [ "$state" = Failed ] && { echo "failed, expected Captured"; exit 1; }

@@ -26,7 +26,8 @@ together by hand.
 
 ## 3. Capture, and the ledger summing to zero
 
-`curl -s localhost:8085/api/v1/payments/$PAYMENT | jq` moves to `Captured`. Then:
+`curl -s -H "Authorization: Bearer $TOKEN" localhost:8085/api/v1/payments/$PAYMENT | jq` moves to `Captured`
+(`TOKEN=$(scripts/token.sh ops)` - every `/api` route wants one now, health does not). Then:
 
 ```
 docker exec ledgerflow-postgres psql -U ledgerflow -d account -c "SELECT SUM(amount_minor) FROM postings"
@@ -43,7 +44,7 @@ scripts/scenario-fraud-flagged.sh
 ```
 
 Thirty payments from one account in a few seconds, then one to a beneficiary already on the
-block list. Then `curl -s localhost:8084/api/v1/cases | jq '.[0]'`. Notice: the case note names
+block list. Then `curl -s -H "Authorization: Bearer $TOKEN" localhost:8084/api/v1/cases | jq '.[0]'`. Notice: the case note names
 the velocity and the z-score that triggered it, in plain English, from a model that never saw
 the ledger - and every one of those payments still settled `Captured`, because scoring a
 payment and moving its money are two different services that cannot reach each other.
