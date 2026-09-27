@@ -1,16 +1,27 @@
 import { useMemo } from 'react'
 import { useParams, useSearchParams, Link } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
-import { useToken } from '../roles'
-import { get } from '../api'
-import { useLedgerStream, recordKey } from '../stream'
-import type { PaymentState, StreamRecord } from '../types'
-import { TERMINAL_STATES } from '../types'
-import { formatMinor, formatTime } from '../format'
-import { StateBadge } from '../components/StateBadge'
-import { Loading, ErrorBox } from '../components/States'
+import { ArrowLeft } from 'lucide-react'
+import { useToken } from '../../roles'
+import { get } from '../../api'
+import { useLedgerStream, recordKey } from '../../stream'
+import type { PaymentState, StreamRecord } from '../../types'
+import { TERMINAL_STATES } from '../../types'
+import { formatMinor, formatTime } from '../../format'
+import { PageHeader } from '../../components/ui/PageHeader'
+import { StateBadge } from '../../components/ui/Badge'
+import { Card } from '../../components/ui/Card'
+import { Table, THead, TR, TH, TD } from '../../components/ui/Table'
+import { Skeleton, ErrorBox } from '../../components/ui/States'
 
 const STEPS = ['RESERVE', 'AUTHORIZE', 'ISSUE'] as const
+
+const STEP_TONE: Record<string, string> = {
+  failed: 'border-bad/40 bg-bad/10 text-bad',
+  done: 'border-ok/40 bg-ok/10 text-ok',
+  active: 'border-warn/40 bg-warn/10 text-fg',
+  pending: 'border-line text-muted',
+}
 
 /** True if this record was caused by this payment: same correlationId, or its payload names the payment. */
 function belongsTo(r: StreamRecord, paymentId: string, correlationId: string | null): boolean {
@@ -58,24 +69,22 @@ export function PaymentDetail() {
 
   return (
     <div className="space-y-6">
-      <Link to="/payments" className="text-sm text-indigo-600 hover:underline">
-        ← Payments
+      <Link to="/admin/payments" className="flex items-center gap-1 text-sm text-muted hover:text-fg">
+        <ArrowLeft size={14} /> Payments
       </Link>
-      <h1 className="font-mono text-lg font-semibold">{id}</h1>
+      <PageHeader title={<span className="font-mono text-lg">{id}</span>} />
 
-      {payment.isLoading && <Loading />}
+      {payment.isLoading && <Skeleton />}
       {payment.isError && <ErrorBox error={payment.error} />}
       {payment.data && (
-        <div className="space-y-2">
+        <div className="flex items-center gap-2">
           <StateBadge state={payment.data.state} />
-          {'amount' in payment.data && <span className="ml-2 tabular">{formatMinor(payment.data.amount.minorUnits, payment.data.amount.currency)}</span>}
-          {payment.data.state === 'Failed' && (
-            <div className="text-sm text-red-600 dark:text-red-400">reason: {payment.data.reason}</div>
-          )}
+          {'amount' in payment.data && <span className="tabular text-fg">{formatMinor(payment.data.amount.minorUnits, payment.data.amount.currency)}</span>}
+          {payment.data.state === 'Failed' && <span className="text-sm text-bad">reason: {payment.data.reason}</span>}
         </div>
       )}
 
-      <div className="flex gap-4">
+      <div className="flex gap-3">
         {STEPS.map((step) => {
           const captured = payment.data?.state === 'Captured'
           // steps before the one it is on - or the one it failed at - are done
@@ -83,47 +92,39 @@ export function PaymentDetail() {
           const done = captured || (reached !== null && STEPS.indexOf(step) < STEPS.indexOf(reached))
           const failed = failedAt === step
           const active = currentStep === step
+          const tone = failed ? 'failed' : done ? 'done' : active ? 'active' : 'pending'
           return (
-            <div
-              key={step}
-              className={`flex-1 rounded border p-3 text-center text-xs font-medium ${
-                failed
-                  ? 'border-red-300 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950'
-                  : done
-                    ? 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950'
-                    : active
-                      ? 'border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950'
-                      : 'border-slate-200 text-slate-400 dark:border-slate-800'
-              }`}
-            >
+            <div key={step} className={`flex-1 rounded-control border p-3 text-center text-xs font-medium ${STEP_TONE[tone]}`}>
               {step}
             </div>
           )
         })}
       </div>
 
-      <div>
-        <div className="mb-2 text-sm font-medium">Saga messages ({messages.length})</div>
-        <table className="w-full text-xs">
-          <thead className="text-left text-slate-400">
-            <tr>
-              <th className="py-1">t+ms</th>
-              <th>Topic</th>
-              <th>Event</th>
-              <th>Time</th>
-            </tr>
-          </thead>
-          <tbody>
-            {messages.map((m) => (
-              <tr key={recordKey(m)} className="border-t border-slate-100 dark:border-slate-800">
-                <td className="py-1 tabular">+{Date.parse(m.value.occurredAt) - startedAt}</td>
-                <td className="font-mono">{m.topic.replace('ledgerflow.', '')}</td>
-                <td>{m.value.eventType}</td>
-                <td className="tabular">{formatTime(m.value.occurredAt)}</td>
+      <div className="space-y-2">
+        <div className="text-sm font-medium text-fg">Saga messages ({messages.length})</div>
+        <Card className="p-0">
+          <Table className="text-xs">
+            <THead>
+              <tr>
+                <TH className="px-3">t+ms</TH>
+                <TH>Topic</TH>
+                <TH>Event</TH>
+                <TH>Time</TH>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </THead>
+            <tbody>
+              {messages.map((m) => (
+                <TR key={recordKey(m)}>
+                  <TD className="tabular px-3">+{Date.parse(m.value.occurredAt) - startedAt}</TD>
+                  <TD className="font-mono">{m.topic.replace('ledgerflow.', '')}</TD>
+                  <TD>{m.value.eventType}</TD>
+                  <TD className="tabular">{formatTime(m.value.occurredAt)}</TD>
+                </TR>
+              ))}
+            </tbody>
+          </Table>
+        </Card>
       </div>
     </div>
   )

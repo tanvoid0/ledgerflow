@@ -1,10 +1,13 @@
 import { useState } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
-import { useToken } from '../roles'
-import { get, post } from '../api'
-import type { JobExecution } from '../types'
-import { WriteButton } from '../components/WriteButton'
-import { Loading, Empty, ErrorBox } from '../components/States'
+import { useToken } from '../../roles'
+import { get, post } from '../../api'
+import type { JobExecution } from '../../types'
+import { PageHeader } from '../../components/ui/PageHeader'
+import { Card } from '../../components/ui/Card'
+import { WriteButton } from '../../components/ui/Button'
+import { Field, Select, Input } from '../../components/ui/Field'
+import { Skeleton, Empty, ErrorBox } from '../../components/ui/States'
 
 export function Settlement() {
   const token = useToken()
@@ -29,9 +32,9 @@ export function Settlement() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-lg font-semibold">Settlement</h1>
+      <PageHeader title="Settlement" />
 
-      {jobs.isLoading && <Loading />}
+      {jobs.isLoading && <Skeleton />}
       {jobs.isError && <ErrorBox error={jobs.error} />}
       {jobs.data && jobs.data.length === 0 && <Empty>No batch jobs registered.</Empty>}
 
@@ -40,82 +43,55 @@ export function Settlement() {
           e.preventDefault()
           launch.mutate()
         }}
-        className="space-y-3 rounded border border-slate-200 p-4 dark:border-slate-800"
       >
-        <div className="text-sm font-medium">Launch a job</div>
-        <div className="flex gap-2 text-sm">
-          <select
-            className="rounded border border-slate-200 px-2 py-1 dark:border-slate-700 dark:bg-slate-900"
-            value={jobName}
-            onChange={(e) => setJobName(e.target.value)}
-          >
-            <option value="">job…</option>
-            {jobs.data?.map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
-            ))}
-          </select>
-          <input
-            type="date"
-            className="rounded border border-slate-200 px-2 py-1 dark:border-slate-700 dark:bg-slate-900"
-            value={businessDate}
-            onChange={(e) => setBusinessDate(e.target.value)}
-          />
-        </div>
-        <WriteButton
-          type="submit"
-          disabled={!jobName || !businessDate || launch.isPending}
-          className="rounded bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-500"
-        >
-          {launch.isPending ? 'Launching…' : 'Launch'}
-        </WriteButton>
-        {launch.isError && <ErrorBox error={launch.error} />}
+        <Card className="space-y-3">
+          <div className="text-sm font-medium text-fg">Launch a job</div>
+          <div className="flex gap-2">
+            <Field label="Job">
+              <Select value={jobName} onChange={(e) => setJobName(e.target.value)}>
+                <option value="">job…</option>
+                {jobs.data?.map((n) => <option key={n} value={n}>{n}</option>)}
+              </Select>
+            </Field>
+            <Field label="Business date">
+              <Input type="date" value={businessDate} onChange={(e) => setBusinessDate(e.target.value)} />
+            </Field>
+          </div>
+          <WriteButton type="submit" disabled={!jobName || !businessDate} loading={launch.isPending}>
+            Launch
+          </WriteButton>
+          {launch.isError && <ErrorBox error={launch.error} />}
+        </Card>
       </form>
 
       {/* No endpoint lists executions by job (BatchLaunchController only names jobs); an execution id
           is what restart/recover/stop take, so it's a field here rather than a row action. */}
-      <div className="space-y-3 rounded border border-slate-200 p-4 dark:border-slate-800">
-        <div className="text-sm font-medium">Act on an execution</div>
-        <input
-          className="w-40 rounded border border-slate-200 px-2 py-1 text-sm dark:border-slate-700 dark:bg-slate-900"
-          placeholder="execution id"
-          value={executionId}
-          onChange={(e) => setExecutionId(e.target.value)}
-        />
+      <Card className="space-y-3">
+        <div className="text-sm font-medium text-fg">Act on an execution</div>
+        <Field label="Execution id">
+          <Input className="w-40" value={executionId} onChange={(e) => setExecutionId(e.target.value)} />
+        </Field>
         <div className="flex gap-2">
-          <WriteButton
-            onClick={() => act.mutate('restart')}
-            disabled={!executionId || act.isPending}
-            className="rounded border border-slate-200 px-3 py-1.5 text-sm dark:border-slate-700"
-          >
+          <WriteButton variant="secondary" size="sm" disabled={!executionId} loading={act.isPending} onClick={() => act.mutate('restart')}>
             Restart
           </WriteButton>
-          <WriteButton
-            onClick={() => act.mutate('recover')}
-            disabled={!executionId || act.isPending}
-            className="rounded border border-slate-200 px-3 py-1.5 text-sm dark:border-slate-700"
-          >
+          <WriteButton variant="secondary" size="sm" disabled={!executionId} loading={act.isPending} onClick={() => act.mutate('recover')}>
             Recover
           </WriteButton>
-          <WriteButton
-            onClick={() => act.mutate('stop')}
-            disabled={!executionId || act.isPending}
-            className="rounded border border-slate-200 px-3 py-1.5 text-sm dark:border-slate-700"
-          >
+          <WriteButton variant="secondary" size="sm" disabled={!executionId} loading={act.isPending} onClick={() => act.mutate('stop')}>
             Stop
           </WriteButton>
         </div>
         {act.isError && <ErrorBox error={act.error} />}
-      </div>
+      </Card>
 
       {last && (
-        <div className="rounded border border-slate-200 p-4 text-sm dark:border-slate-800">
-          <div className="font-medium">{last.jobName} #{last.executionId}</div>
-          <div className="text-xs text-slate-400">
+        <Card className="text-sm">
+          <div className="font-medium text-fg">{last.jobName} #{last.executionId}</div>
+          <div className="text-xs text-muted">
             {last.status} / {last.exitCode} · {last.startTime ?? '-'} → {last.endTime ?? '-'}
           </div>
-        </div>
+        </Card>
       )}
     </div>
   )

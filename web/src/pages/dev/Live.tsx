@@ -1,10 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ReactFlow, Background, type Node, type Edge } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { useToken } from '../roles'
-import { useLedgerStream, recordKey } from '../stream'
-import type { StreamRecord } from '../types'
-import { formatTime } from '../format'
+import { Radio } from 'lucide-react'
+import { useToken } from '../../roles'
+import { useLedgerStream, recordKey } from '../../stream'
+import type { StreamRecord } from '../../types'
+import { formatTime } from '../../format'
+import { PageHeader } from '../../components/ui/PageHeader'
+import { Card } from '../../components/ui/Card'
+import { Input } from '../../components/ui/Field'
+import { Empty } from '../../components/ui/States'
 
 // Edges are straight, centre to centre (see .live-map in index.css), so this layout keeps every line clear of every other node.
 const NODES: Node[] = [
@@ -16,6 +21,7 @@ const NODES: Node[] = [
   { id: 'settlement', position: { x: 750, y: 200 }, data: { label: 'settlement' } },
   { id: 'balance', position: { x: 250, y: 340 }, data: { label: 'balance' } },
   { id: 'account', position: { x: 500, y: 340 }, data: { label: 'account' } },
+  { id: 'ticketing', position: { x: 750, y: 340 }, data: { label: 'ticketing' } },
 ]
 
 // One entry per topic that carries a real message; settlement->account is HTTP, drawn separately, never pulsed.
@@ -34,7 +40,11 @@ const TOPIC_EDGES: Record<string, [string, string][]> = {
   'ledgerflow.settlement.capture.commands.v1': [['payment', 'settlement']],
   'ledgerflow.settlement.capture.events.v1': [['settlement', 'payment']],
   'ledgerflow.payment.requested.events.v1': [['payment', 'risk']],
+  'ledgerflow.payment.outcome.events.v1': [['payment', 'ticketing']],
 }
+
+const LINE_COLOR = 'var(--color-line)'
+const LIT_COLOR = 'var(--color-brand-500)'
 
 const STATIC_EDGES: Edge[] = Object.entries(TOPIC_EDGES).flatMap(([topic, pairs]) =>
   pairs.map(([source, target]) => ({
@@ -42,7 +52,7 @@ const STATIC_EDGES: Edge[] = Object.entries(TOPIC_EDGES).flatMap(([topic, pairs]
     source,
     target,
     data: { topic: topic.replace('ledgerflow.', '').replace('.v1', '') },
-    style: { stroke: '#cbd5e1' },
+    style: { stroke: LINE_COLOR },
   })),
 )
 
@@ -51,7 +61,7 @@ const HTTP_EDGE: Edge = {
   source: 'settlement',
   target: 'account',
   label: 'capture (HTTP)',
-  style: { stroke: '#cbd5e1', strokeDasharray: '4 4' },
+  style: { stroke: LINE_COLOR, strokeDasharray: '4 4' },
 }
 
 const PULSE_MS = 600
@@ -110,7 +120,7 @@ export function Live() {
         style: {
           padding: 8,
           borderRadius: 8,
-          border: lit.has(n.id) ? '2px solid #6366f1' : '1px solid #cbd5e1',
+          border: lit.has(n.id) ? `2px solid ${LIT_COLOR}` : `1px solid ${LINE_COLOR}`,
           transition: 'border-color 150ms',
         },
       }))
@@ -132,53 +142,59 @@ export function Live() {
           ...e,
           animated: lit,
           label: newest.get(lineOf(e)) === e.id ? (e.data?.topic as string) : undefined,
-          style: { ...e.style, stroke: lit ? '#6366f1' : '#cbd5e1', strokeWidth: lit ? 2.5 : 1 },
+          style: { ...e.style, stroke: lit ? LIT_COLOR : LINE_COLOR, strokeWidth: lit ? 2.5 : 1 },
         }
       }),
     ]
   }, [pulses])
 
   return (
-    <div className="flex h-full gap-4">
-      <div className="live-map flex-1 rounded border border-slate-200 dark:border-slate-800">
-        <ReactFlow nodes={nodes} edges={edges} defaultEdgeOptions={{ type: 'straight' }} fitView colorMode="system">
-          <Background />
-        </ReactFlow>
-      </div>
-      <div className="flex w-96 flex-col gap-2">
-        <div className="text-xs text-slate-400">stream: {status}</div>
-        <input
-          className="rounded border border-slate-200 px-2 py-1 text-xs dark:border-slate-700 dark:bg-slate-900"
-          placeholder="follow correlation id…"
-          value={follow}
-          onChange={(e) => setFollow(e.target.value)}
-        />
-        <div className="flex-1 overflow-auto rounded border border-slate-200 dark:border-slate-800">
-          {filtered
-            .slice()
-            .reverse()
-            .slice(0, 200)
-            .map((r) => (
-              <button
-                key={recordKey(r)}
-                onClick={() => setSelected(r)}
-                className="block w-full border-b border-slate-100 px-2 py-1.5 text-left text-xs hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-900"
-              >
-                <div className="flex justify-between">
-                  <span className="font-medium">{r.value.eventType}</span>
-                  <span className="tabular text-slate-400">{formatTime(r.value.occurredAt)}</span>
-                </div>
-                <div className="truncate text-slate-400">
-                  {r.key} · <span className="rounded bg-slate-100 px-1 dark:bg-slate-800">{r.value.correlationId?.slice(0, 8) ?? "—"}</span>
-                </div>
-              </button>
-            ))}
+    <div className="flex h-full flex-col gap-4">
+      <PageHeader
+        title="Live map"
+        subtitle="every crossing lights its edge for 600ms - a topic, not a request, is the unit here"
+        actions={
+          <span className="flex items-center gap-1.5 text-xs text-muted">
+            <Radio size={12} className={status === 'open' ? 'text-ok' : 'text-muted'} /> stream: {status}
+          </span>
+        }
+      />
+      <div className="flex flex-1 gap-4 overflow-hidden">
+        <div className="live-map flex-1 rounded-card border border-line bg-surface-2/40">
+          <ReactFlow nodes={nodes} edges={edges} defaultEdgeOptions={{ type: 'straight' }} fitView colorMode="system">
+            <Background />
+          </ReactFlow>
         </div>
-        {selected && (
-          <pre className="max-h-64 overflow-auto rounded border border-slate-200 bg-slate-50 p-2 text-xs dark:border-slate-800 dark:bg-slate-900">
-            {JSON.stringify(selected, null, 2)}
-          </pre>
-        )}
+        <div className="flex w-96 flex-col gap-2">
+          <Input placeholder="follow correlation id…" value={follow} onChange={(e) => setFollow(e.target.value)} className="text-xs" />
+          <Card className="flex-1 overflow-auto p-0">
+            {filtered.length === 0 && <Empty>nothing on the stream yet</Empty>}
+            {filtered
+              .slice()
+              .reverse()
+              .slice(0, 200)
+              .map((r) => (
+                <button
+                  key={recordKey(r)}
+                  onClick={() => setSelected(r)}
+                  className="block w-full border-b border-line px-2 py-1.5 text-left text-xs last:border-0 hover:bg-surface-2"
+                >
+                  <div className="flex justify-between">
+                    <span className="font-medium text-fg">{r.value.eventType}</span>
+                    <span className="tabular text-muted">{formatTime(r.value.occurredAt)}</span>
+                  </div>
+                  <div className="truncate text-muted">
+                    {r.key} · <span className="rounded-full bg-surface-2 px-1.5">{r.value.correlationId?.slice(0, 8) ?? '—'}</span>
+                  </div>
+                </button>
+              ))}
+          </Card>
+          {selected && (
+            <pre className="max-h-64 overflow-auto rounded-card border border-line bg-surface-2 p-2 font-mono text-xs text-fg">
+              {JSON.stringify(selected, null, 2)}
+            </pre>
+          )}
+        </div>
       </div>
     </div>
   )
