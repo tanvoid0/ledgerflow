@@ -56,13 +56,16 @@ const HTTP_EDGE: Edge = {
 
 const PULSE_MS = 600
 
+/** Both directions between two services draw as one line, so they share one label slot. */
+const lineOf = (e: Edge) => [e.source, e.target].sort().join('|')
+
 export function Live() {
   const token = useToken()
   const { records, status } = useLedgerStream(token)
   const [follow, setFollow] = useState('')
   const [selected, setSelected] = useState<StreamRecord | null>(null)
-  const [pulsedEdges, setPulsedEdges] = useState<Set<string>>(new Set())
-  const [pulsedNodes, setPulsedNodes] = useState<Set<string>>(new Set())
+  // edge id -> when a record last crossed it; each edge goes dark PULSE_MS after its own crossing
+  const [pulses, setPulses] = useState<Map<string, number>>(new Map())
   const [counts, setCounts] = useState<Record<string, number>>({})
   const last = useRef<StreamRecord | undefined>(undefined)
 
@@ -73,12 +76,10 @@ export function Live() {
     last.current = records.at(-1)
     if (fresh.length === 0) return
     const edgeIds = new Set<string>()
-    const nodeIds = new Set<string>()
     const nodeCounts: Record<string, number> = {}
     for (const r of fresh) {
       for (const [source, target] of TOPIC_EDGES[r.topic] ?? []) {
         edgeIds.add(`${source}-${target}-${r.topic}`)
-        nodeIds.add(target)
         nodeCounts[target] = (nodeCounts[target] ?? 0) + 1
       }
     }
@@ -86,12 +87,10 @@ export function Live() {
     // state, so the lint rule against setState-in-effect-body wants it out of the synchronous pass
     setTimeout(() => {
       if (edgeIds.size > 0) {
-        setPulsedEdges(edgeIds)
-        setPulsedNodes(nodeIds)
-        setTimeout(() => {
-          setPulsedEdges(new Set())
-          setPulsedNodes(new Set())
-        }, PULSE_MS)
+        const at = performance.now()
+        setPulses((p) => new Map([...p, ...[...edgeIds].map((id) => [id, at] as const)]))
+        // only this batch's crossings: an edge crossed again since keeps its newer time and stays lit
+        setTimeout(() => setPulses((p) => new Map([...p].filter(([, t]) => t !== at))), PULSE_MS)
       }
       setCounts((c) => {
         const next = { ...c }
@@ -103,34 +102,41 @@ export function Live() {
 
   const filtered = follow ? records.filter((r) => r.value.correlationId === follow) : records
 
-  const nodes = useMemo(
-    () =>
-      NODES.map((n) => ({
+  const nodes = useMemo(() => {
+    const lit = new Set(STATIC_EDGES.filter((e) => pulses.has(e.id)).map((e) => e.target))
+    return NODES.map((n) => ({
         ...n,
         data: { label: `${n.data.label as string}${counts[n.id] ? ` (${counts[n.id]})` : ''}` },
         style: {
           padding: 8,
           borderRadius: 8,
-          border: pulsedNodes.has(n.id) ? '2px solid #6366f1' : '1px solid #cbd5e1',
+          border: lit.has(n.id) ? '2px solid #6366f1' : '1px solid #cbd5e1',
           transition: 'border-color 150ms',
         },
-      })),
-    [counts, pulsedNodes],
-  )
+      }))
+  }, [counts, pulses])
 
-  const edges = useMemo(
-    () => [
+  const edges = useMemo(() => {
+    // a topic name only while a record is crossing, and one per line - the newest crossing's - so labels never stack
+    const newest = new Map<string, string>()
+    for (const e of STATIC_EDGES) {
+      const t = pulses.get(e.id)
+      const held = newest.get(lineOf(e))
+      if (t !== undefined && (held === undefined || t > pulses.get(held)!)) newest.set(lineOf(e), e.id)
+    }
+    return [
       HTTP_EDGE,
-      ...STATIC_EDGES.map((e) => ({
-        ...e,
-        animated: pulsedEdges.has(e.id),
-        // a topic name only while a record is crossing: opposite directions share one line, so fixed labels would stack
-        label: pulsedEdges.has(e.id) ? (e.data?.topic as string) : undefined,
-        style: { ...e.style, stroke: pulsedEdges.has(e.id) ? '#6366f1' : '#cbd5e1', strokeWidth: pulsedEdges.has(e.id) ? 2.5 : 1 },
-      })),
-    ],
-    [pulsedEdges],
-  )
+      ...STATIC_EDGES.map((e) => {
+        const lit = pulses.has(e.id)
+        return {
+          ...e,
+          animated: lit,
+          label: newest.get(lineOf(e)) === e.id ? (e.data?.topic as string) : undefined,
+          style: { ...e.style, stroke: lit ? '#6366f1' : '#cbd5e1', strokeWidth: lit ? 2.5 : 1 },
+        }
+      }),
+    ]
+  }, [pulses])
 
   return (
     <div className="flex h-full gap-4">
