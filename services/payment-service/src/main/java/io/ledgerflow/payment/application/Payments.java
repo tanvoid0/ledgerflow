@@ -2,14 +2,21 @@ package io.ledgerflow.payment.application;
 
 import io.ledgerflow.events.EventEnvelope;
 import io.ledgerflow.events.Money;
+import io.ledgerflow.events.payment.PaymentCaptured;
+import io.ledgerflow.events.payment.PaymentFailed;
 import io.ledgerflow.events.payment.PaymentRequested;
 import io.ledgerflow.payment.config.PaymentProperties;
 import io.ledgerflow.payment.domain.model.PaymentState;
+import io.ledgerflow.payment.domain.model.PaymentState.AuthorizationPending;
+import io.ledgerflow.payment.domain.model.PaymentState.CapturePending;
+import io.ledgerflow.payment.domain.model.PaymentState.Captured;
 import io.ledgerflow.payment.domain.model.PaymentState.Failed;
+import io.ledgerflow.payment.domain.model.PaymentState.Requested;
 import io.ledgerflow.payment.domain.model.StepTimedOut;
 import io.ledgerflow.starter.messaging.OutboxAppender;
 import io.ledgerflow.starter.web.RequestIdFilter;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
@@ -19,6 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -65,7 +73,7 @@ public class Payments {
     @Transactional
     public void apply(UUID paymentId, Record reply, EventEnvelope<?> cause) {
         try (var _ = MDC.putCloseable("paymentId", paymentId.toString())) {   // every line below is findable by payment
-            var row = db.sql("SELECT payload, correlation_id FROM sagas WHERE payment_id = :id FOR UPDATE")
+            var row = db.sql("SELECT payload, correlation_id, created_at FROM sagas WHERE payment_id = :id FOR UPDATE")
                     .param("id", paymentId).query(Row.class).optional().orElse(null);
             if (row == null) {
                 log.warn("{} for payment {} nobody here started; ignoring", reply.getClass().getSimpleName(), paymentId);
@@ -88,10 +96,28 @@ public class Payments {
                     .param("step", next.step() == null ? null : next.step().name())
                     .param("deadline", next.step() == null ? null : deadline())
                     .update();
-            send(paymentId, decision.commands(), row.correlationId(), cause == null ? null : cause.eventId().toString());
+            var causationId = cause == null ? null : cause.eventId().toString();
+            send(paymentId, decision.commands(), row.correlationId(), causationId);
             // the number that says customers are being turned away, and why: worth more than any latency histogram
             if (next instanceof Failed f) {
                 meters.counter("ledgerflow.saga.compensated", "step", f.failedAt().name(), "reason", f.reason().name()).increment();
+            }
+            // terminal: tell whoever paid through us, and clock the whole saga on one number
+            if (next.step() == null) {
+                var paid = paid(state);
+                var amount = paid.amount();
+                switch (next) {
+                    case Captured c -> outbox.append(PaymentCaptured.TOPIC, EventEnvelope.of(PaymentCaptured.TYPE, paymentId, 1,
+                            row.correlationId(), causationId,
+                            new PaymentCaptured(paymentId, paid.accountId(), amount.minorUnits(), amount.currency())));
+                    case Failed f -> outbox.append(PaymentFailed.TOPIC, EventEnvelope.of(PaymentFailed.TYPE, paymentId, 1,
+                            row.correlationId(), causationId, new PaymentFailed(paymentId, f.reason().name(), f.failedAt().name(),
+                                    paid.accountId(), amount.minorUnits(), amount.currency())));
+                    default -> throw new IllegalStateException("terminal state with no outcome mapping: " + next);
+                }
+                // with buckets, or Prometheus only gets +Inf and every quantile is NaN (the dev portal's saga chart reads p50/p99)
+                Timer.builder("ledgerflow.saga.duration").tag("outcome", name(next)).publishPercentileHistogram().register(meters)
+                        .record(Duration.between(row.createdAt(), Instant.now()));
             }
         }
     }
@@ -136,7 +162,19 @@ public class Payments {
         return s.getClass().getSimpleName();
     }
 
-    record Row(String payload, String correlationId) {}
+    /** Only a waiting state moves to a terminal one, and every waiting state still knows who pays and how much. */
+    private static Paid paid(PaymentState s) {
+        return switch (s) {
+            case Requested r -> new Paid(r.accountId(), r.amount());
+            case AuthorizationPending p -> new Paid(p.accountId(), p.amount());
+            case CapturePending c -> new Paid(c.accountId(), c.amount());
+            case Captured _, Failed _ -> throw new IllegalStateException("terminal state moved again: " + s);
+        };
+    }
+
+    record Paid(UUID accountId, Money amount) {}
+
+    record Row(String payload, String correlationId, Instant createdAt) {}
 
     record Expired(UUID paymentId, String currentStep) {}
 }

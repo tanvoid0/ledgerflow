@@ -26,7 +26,7 @@ import static org.mockito.Mockito.when;
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
 @TestPropertySource(properties = "ledgerflow.settlement.line-items=threads-paging")
-@WithMockUser
+@WithMockUser(roles = "ledger-write")
 class LineItemsThreadsPagingModeIT {
 
     private static final LocalDate BUSINESS_DATE = LocalDate.of(2026, 9, 4);

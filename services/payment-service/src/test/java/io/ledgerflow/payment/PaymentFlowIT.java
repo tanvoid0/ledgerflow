@@ -9,6 +9,8 @@ import io.ledgerflow.events.ledger.CaptureHolds;
 import io.ledgerflow.events.ledger.FundsHeld;
 import io.ledgerflow.events.ledger.ReleaseWallets;
 import io.ledgerflow.events.ledger.ReserveWallets;
+import io.ledgerflow.events.payment.PaymentCaptured;
+import io.ledgerflow.events.payment.PaymentFailed;
 import io.ledgerflow.events.payment.PaymentRequested;
 import io.ledgerflow.events.settlement.CapturesIssued;
 import io.ledgerflow.events.settlement.IssueCaptures;
@@ -81,7 +83,12 @@ class PaymentFlowIT {
         var capture = UUID.randomUUID();
         reply(CapturesIssued.TOPIC, CapturesIssued.TYPE, id, new CapturesIssued(id, List.of(capture)));
         await().untilAsserted(() -> assertThat(state(id)).isEqualTo(new Captured(id, List.of(capture))));
-        assertThat(sent(id)).endsWith(CaptureHolds.TYPE);
+        // CaptureHolds and the outcome event go out in the same transaction, close enough to tie on occurred_at
+        var sent = sent(id);
+        assertThat(sent).startsWith(ReserveWallets.TYPE, PaymentRequested.TYPE, AuthorizePayment.TYPE, IssueCaptures.TYPE);
+        assertThat(sent.subList(4, 6)).containsExactlyInAnyOrder(CaptureHolds.TYPE, PaymentCaptured.TYPE);
+        // Captured itself no longer knows who paid or how much: that comes from the state before it
+        assertThat(outcome(id, PaymentCaptured.class)).isEqualTo(new PaymentCaptured(id, ACCOUNT, 4500, "GBP"));
     }
 
     @Test
@@ -90,13 +97,15 @@ class PaymentFlowIT {
 
         await().atMost(Duration.ofSeconds(10)).untilAsserted(() ->
                 assertThat(state(id)).isEqualTo(new Failed(id, FailureReason.TIMED_OUT, Step.RESERVE)));
-        assertThat(sent(id)).containsExactly(ReserveWallets.TYPE, PaymentRequested.TYPE, ReleaseWallets.TYPE);
+        assertThat(sent(id)).startsWith(ReserveWallets.TYPE, PaymentRequested.TYPE);
+        assertThat(sent(id).subList(2, 4)).containsExactlyInAnyOrder(ReleaseWallets.TYPE, PaymentFailed.TYPE);
+        assertThat(outcome(id, PaymentFailed.class)).isEqualTo(new PaymentFailed(id, "TIMED_OUT", "RESERVE", ACCOUNT, 4500, "GBP"));
 
         var hold = UUID.randomUUID();
         var late = reply(FundsHeld.TOPIC, FundsHeld.TYPE, hold, new FundsHeld(hold, List.of(new WalletRef(ACCOUNT, "A-12")), Instant.now(), Money.gbp(4500), id));
         await().untilAsserted(() -> assertThat(handled(late)).isTrue());
         assertThat(state(id)).isEqualTo(new Failed(id, FailureReason.TIMED_OUT, Step.RESERVE));
-        assertThat(sent(id)).containsExactly(ReserveWallets.TYPE, PaymentRequested.TYPE, ReleaseWallets.TYPE);   // the release already sent covers the late hold
+        assertThat(sent(id)).hasSize(4);   // the release and outcome already sent cover the late hold, nothing new goes out
         assertThat(meters.get("ledgerflow.saga.compensated").tags("step", "RESERVE", "reason", "TIMED_OUT").counter().count()).isEqualTo(1);
     }
 
@@ -142,6 +151,12 @@ class PaymentFlowIT {
     private List<String> sent(UUID id) {
         return db.sql("SELECT event_type FROM outbox WHERE aggregate_id = :id ORDER BY occurred_at").param("id", id)
                 .query(String.class).list();
+    }
+
+    /** The outcome event's payload as ticketing will read it. */
+    private <T> T outcome(UUID id, Class<T> type) {
+        return json.readValue(db.sql("SELECT payload->>'payload' FROM outbox WHERE aggregate_id = :id AND topic = :topic")
+                .param("id", id).param("topic", PaymentCaptured.TOPIC).query(String.class).single(), type);
     }
 
     private boolean handled(UUID eventId) {

@@ -34,7 +34,7 @@ import static org.mockito.Mockito.when;
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
-@WithMockUser
+@WithMockUser(roles = "ledger-write")
 class SettlementJobIT {
 
     private static final LocalDate BUSINESS_DATE = LocalDate.of(2026, 9, 1);

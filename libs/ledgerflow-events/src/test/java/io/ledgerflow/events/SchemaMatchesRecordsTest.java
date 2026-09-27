@@ -12,6 +12,8 @@ import io.ledgerflow.events.ledger.HoldClosed;
 import io.ledgerflow.events.ledger.HoldRejected;
 import io.ledgerflow.events.ledger.ReleaseWallets;
 import io.ledgerflow.events.ledger.ReserveWallets;
+import io.ledgerflow.events.payment.PaymentCaptured;
+import io.ledgerflow.events.payment.PaymentFailed;
 import io.ledgerflow.events.payment.PaymentRequested;
 import io.ledgerflow.events.settlement.CapturesIssued;
 import io.ledgerflow.events.settlement.IssueCaptures;
@@ -33,6 +35,7 @@ import java.util.stream.StreamSupport;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * The schema in resources/schemas is what the registry enforces; the records are what Jackson writes.
@@ -41,17 +44,18 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 class SchemaMatchesRecordsTest {
 
     // topic -> the payload records that ride on it; a topic with one type is a plain object, more is a oneOf
-    static final Map<String, List<Class<? extends Record>>> TOPICS = Map.of(
-            FundsHeld.TOPIC, List.of(FundsHeld.class),
-            HoldRejected.TOPIC, List.of(HoldRejected.class),
-            HoldClosed.TOPIC, List.of(HoldClosed.class),
-            EntryPosted.TOPIC, List.of(EntryPosted.class),
-            PaymentRequested.TOPIC, List.of(PaymentRequested.class),
-            ReserveWallets.TOPIC, List.of(ReserveWallets.class, ReleaseWallets.class, CaptureHolds.class),
-            AuthorizePayment.TOPIC, List.of(AuthorizePayment.class, RefundPayment.class),
-            PaymentAuthorized.TOPIC, List.of(PaymentAuthorized.class, PaymentDeclined.class),
-            IssueCaptures.TOPIC, List.of(IssueCaptures.class, RevokeCaptures.class),
-            CapturesIssued.TOPIC, List.of(CapturesIssued.class, IssueFailed.class));
+    static final Map<String, List<Class<? extends Record>>> TOPICS = Map.ofEntries(
+            Map.entry(FundsHeld.TOPIC, List.of(FundsHeld.class)),
+            Map.entry(HoldRejected.TOPIC, List.of(HoldRejected.class)),
+            Map.entry(HoldClosed.TOPIC, List.of(HoldClosed.class)),
+            Map.entry(EntryPosted.TOPIC, List.of(EntryPosted.class)),
+            Map.entry(PaymentRequested.TOPIC, List.of(PaymentRequested.class)),
+            Map.entry(ReserveWallets.TOPIC, List.of(ReserveWallets.class, ReleaseWallets.class, CaptureHolds.class)),
+            Map.entry(AuthorizePayment.TOPIC, List.of(AuthorizePayment.class, RefundPayment.class)),
+            Map.entry(PaymentAuthorized.TOPIC, List.of(PaymentAuthorized.class, PaymentDeclined.class)),
+            Map.entry(IssueCaptures.TOPIC, List.of(IssueCaptures.class, RevokeCaptures.class)),
+            Map.entry(CapturesIssued.TOPIC, List.of(CapturesIssued.class, IssueFailed.class)),
+            Map.entry(PaymentCaptured.TOPIC, List.of(PaymentCaptured.class, PaymentFailed.class)));
 
     // state, not events: the schema is the record's own shape, not EventEnvelope<record>
     static final Map<String, Class<? extends Record>> STATE_TOPICS = Map.of(BalanceSnapshot.TOPIC, BalanceSnapshot.class);
@@ -80,8 +84,12 @@ class SchemaMatchesRecordsTest {
     /** Recurses into nested records (Money, WalletRef, HeldWallet), through arrays. */
     static void assertMatches(Class<? extends Record> type, JsonNode objectSchema) {
         assertEquals(fields(type), properties(objectSchema), type.getSimpleName());
+        var required = strings(objectSchema.path("required"));
         for (var c : type.getRecordComponents()) {
             var node = objectSchema.get("properties").get(c.getName());
+            // a field left out of required can be dropped by a producer and the registry still accepts it
+            assertTrue(required.contains(c.getName()) || strings(node.path("type")).contains("null"),
+                    type.getSimpleName() + "." + c.getName() + " is neither required nor nullable");
             if (node.has("items")) node = node.get("items");
             if (nestedRecord(c) != null) assertMatches(nestedRecord(c), node);
         }
@@ -110,6 +118,12 @@ class SchemaMatchesRecordsTest {
 
     static Set<String> fields(Class<? extends Record> type) {
         return Arrays.stream(type.getRecordComponents()).map(RecordComponent::getName).collect(Collectors.toSet());
+    }
+
+    /** A string, or an array of strings, as a set; missing is empty. */
+    static Set<String> strings(JsonNode node) {
+        if (node.isString()) return Set.of(node.asString());
+        return StreamSupport.stream(node.spliterator(), false).map(JsonNode::asString).collect(Collectors.toSet());
     }
 
     static Set<String> properties(JsonNode objectSchema) {
