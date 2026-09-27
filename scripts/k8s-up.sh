@@ -16,9 +16,10 @@ kubectl create namespace ledgerflow --dry-run=client -o yaml | kubectl apply -f 
 kubectl config set-context --current --namespace=ledgerflow
 
 ./scripts/build-images.sh
-for s in account ledger notification payment issuer settlement balance risk; do
+for s in account ledger notification payment issuer settlement balance risk gateway; do
   kind load docker-image --name ledgerflow "ledgerflow/${s}-service:1.0.0-SNAPSHOT"
 done
+kind load docker-image --name ledgerflow ledgerflow/web:1.0.0-SNAPSHOT
 
 kubectl create secret generic ledgerflow-db --from-literal=password=ledgerflow \
   --dry-run=client -o yaml | kubectl apply -f -

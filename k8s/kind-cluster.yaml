@@ -14,6 +14,8 @@ nodes:
       - {containerPort: 30085, hostPort: 8085}   # payment
       - {containerPort: 30086, hostPort: 8086}   # issuer
       - {containerPort: 30087, hostPort: 8087}   # settlement
+      - {containerPort: 30088, hostPort: 8088}   # gateway
+      - {containerPort: 30089, hostPort: 8089}   # web
       # redpanda's OUTSIDE listener and built-in schema registry, host side matches compose's
       # 9092/18081 so scripts/topics.sh and check-schemas.sh run unchanged
       - {containerPort: 30092, hostPort: 9092}   # kafka (OUTSIDE listener)
