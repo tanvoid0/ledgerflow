@@ -8,7 +8,9 @@
   "roles": {
     "realm": [
       {"name": "ledger-write", "description": "can move money"},
-      {"name": "account-read", "description": "can read accounts and balances"}
+      {"name": "account-read", "description": "can read accounts and balances"},
+      {"name": "customer", "description": "can buy tickets"},
+      {"name": "dev", "description": "can read the dev portal (prometheus/tempo)"}
     ]
   },
   "clients": [
@@ -55,7 +57,7 @@
       "emailVerified": true,
       "requiredActions": [],
       "credentials": [{"type": "password", "value": "ops", "temporary": false}],
-      "realmRoles": ["ledger-write", "account-read"]
+      "realmRoles": ["ledger-write", "account-read", "dev"]
     },
     {
       "username": "reader",
@@ -64,6 +66,30 @@
       "requiredActions": [],
       "credentials": [{"type": "password", "value": "reader", "temporary": false}],
       "realmRoles": ["account-read"]
+    },
+    {
+      "id": "22222222-2222-2222-2222-222222222222",
+      "username": "alice",
+      "enabled": true,
+      "emailVerified": true,
+      "requiredActions": [],
+      "firstName": "Alice",
+      "lastName": "Shopper",
+      "email": "alice@ledgerflow.example",
+      "credentials": [{"type": "password", "value": "alice", "temporary": false}],
+      "realmRoles": ["customer"]
+    },
+    {
+      "id": "33333333-3333-3333-3333-333333333333",
+      "username": "bob",
+      "enabled": true,
+      "emailVerified": true,
+      "requiredActions": [],
+      "firstName": "Bob",
+      "lastName": "Shopper",
+      "email": "bob@ledgerflow.example",
+      "credentials": [{"type": "password", "value": "bob", "temporary": false}],
+      "realmRoles": ["customer"]
     },
     {
       "username": "service-account-ledger-service",

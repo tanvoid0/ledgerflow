@@ -6,7 +6,7 @@ docker info > /dev/null 2>&1 || { echo "docker is not running"; exit 1; }
 javaver=$(java -version 2>&1 | head -1 | grep -oE '"[0-9]+' | tr -d '"')
 [ "${javaver:-0}" -ge 25 ] || { echo "need java >= 25, got: $(java -version 2>&1 | head -1)"; exit 1; }
 [ -x ./mvnw ] || { echo "./mvnw not found or not executable"; exit 1; }
-for p in 8080 8081 8082 8083 8084 8085 8086 8087; do
+for p in 8080 8081 8082 8083 8084 8085 8086 8087 8090; do
   curl -sf "localhost:$p/actuator/health" > /dev/null 2>&1 && { echo "port $p already answers - stop whatever is running first"; exit 1; }
 done
 
@@ -16,6 +16,11 @@ docker compose -f infra/compose/docker-compose.yml up -d --wait
 docker exec ledgerflow-postgres psql -U risk -d risk -c 'select 1' > /dev/null 2>&1 || {
   echo "risk role missing (a volume older than step 16) - applying infra/compose/risk-role.sql"
   docker exec -i ledgerflow-postgres psql -U ledgerflow -d postgres < infra/compose/risk-role.sql
+}
+# a volume older than step 34 has no ticketing database
+docker exec ledgerflow-postgres psql -U ledgerflow -d ticketing -c 'select 1' > /dev/null 2>&1 || {
+  echo "ticketing database missing (a volume older than step 34) - creating it"
+  docker exec ledgerflow-postgres psql -U ledgerflow -d postgres -c 'CREATE DATABASE ticketing;'
 }
 
 ./scripts/topics.sh
@@ -32,4 +37,4 @@ docker exec ledgerflow-postgres psql -U risk -d risk -c 'select 1' > /dev/null 2
 ./scripts/scenario-fraud-flagged.sh
 
 echo
-echo "the eight services are still up. logs: .local/logs/<service>.log. scripts/stop-services.sh when done."
+echo "the ten services are still up. logs: .local/logs/<service>.log. scripts/stop-services.sh when done."

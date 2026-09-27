@@ -121,6 +121,15 @@ services:
       OIDC_CLIENT_SECRET: ${SETTLEMENT_SERVICE_SECRET:?set it in infra/compose/.env}
     ports: ["8087:8080"]
 
+  ticketing:
+    <<: *service
+    image: ledgerflow/ticketing-service:1.0.0-SNAPSHOT
+    environment:
+      <<: *env
+      DB_URL: jdbc:postgresql://postgres:5432/ticketing
+      PAYMENT_BASE_URL: http://payment:8080
+    ports: ["8090:8080"]
+
   gateway:
     <<: *service
     image: ledgerflow/gateway-service:1.0.0-SNAPSHOT
@@ -133,11 +142,14 @@ services:
       PAYMENT_SERVICE_URL: http://payment:8080
       ISSUER_SERVICE_URL: http://issuer:8080
       SETTLEMENT_SERVICE_URL: http://settlement:8080
+      TICKETING_SERVICE_URL: http://ticketing:8080
+      PROMETHEUS_URL: http://lgtm:9090
+      TEMPO_URL: http://lgtm:3200
     ports: ["8088:8080"]
 
   web:
     restart: unless-stopped
-    build: ../../web
+    build: {context: ../.., dockerfile: web/Dockerfile}
     image: ledgerflow/web:1.0.0-SNAPSHOT
     environment:
       GATEWAY_URL: http://gateway:8080   # the image defaults to kind's Service name, gateway-service

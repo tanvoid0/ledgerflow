@@ -7,6 +7,8 @@ spec:
     - {name: grafana, port: 3000, targetPort: 3000, nodePort: 30000}
     - {name: otlp-grpc, port: 4317, targetPort: 4317}
     - {name: otlp-http, port: 4318, targetPort: 4318}
+    - {name: prometheus, port: 9090, targetPort: 9090}
+    - {name: tempo, port: 3200, targetPort: 3200}
   type: NodePort
 ---
 apiVersion: apps/v1
@@ -28,6 +30,8 @@ spec:
             - {containerPort: 3000}
             - {containerPort: 4317}
             - {containerPort: 4318}
+            - {containerPort: 9090}
+            - {containerPort: 3200}
           readinessProbe:
             tcpSocket: {port: 3000}
             periodSeconds: 5

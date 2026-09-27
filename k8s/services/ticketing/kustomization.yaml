@@ -1,0 +1,22 @@
+namePrefix: ticketing-
+resources: [../../base]
+labels:
+  - pairs: {app: ticketing}
+    includeSelectors: true
+images:
+  - name: ledgerflow/service
+    newName: ledgerflow/ticketing-service
+patches:
+  - target: {kind: Deployment}
+    patch: |
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value: {name: DB_URL, value: "jdbc:postgresql://postgres:5432/ticketing"}
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value: {name: PAYMENT_BASE_URL, value: "http://payment-service:8080"}
+  - target: {kind: Service}
+    patch: |
+      - op: add
+        path: /spec/ports/0/nodePort
+        value: 30090
