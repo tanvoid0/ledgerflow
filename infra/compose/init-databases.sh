@@ -3,7 +3,7 @@
 # `account` already exists (POSTGRES_DB); the rest are for later services.
 # One database per service: services never read each other's tables.
 set -e
-for db in ledger notification payment issuer settlement balance risk; do
+for db in ledger notification payment issuer settlement balance risk ticketing; do
   psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d postgres -c "CREATE DATABASE \"$db\";"
 done
 
@@ -13,4 +13,4 @@ done
 psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d postgres -c "CREATE ROLE risk LOGIN PASSWORD 'risk';"
 psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d postgres -c "ALTER DATABASE risk OWNER TO risk;"
 psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d postgres -c \
-  "REVOKE CONNECT ON DATABASE account, ledger, notification, payment, issuer, settlement, balance FROM PUBLIC;"
+  "REVOKE CONNECT ON DATABASE account, ledger, notification, payment, issuer, settlement, balance, ticketing FROM PUBLIC;"

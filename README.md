@@ -13,12 +13,16 @@ One command to a fraud case narrated by a local model, in ninety seconds: `docs/
 
 ## See it in a browser
 
-`web/` is the face: log in as `ops` (or `reader`), see every wallet's balance and holds, start a
-payment and watch its ten messages cross the broker on a live map of the eight services, then
-open the risk cases and settlement runs. One origin for all of it: `gateway-service` (8088)
-routes `/api/v1/*` to the owning service and streams every command and event over SSE at
-`/api/v1/stream`. Why one gateway and one app, and what the gateway does not do:
-`docs/adr/0007-a-gateway-and-a-face.md`.
+`web/` is the face, three areas behind one gateway. `/` is the storefront: browse events signed
+out, then buy a seat as `alice` or `bob` (`scripts/token.sh alice`, password same as the username)
+and watch the order confirm. `/admin` is `ops`: every wallet's balance and holds, a payment's ten
+messages crossing the broker on the live map, the risk cases and settlement runs, orders alongside
+them. `/dev` is also `ops`: performance history, traces, `perf/bench.sh` output and the live map,
+reading Prometheus and Tempo through the gateway's own proxy (`hasRole('dev')` - `alice` and `bob`
+get a 403). One origin for all of it: `gateway-service` (8088) routes `/api/v1/*` to the owning
+service and streams every command and event over SSE at `/api/v1/stream`. Why one gateway and one
+app, and what the gateway does not do: `docs/adr/0007-a-gateway-and-a-face.md`.
+`docs/adr/0008-a-shop-in-front-of-the-saga.md` covers the three areas and the storefront's own saga.
 
 ```bash
 cd web && npm install && npm run dev   # http://localhost:5173, against a running stack (host JVMs, compose or kind)
@@ -87,6 +91,7 @@ enforces each guarantee: "The properties, and where they are enforced" below.
 | gateway-service | 8088 | nothing. The one origin the browser calls: routes `/api/v1/*` by prefix, checks the token on the way in, and streams every command and event as SSE. |
 | web | 8089 | the UI (React, served by nginx, `/api` proxied to the gateway). |
 | risk-service | 8084 | scores every payment for fraud risk off the event stream; rules veto and the score only ranks a payment to review, and its Postgres role cannot connect to any database but its own. |
+| ticketing-service | 8090 | events, seats and orders - a shop in front of the saga. Holds a seat as an order row with its own `expires_at` (a 1s sweep frees it, no Redis), pays through payment-service over HTTP with the buyer's own token, and confirms or releases the seat when payment-service's terminal outcome event arrives. |
 
 Three shared libraries: `ledgerflow-events` (Money, WalletRef, EventEnvelope, the
 event and command records and their JSON schemas - no behaviour), `ledgerflow-starter-web`
@@ -224,6 +229,9 @@ Read your own write: `curl -si -H "Authorization: Bearer $TOKEN" localhost:8083/
 Score a burst without moving any money: `scripts/replay-fraud.sh` - 30 payments from one account plus one
 blocked beneficiary, watched into `risk_decision` as REVIEW and BLOCK rows with a first case note, saga
 states in payment-service untouched throughout.
+Buy a ticket end to end, storefront to settled seat: `scripts/scenario-buy-ticket.sh` - a public browse, a
+401 without a token, `alice` holds and pays for a seat, the order confirms, `ops` sees the payment and the
+order, and the dev portal proxy is a 403 for `alice`.
 
 Load and race: `perf/bench.sh step15` (the fixed suite, ~6 min), `RATE=100 DURATION=60s perf/run.sh transfer my-label` (one scenario), `perf/race.sh`.
 Watch the events: `docker exec ledgerflow-redpanda rpk topic consume ledgerflow.ledger.wallet-hold.events.v1 -f '%p %k %v\n'`.
