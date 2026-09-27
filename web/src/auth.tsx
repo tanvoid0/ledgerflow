@@ -14,10 +14,12 @@ export function LedgerflowAuthProvider({ children }: { children: ReactNode }) {
       scope="openid"
       automaticSilentRenew
       userStore={new WebStorageStateStore({ store: window.sessionStorage })}
-      // back to the page that sent us to login (Gate passes it as state), minus the code/state params; runs before the router mounts
-      onSigninCallback={(user) =>
-        window.history.replaceState({}, document.title, typeof user?.state === 'string' ? user.state : '/')
-      }
+      // back to the page that sent us to login (RequireRole and the seat map pass it as state), minus the code/state params.
+      // The router is already mounted (the storefront is public), and replaceState alone is invisible to it - the popstate makes it re-read the URL.
+      onSigninCallback={(user) => {
+        window.history.replaceState(null, document.title, typeof user?.state === 'string' ? user.state : '/')
+        window.dispatchEvent(new PopStateEvent('popstate'))
+      }}
     >
       {children}
     </AuthProvider>

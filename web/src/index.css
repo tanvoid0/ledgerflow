@@ -1,8 +1,74 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-display: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, monospace;
+
+  /* neutrals: redeclared under .dark below - same variable names, cascade does the flip */
+  --color-bg: oklch(0.99 0 0);
+  --color-surface: oklch(1 0 0);
+  --color-surface-2: oklch(0.96 0.004 264);
+  --color-line: oklch(0.90 0.006 264);
+  --color-fg: oklch(0.22 0.02 264);
+  --color-muted: oklch(0.50 0.015 264);
+
+  /* brand: electric violet */
+  --color-brand-100: oklch(0.92 0.045 293);
+  --color-brand-400: oklch(0.70 0.18 293);
+  --color-brand-500: oklch(0.60 0.23 293);
+  --color-brand-600: oklch(0.53 0.23 293);
+  --color-brand-700: oklch(0.45 0.20 293);
+
+  /* flare: warm amber, "few left" / highlights. warn shares the hue - same colour, different meaning */
+  --color-flare: oklch(0.80 0.16 72);
+  --color-ok: oklch(0.70 0.15 155);
+  --color-warn: oklch(0.80 0.16 72);
+  --color-bad: oklch(0.63 0.21 25);
+
+  --radius-card: 14px;
+  --radius-control: 10px;
+
+  /* chart series, fixed order, never cycled by rank - key by series identity, not position (see charts/LineChart.tsx).
+     Light passes CVD/normal-vision contrast but slots 3-5 are < 3:1 on white, so every chart needs a legend + table view. */
+  --color-series-1: #2a78d6;
+  --color-series-2: #eb6834;
+  --color-series-3: #1baf7a;
+  --color-series-4: #eda100;
+  --color-series-5: #e87ba4;
+}
+
+.dark {
+  --color-bg: oklch(0.18 0.018 264);
+  --color-surface: oklch(0.23 0.018 264);
+  --color-surface-2: oklch(0.27 0.018 264);
+  --color-line: oklch(0.33 0.02 264);
+  --color-fg: oklch(0.94 0.012 264);
+  --color-muted: oklch(0.66 0.02 264);
+
+  --color-series-1: #3987e5;
+  --color-series-2: #d95926;
+  --color-series-3: #199e70;
+  --color-series-4: #c98500;
+  --color-series-5: #d55181;
+}
+
 body {
-  @apply bg-white text-slate-700 dark:bg-slate-950 dark:text-slate-300;
-  font: 15px/1.45 system-ui, "Segoe UI", Roboto, sans-serif;
+  @apply bg-bg text-fg font-sans;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-brand-500);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* money and event timestamps line up in tables */

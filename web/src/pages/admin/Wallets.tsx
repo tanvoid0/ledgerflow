@@ -1,11 +1,15 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useToken } from '../roles'
-import { get, getWithHeaders, post } from '../api'
-import type { Account, AccountBalances } from '../types'
-import { formatMinor } from '../format'
-import { WriteButton } from '../components/WriteButton'
-import { Loading, Empty, ErrorBox } from '../components/States'
+import { useToken } from '../../roles'
+import { get, getWithHeaders, post } from '../../api'
+import type { Account, AccountBalances } from '../../types'
+import { formatMinor } from '../../format'
+import { PageHeader } from '../../components/ui/PageHeader'
+import { Card } from '../../components/ui/Card'
+import { WriteButton } from '../../components/ui/Button'
+import { Field, Select, Input } from '../../components/ui/Field'
+import { Table, THead, TR, TH, TD } from '../../components/ui/Table'
+import { Skeleton, Empty, ErrorBox } from '../../components/ui/States'
 
 export function Wallets() {
   const token = useToken()
@@ -51,51 +55,53 @@ export function Wallets() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-lg font-semibold">Wallets</h1>
+      <PageHeader title="Wallets" />
 
-      {accounts.isLoading && <Loading />}
+      {accounts.isLoading && <Skeleton />}
       {accounts.isError && <ErrorBox error={accounts.error} />}
 
-      <select
-        className="rounded border border-slate-200 px-2 py-1 text-sm dark:border-slate-700 dark:bg-slate-900"
-        value={accountId ?? ''}
-        onChange={(e) => {
-          setSelected(e.target.value)
-          setFromWalletId('') // wallet ids belong to the account they were picked from
-          setToWalletId('')
-        }}
-      >
-        {accounts.data?.map((a) => (
-          <option key={a.id} value={a.id}>
-            {a.name}
-          </option>
-        ))}
-      </select>
+      <Field label="Account">
+        <Select
+          className="max-w-xs"
+          value={accountId ?? ''}
+          onChange={(e) => {
+            setSelected(e.target.value)
+            setFromWalletId('') // wallet ids belong to the account they were picked from
+            setToWalletId('')
+          }}
+        >
+          {accounts.data?.map((a) => (
+            <option key={a.id} value={a.id}>
+              {a.name}
+            </option>
+          ))}
+        </Select>
+      </Field>
 
-      {balances.isLoading && <Loading />}
+      {balances.isLoading && <Skeleton />}
       {balances.isError && <ErrorBox error={balances.error} />}
       {balances.data && balances.data.wallets.length === 0 && <Empty>No wallets for this account.</Empty>}
       {balances.data && balances.data.wallets.length > 0 && (
-        <table className="w-full text-sm">
-          <thead className="text-left text-xs text-slate-400">
+        <Table>
+          <THead>
             <tr>
-              <th className="py-1">Wallet</th>
-              <th>Balance</th>
-              <th>Held</th>
-              <th>Available</th>
+              <TH>Wallet</TH>
+              <TH>Balance</TH>
+              <TH>Held</TH>
+              <TH>Available</TH>
             </tr>
-          </thead>
+          </THead>
           <tbody>
             {balances.data.wallets.map((w) => (
-              <tr key={w.label} className="border-t border-slate-100 dark:border-slate-800">
-                <td className="py-2">{w.label}</td>
-                <td className="tabular">{formatMinor(w.balanceMinor, w.currency)}</td>
-                <td className="tabular">{formatMinor(w.heldMinor, w.currency)}</td>
-                <td className="tabular">{formatMinor(w.availableMinor, w.currency)}</td>
-              </tr>
+              <TR key={w.label}>
+                <TD className="font-medium text-fg">{w.label}</TD>
+                <TD className="tabular">{formatMinor(w.balanceMinor, w.currency)}</TD>
+                <TD className="tabular">{formatMinor(w.heldMinor, w.currency)}</TD>
+                <TD className="tabular">{formatMinor(w.availableMinor, w.currency)}</TD>
+              </TR>
             ))}
           </tbody>
-        </table>
+        </Table>
       )}
 
       <form
@@ -103,55 +109,36 @@ export function Wallets() {
           e.preventDefault()
           transfer.mutate()
         }}
-        className="space-y-3 rounded border border-slate-200 p-4 dark:border-slate-800"
       >
-        <div className="text-sm font-medium">Transfer between wallets</div>
-        <div className="flex gap-2 text-sm">
-          <select
-            className="flex-1 rounded border border-slate-200 px-2 py-1 dark:border-slate-700 dark:bg-slate-900"
-            value={fromWalletId}
-            onChange={(e) => setFromWalletId(e.target.value)}
-          >
-            <option value="">from wallet…</option>
-            {account?.wallets.map((w) => (
-              <option key={w.id} value={w.id}>
-                {w.label}
-              </option>
-            ))}
-          </select>
-          <select
-            className="flex-1 rounded border border-slate-200 px-2 py-1 dark:border-slate-700 dark:bg-slate-900"
-            value={toWalletId}
-            onChange={(e) => setToWalletId(e.target.value)}
-          >
-            <option value="">to wallet…</option>
-            {account?.wallets.map((w) => (
-              <option key={w.id} value={w.id}>
-                {w.label}
-              </option>
-            ))}
-          </select>
-          <input
-            type="number"
-            className="w-32 rounded border border-slate-200 px-2 py-1 dark:border-slate-700 dark:bg-slate-900"
-            value={amountMinor}
-            onChange={(e) => setAmountMinor(Number(e.target.value))}
-            min={1}
-          />
-        </div>
-        <WriteButton
-          type="submit"
-          disabled={!fromWalletId || !toWalletId || fromWalletId === toWalletId || transfer.isPending}
-          className="rounded bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-500"
-        >
-          {transfer.isPending ? 'Transferring…' : 'Transfer'}
-        </WriteButton>
-        {transfer.isError && <ErrorBox error={transfer.error} />}
-        {projection && (
-          <div className="text-xs text-slate-400">
-            re-read after write: <span className="font-mono">{projection}</span>
+        <Card className="space-y-3">
+          <div className="text-sm font-medium text-fg">Transfer between wallets</div>
+          <div className="flex gap-2">
+            <Field label="From">
+              <Select value={fromWalletId} onChange={(e) => setFromWalletId(e.target.value)}>
+                <option value="">from wallet…</option>
+                {account?.wallets.map((w) => <option key={w.id} value={w.id}>{w.label}</option>)}
+              </Select>
+            </Field>
+            <Field label="To">
+              <Select value={toWalletId} onChange={(e) => setToWalletId(e.target.value)}>
+                <option value="">to wallet…</option>
+                {account?.wallets.map((w) => <option key={w.id} value={w.id}>{w.label}</option>)}
+              </Select>
+            </Field>
+            <Field label="Amount (minor)">
+              <Input type="number" className="w-32" value={amountMinor} onChange={(e) => setAmountMinor(Number(e.target.value))} min={1} />
+            </Field>
           </div>
-        )}
+          <WriteButton type="submit" disabled={!fromWalletId || !toWalletId || fromWalletId === toWalletId} loading={transfer.isPending}>
+            Transfer
+          </WriteButton>
+          {transfer.isError && <ErrorBox error={transfer.error} />}
+          {projection && (
+            <div className="text-xs text-muted">
+              re-read after write: <span className="font-mono">{projection}</span>
+            </div>
+          )}
+        </Card>
       </form>
     </div>
   )

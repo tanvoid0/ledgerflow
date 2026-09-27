@@ -48,6 +48,51 @@ export type PaymentState =
 
 export const TERMINAL_STATES: PaymentState['state'][] = ['Captured', 'Failed']
 
+export interface TicketEvent {
+  id: string
+  slug: string
+  title: string
+  subtitle: string
+  venue: string
+  city: string | null // optional on the create API
+  category?: string
+  startsAt: string
+  organiser: string
+  priceMinor: number
+  currency: string
+  status: string
+  seatsTotal: number
+  seatsFree: number
+}
+
+export type SeatStatus = 'FREE' | 'HELD' | 'SOLD'
+
+export interface Seat {
+  seat: string
+  row: string
+  number: number
+  status: SeatStatus
+}
+
+export type OrderStatus = 'HELD' | 'PENDING_PAYMENT' | 'CONFIRMED' | 'FAILED' | 'EXPIRED'
+
+export interface Order {
+  id: string
+  eventId: string
+  eventTitle: string
+  accountId: string
+  username: string
+  seats: string[]
+  amountMinor: number
+  currency: string
+  status: OrderStatus
+  expiresAt: string
+  requestId: string | null // set by checkout; null while HELD or if it expired unpaid
+  paymentId: string | null
+  failReason: FailureReason | null
+  createdAt: string
+}
+
 export interface RiskCase {
   paymentId: string
   decision: 'REVIEW' | 'BLOCK'

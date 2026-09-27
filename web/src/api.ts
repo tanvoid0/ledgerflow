@@ -27,10 +27,10 @@ async function errorDetail(res: Response): Promise<string> {
 async function call<T>(path: string, token: string | undefined, init: RequestInit = {}): Promise<{ data: T; headers: Headers }> {
   let res: Response
   try {
-    res = await fetch(path, {
-      ...init,
-      headers: { ...(init.headers ?? {}), Authorization: token ? `Bearer ${token}` : '' },
-    })
+    // public storefront reads have no token; an empty header still failed some services' auth filters, so it's omitted, not blanked
+    const headers: Record<string, string> = { ...(init.headers as Record<string, string> | undefined) }
+    if (token) headers.Authorization = `Bearer ${token}`
+    res = await fetch(path, { ...init, headers })
   } catch {
     throw new ApiError(0, 'network error - gateway not reachable on 8088', path)
   }

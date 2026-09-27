@@ -6,6 +6,8 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
+    // lane D globs ../docs/perf (outside web/) for the dev portal's charts
+    fs: { allow: ['..'] },
     proxy: {
       '/api': {
         target: 'http://localhost:8088',
