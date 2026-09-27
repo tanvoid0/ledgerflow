@@ -1,0 +1,11 @@
+@import "tailwindcss";
+
+body {
+  @apply bg-white text-slate-700 dark:bg-slate-950 dark:text-slate-300;
+  font: 15px/1.45 system-ui, "Segoe UI", Roboto, sans-serif;
+}
+
+/* money and event timestamps line up in tables */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
