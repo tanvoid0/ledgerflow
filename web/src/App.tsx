@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react'
+import { useCallback, useEffect, type ReactNode } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useAuth } from 'react-oidc-context'
@@ -16,12 +16,25 @@ const queryClient = new QueryClient()
 
 function Gate({ children }: { children: ReactNode }) {
   const auth = useAuth()
-  useEffect(() => setUnauthorizedHandler(() => auth.signinRedirect()), [auth])
-  if (auth.isLoading) return <div className="p-8 text-sm text-slate-400">signing in…</div>
-  if (!auth.isAuthenticated) {
-    auth.signinRedirect()
-    return <div className="p-8 text-sm text-slate-400">redirecting to login…</div>
+  // the page asked for rides along as state; auth.tsx puts it back after the callback
+  const signIn = useCallback(() => auth.signinRedirect({ state: window.location.pathname + window.location.search }), [auth])
+  const needsLogin = !auth.isLoading && !auth.isAuthenticated && !auth.activeNavigator && !auth.error
+  useEffect(() => setUnauthorizedHandler(signIn), [signIn])
+  useEffect(() => {
+    if (needsLogin) signIn()
+  }, [needsLogin, signIn])
+
+  if (auth.error) {
+    return (
+      <div className="p-8 text-sm text-red-600 dark:text-red-400">
+        sign-in failed: {auth.error.message}{' '}
+        <button onClick={signIn} className="underline">
+          try again
+        </button>
+      </div>
+    )
   }
+  if (!auth.isAuthenticated) return <div className="p-8 text-sm text-slate-400">signing in…</div>
   return <>{children}</>
 }
 

@@ -9,3 +9,18 @@ body {
 .tabular {
   font-variant-numeric: tabular-nums;
 }
+
+/* live map: both handles collapse to a point at the node's centre, so a straight edge runs centre to centre
+   and the node box hides its ends, whichever side the other service is on. Zero size matters: a sized handle
+   anchors a source edge at its bottom and a target edge at its top, and the two directions split into two lines. */
+.live-map .react-flow__handle {
+  top: 50%;
+  bottom: auto;
+  width: 0;
+  height: 0;
+  min-width: 0;
+  min-height: 0;
+  border: 0;
+  transform: none;
+  opacity: 0;
+}

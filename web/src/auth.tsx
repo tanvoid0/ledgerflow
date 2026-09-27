@@ -14,7 +14,10 @@ export function LedgerflowAuthProvider({ children }: { children: ReactNode }) {
       scope="openid"
       automaticSilentRenew
       userStore={new WebStorageStateStore({ store: window.sessionStorage })}
-      onSigninCallback={() => window.history.replaceState({}, document.title, window.location.pathname)}
+      // back to the page that sent us to login (Gate passes it as state), minus the code/state params; runs before the router mounts
+      onSigninCallback={(user) =>
+        window.history.replaceState({}, document.title, typeof user?.state === 'string' ? user.state : '/')
+      }
     >
       {children}
     </AuthProvider>

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useToken } from '../roles'
-import { get, post } from '../api'
+import { get, getWithHeaders, post } from '../api'
 import type { Account, AccountBalances } from '../types'
 import { formatMinor } from '../format'
 import { WriteButton } from '../components/WriteButton'
@@ -15,6 +15,7 @@ export function Wallets() {
 
   const accounts = useQuery({ queryKey: ['accounts'], queryFn: () => get<Account[]>('/api/v1/accounts', token) })
   const accountId = selected ?? accounts.data?.[0]?.id ?? null
+  const account = accounts.data?.find((a) => a.id === accountId)
 
   const balances = useQuery({
     enabled: !!accountId,
@@ -25,6 +26,7 @@ export function Wallets() {
   const [fromWalletId, setFromWalletId] = useState('')
   const [toWalletId, setToWalletId] = useState('')
   const [amountMinor, setAmountMinor] = useState(1000)
+  const labelOf = (walletId: string) => account?.wallets.find((w) => w.id === walletId)?.label
 
   const transfer = useMutation({
     mutationFn: () =>
@@ -36,17 +38,16 @@ export function Wallets() {
       ),
     onSuccess: async ({ requestId }) => {
       setProjection(null)
-      await qc.invalidateQueries({ queryKey: ['balances', accountId] })
-      // read-your-own-write: re-fetch with ?after so the response tells us caught-up vs lagging (ADR 0002)
-      const res = await fetch(`/api/v1/balances/${accountId}?after=${requestId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      setProjection(res.headers.get('X-Projection'))
+      // read-your-own-write: only the single-wallet read takes ?after - it waits for this request's event
+      // and says caught-up vs lagging in X-Projection (ADR 0002). One event moves both wallets, so either will do.
+      const { headers } = await getWithHeaders(
+        `/api/v1/balances/${accountId}/${encodeURIComponent(labelOf(toWalletId) ?? '')}?after=${requestId}`,
+        token,
+      )
+      setProjection(headers.get('X-Projection'))
       qc.invalidateQueries({ queryKey: ['balances', accountId] })
     },
   })
-
-  const account = accounts.data?.find((a) => a.id === accountId)
 
   return (
     <div className="space-y-6">
@@ -58,7 +59,11 @@ export function Wallets() {
       <select
         className="rounded border border-slate-200 px-2 py-1 text-sm dark:border-slate-700 dark:bg-slate-900"
         value={accountId ?? ''}
-        onChange={(e) => setSelected(e.target.value)}
+        onChange={(e) => {
+          setSelected(e.target.value)
+          setFromWalletId('') // wallet ids belong to the account they were picked from
+          setToWalletId('')
+        }}
       >
         {accounts.data?.map((a) => (
           <option key={a.id} value={a.id}>
@@ -136,7 +141,7 @@ export function Wallets() {
         </div>
         <WriteButton
           type="submit"
-          disabled={!fromWalletId || !toWalletId || transfer.isPending}
+          disabled={!fromWalletId || !toWalletId || fromWalletId === toWalletId || transfer.isPending}
           className="rounded bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-500"
         >
           {transfer.isPending ? 'Transferring…' : 'Transfer'}

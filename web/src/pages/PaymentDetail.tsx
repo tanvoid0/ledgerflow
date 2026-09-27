@@ -3,7 +3,7 @@ import { useParams, useSearchParams, Link } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 import { useToken } from '../roles'
 import { get } from '../api'
-import { useLedgerStream } from '../stream'
+import { useLedgerStream, recordKey } from '../stream'
 import type { PaymentState, StreamRecord } from '../types'
 import { TERMINAL_STATES } from '../types'
 import { formatMinor, formatTime } from '../format'
@@ -33,7 +33,12 @@ export function PaymentDetail() {
 
   const { records } = useLedgerStream(token)
   const messages = useMemo(
-    () => (id ? records.filter((r) => belongsTo(r, id, correlationId)) : []),
+    () =>
+      id
+        ? records
+            .filter((r) => belongsTo(r, id, correlationId))
+            .sort((a, b) => Date.parse(a.value.occurredAt) - Date.parse(b.value.occurredAt))
+        : [],
     [records, id, correlationId],
   )
   // server clocks only: the browser's clock is skewed from the pods', and an old payment has no "now" to measure from
@@ -73,7 +78,9 @@ export function PaymentDetail() {
       <div className="flex gap-4">
         {STEPS.map((step) => {
           const captured = payment.data?.state === 'Captured'
-          const done = captured || (currentStep !== null && STEPS.indexOf(step) < STEPS.indexOf(currentStep))
+          // steps before the one it is on - or the one it failed at - are done
+          const reached = currentStep ?? failedAt
+          const done = captured || (reached !== null && STEPS.indexOf(step) < STEPS.indexOf(reached))
           const failed = failedAt === step
           const active = currentStep === step
           return (
@@ -108,7 +115,7 @@ export function PaymentDetail() {
           </thead>
           <tbody>
             {messages.map((m) => (
-              <tr key={`${m.topic}-${m.offset}`} className="border-t border-slate-100 dark:border-slate-800">
+              <tr key={recordKey(m)} className="border-t border-slate-100 dark:border-slate-800">
                 <td className="py-1 tabular">+{Date.parse(m.value.occurredAt) - startedAt}</td>
                 <td className="font-mono">{m.topic.replace('ledgerflow.', '')}</td>
                 <td>{m.value.eventType}</td>
