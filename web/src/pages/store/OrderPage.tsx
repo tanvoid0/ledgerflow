@@ -6,7 +6,7 @@ import { useRoles, useToken } from '../../roles'
 import { get } from '../../api'
 import { recordKey, useLedgerStream } from '../../stream'
 import type { Order, TicketEvent } from '../../types'
-import { formatEventDate, formatTime } from '../../format'
+import { formatEventDate, formatMinor, formatTime } from '../../format'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { Skeleton, ErrorBox } from '../../components/ui/States'
@@ -32,6 +32,22 @@ const FAIL_WORDS: Record<string, string> = {
   WALLETS_UNAVAILABLE: 'Not enough available balance',
   TIMED_OUT: 'The payment timed out',
   ISSUE_FAILED: 'The payment could not be issued',
+}
+
+// the one line telling a waiting customer what's happening right now
+function statusLine(o: Order): string {
+  switch (o.status) {
+    case 'HELD':
+      return `Seats held until ${formatTime(o.expiresAt)}`
+    case 'PENDING_PAYMENT':
+      return 'Taking payment from your MAIN wallet…'
+    case 'CONFIRMED':
+      return 'Payment confirmed'
+    case 'FAILED':
+      return 'Payment failed'
+    case 'EXPIRED':
+      return 'Hold expired'
+  }
 }
 
 function stepState(status: Order['status'], i: number): 'done' | 'active' | 'failed' | 'pending' {
@@ -167,6 +183,27 @@ export function OrderPage() {
           )
         })}
       </div>
+
+      <Card className="space-y-2">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="font-display text-base font-semibold text-fg">{o.eventTitle}</div>
+            {event.data && (
+              <div className="text-xs text-muted">
+                {formatEventDate(event.data.startsAt)} · {event.data.venue}, {event.data.city}
+              </div>
+            )}
+          </div>
+          <div className="shrink-0 text-right">
+            <div className="text-xs text-muted">{o.seats.join(', ')}</div>
+            <div className="text-sm font-medium text-fg">{formatMinor(o.amountMinor, o.currency)}</div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 border-t border-line pt-2 text-sm text-fg">
+          {o.status === 'PENDING_PAYMENT' && <span aria-hidden="true" className="h-1.5 w-1.5 shrink-0 rounded-full bg-warn animate-pulse" />}
+          {statusLine(o)}
+        </div>
+      </Card>
 
       {o.status === 'CONFIRMED' && (
         <div className="space-y-3">
