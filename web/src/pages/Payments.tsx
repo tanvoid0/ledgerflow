@@ -18,6 +18,8 @@ const PRESETS = [
 ]
 
 const SEED_ACCOUNT = '11111111-1111-1111-1111-111111111111'
+// the funding source: exempt from the funds check (V5), so paying from it would mint money
+const TREASURY = 'TREASURY'
 
 export function Payments() {
   const token = useToken()
@@ -71,7 +73,7 @@ export function Payments() {
       >
         <div className="text-sm font-medium">New payment</div>
         <div className="flex flex-wrap gap-2 text-xs">
-          {account.data?.wallets.map((w) => (
+          {account.data?.wallets.filter((w) => w.label !== TREASURY).map((w) => (
             <label key={w.id} className="flex items-center gap-1 rounded border border-slate-200 px-2 py-1 dark:border-slate-700">
               <input type="checkbox" checked={wallets.includes(w.label)} onChange={() => toggleWallet(w.label)} />
               {w.label}
@@ -140,7 +142,10 @@ export function Payments() {
                 className="cursor-pointer border-t border-slate-100 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-900"
                 onClick={() => navigate(`/payments/${p.paymentId}`)}
               >
-                <td className="py-2 font-mono text-xs">{p.paymentId.slice(0, 8)}</td>
+                <td className="py-2 font-mono text-xs">
+                  {/* no handler: Enter on the focused button clicks it, and the click bubbles to the row */}
+                  <button type="button">{p.paymentId.slice(0, 8)}</button>
+                </td>
                 <td><StateBadge state={p.state} /></td>
                 <td className="tabular">
                   {'amount' in p ? formatMinor(p.amount.minorUnits, p.amount.currency) : '-'}

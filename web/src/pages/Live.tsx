@@ -2,19 +2,20 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { ReactFlow, Background, type Node, type Edge } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { useToken } from '../roles'
-import { useLedgerStream } from '../stream'
+import { useLedgerStream, recordKey } from '../stream'
 import type { StreamRecord } from '../types'
 import { formatTime } from '../format'
 
+// Edges are straight, centre to centre (see .live-map in index.css), so this layout keeps every line clear of every other node.
 const NODES: Node[] = [
-  { id: 'payment', position: { x: 400, y: 220 }, data: { label: 'payment' } },
-  { id: 'ledger', position: { x: 150, y: 100 }, data: { label: 'ledger' } },
-  { id: 'notification', position: { x: 150, y: 340 }, data: { label: 'notification' } },
-  { id: 'balance', position: { x: 400, y: 420 }, data: { label: 'balance' } },
-  { id: 'account', position: { x: 650, y: 420 }, data: { label: 'account' } },
-  { id: 'issuer', position: { x: 650, y: 100 }, data: { label: 'issuer' } },
-  { id: 'settlement', position: { x: 650, y: 220 }, data: { label: 'settlement' } },
-  { id: 'risk', position: { x: 150, y: 220 }, data: { label: 'risk' } },
+  { id: 'notification', position: { x: 0, y: 60 }, data: { label: 'notification' } },
+  { id: 'ledger', position: { x: 250, y: 60 }, data: { label: 'ledger' } },
+  { id: 'risk', position: { x: 500, y: 60 }, data: { label: 'risk' } },
+  { id: 'issuer', position: { x: 750, y: 60 }, data: { label: 'issuer' } },
+  { id: 'payment', position: { x: 500, y: 200 }, data: { label: 'payment' } },
+  { id: 'settlement', position: { x: 750, y: 200 }, data: { label: 'settlement' } },
+  { id: 'balance', position: { x: 250, y: 340 }, data: { label: 'balance' } },
+  { id: 'account', position: { x: 500, y: 340 }, data: { label: 'account' } },
 ]
 
 // One entry per topic that carries a real message; settlement->account is HTTP, drawn separately, never pulsed.
@@ -40,7 +41,7 @@ const STATIC_EDGES: Edge[] = Object.entries(TOPIC_EDGES).flatMap(([topic, pairs]
     id: `${source}-${target}-${topic}`,
     source,
     target,
-    label: topic.replace('ledgerflow.', '').replace('.v1', ''),
+    data: { topic: topic.replace('ledgerflow.', '').replace('.v1', '') },
     style: { stroke: '#cbd5e1' },
   })),
 )
@@ -63,12 +64,13 @@ export function Live() {
   const [pulsedEdges, setPulsedEdges] = useState<Set<string>>(new Set())
   const [pulsedNodes, setPulsedNodes] = useState<Set<string>>(new Set())
   const [counts, setCounts] = useState<Record<string, number>>({})
-  const seen = useRef(0)
+  const last = useRef<StreamRecord | undefined>(undefined)
 
-  // process only records that arrived since the last render, so a 500-record buffer doesn't replay itself
+  // process only records after the last one seen, so the buffer doesn't replay itself; found by identity,
+  // not by count, because the buffer's length stops growing at its cap
   useEffect(() => {
-    const fresh = records.slice(seen.current)
-    seen.current = records.length
+    const fresh = records.slice(last.current ? records.lastIndexOf(last.current) + 1 : 0)
+    last.current = records.at(-1)
     if (fresh.length === 0) return
     const edgeIds = new Set<string>()
     const nodeIds = new Set<string>()
@@ -122,6 +124,8 @@ export function Live() {
       ...STATIC_EDGES.map((e) => ({
         ...e,
         animated: pulsedEdges.has(e.id),
+        // a topic name only while a record is crossing: opposite directions share one line, so fixed labels would stack
+        label: pulsedEdges.has(e.id) ? (e.data?.topic as string) : undefined,
         style: { ...e.style, stroke: pulsedEdges.has(e.id) ? '#6366f1' : '#cbd5e1', strokeWidth: pulsedEdges.has(e.id) ? 2.5 : 1 },
       })),
     ],
@@ -130,8 +134,8 @@ export function Live() {
 
   return (
     <div className="flex h-full gap-4">
-      <div className="flex-1 rounded border border-slate-200 dark:border-slate-800">
-        <ReactFlow nodes={nodes} edges={edges} fitView colorMode="system">
+      <div className="live-map flex-1 rounded border border-slate-200 dark:border-slate-800">
+        <ReactFlow nodes={nodes} edges={edges} defaultEdgeOptions={{ type: 'straight' }} fitView colorMode="system">
           <Background />
         </ReactFlow>
       </div>
@@ -150,7 +154,7 @@ export function Live() {
             .slice(0, 200)
             .map((r) => (
               <button
-                key={`${r.topic}-${r.offset}`}
+                key={recordKey(r)}
                 onClick={() => setSelected(r)}
                 className="block w-full border-b border-slate-100 px-2 py-1.5 text-left text-xs hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-900"
               >

@@ -39,7 +39,11 @@ export function Risk() {
                   className="cursor-pointer border-t border-slate-100 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-900"
                   onClick={() => setOpen(open === c.paymentId ? null : c.paymentId)}
                 >
-                  <td className="py-2 font-mono text-xs">{c.paymentId.slice(0, 8)}</td>
+                  <td className="py-2 font-mono text-xs">
+                    <button type="button" aria-expanded={open === c.paymentId}>
+                      {c.paymentId.slice(0, 8)}
+                    </button>
+                  </td>
                   <td><StateBadge state={c.decision} /></td>
                   <td className="text-xs">{c.ruleFired ?? '-'}</td>
                   <td className="w-32">

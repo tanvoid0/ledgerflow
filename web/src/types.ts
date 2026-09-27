@@ -87,6 +87,6 @@ export interface StreamRecord {
   partition: number
   offset: number
   key: string | null
-  timestamp: string
+  timestamp: number   // epoch ms, the broker's record timestamp
   value: EventEnvelope
 }

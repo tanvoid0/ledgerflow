@@ -20,13 +20,12 @@ export function Settlement() {
     onSuccess: ({ data }) => setLast(data),
   })
 
-  function actOn(action: 'restart' | 'recover' | 'stop') {
-    return () =>
-      post<JobExecution>(`/api/v1/batch/executions/${executionId}/${action}`, token, {}).then(({ data }) => setLast(data))
-  }
-  const restart = useMutation({ mutationFn: actOn('restart') })
-  const recover = useMutation({ mutationFn: actOn('recover') })
-  const stop = useMutation({ mutationFn: actOn('stop') })
+  // one mutation for all three, so the error shown is always the last action's
+  const act = useMutation({
+    mutationFn: (action: 'restart' | 'recover' | 'stop') =>
+      post<JobExecution>(`/api/v1/batch/executions/${executionId}/${action}`, token, {}),
+    onSuccess: ({ data }) => setLast(data),
+  })
 
   return (
     <div className="space-y-6">
@@ -86,30 +85,28 @@ export function Settlement() {
         />
         <div className="flex gap-2">
           <WriteButton
-            onClick={() => restart.mutate()}
-            disabled={!executionId}
+            onClick={() => act.mutate('restart')}
+            disabled={!executionId || act.isPending}
             className="rounded border border-slate-200 px-3 py-1.5 text-sm dark:border-slate-700"
           >
             Restart
           </WriteButton>
           <WriteButton
-            onClick={() => recover.mutate()}
-            disabled={!executionId}
+            onClick={() => act.mutate('recover')}
+            disabled={!executionId || act.isPending}
             className="rounded border border-slate-200 px-3 py-1.5 text-sm dark:border-slate-700"
           >
             Recover
           </WriteButton>
           <WriteButton
-            onClick={() => stop.mutate()}
-            disabled={!executionId}
+            onClick={() => act.mutate('stop')}
+            disabled={!executionId || act.isPending}
             className="rounded border border-slate-200 px-3 py-1.5 text-sm dark:border-slate-700"
           >
             Stop
           </WriteButton>
         </div>
-        {(restart.isError || recover.isError || stop.isError) && (
-          <ErrorBox error={restart.error ?? recover.error ?? stop.error} />
-        )}
+        {act.isError && <ErrorBox error={act.error} />}
       </div>
 
       {last && (

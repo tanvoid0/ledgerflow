@@ -18,11 +18,11 @@ export function Empty({ children }: { children: ReactNode }) {
 
 export function ErrorBox({ error }: { error: unknown }) {
   const message =
-    error instanceof ApiError
-      ? error.status === 0
-        ? 'gateway not reachable on 8088'
-        : `${error.status} ${error.statusText} on ${error.path}`
-      : String(error)
+    error instanceof ApiError && error.status === 0
+      ? 'gateway not reachable on 8088'
+      : error instanceof Error
+        ? error.message
+        : String(error)
   return (
     <div className="flex items-center gap-2 rounded border border-red-300 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
       <AlertTriangle size={16} />
