@@ -5,6 +5,7 @@ import org.springframework.batch.core.job.JobExecution;
 import org.springframework.batch.core.launch.JobExecutionNotRunningException;
 import org.springframework.batch.core.launch.JobOperator;
 import org.springframework.batch.core.repository.JobRepository;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -51,10 +52,12 @@ class BatchExecutionController {
     }
 
     private JobExecution jobExecution(long executionId) {
-        var execution = jobRepository.getJobExecution(executionId);
-        if (execution == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "no job execution " + executionId);
+        try {
+            var execution = jobRepository.getJobExecution(executionId);
+            if (execution != null) return execution;
+        } catch (EmptyResultDataAccessException e) {
+            // the JDBC repository throws on an unknown id rather than returning the null its javadoc promises
         }
-        return execution;
+        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "no job execution " + executionId);
     }
 }
