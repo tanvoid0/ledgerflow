@@ -120,3 +120,25 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/settlement
       OIDC_CLIENT_SECRET: ${SETTLEMENT_SERVICE_SECRET:?set it in infra/compose/.env}
     ports: ["8087:8080"]
+
+  gateway:
+    <<: *service
+    image: ledgerflow/gateway-service:1.0.0-SNAPSHOT
+    environment:
+      <<: *env
+      ACCOUNT_SERVICE_URL: http://account:8080
+      LEDGER_SERVICE_URL: http://ledger:8080
+      BALANCE_SERVICE_URL: http://balance:8080
+      RISK_SERVICE_URL: http://risk:8080
+      PAYMENT_SERVICE_URL: http://payment:8080
+      ISSUER_SERVICE_URL: http://issuer:8080
+      SETTLEMENT_SERVICE_URL: http://settlement:8080
+    ports: ["8088:8080"]
+
+  web:
+    restart: unless-stopped
+    build: ../../web
+    image: ledgerflow/web:1.0.0-SNAPSHOT
+    depends_on:
+      - gateway
+    ports: ["8089:80"]
