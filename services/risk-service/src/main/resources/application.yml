@@ -56,7 +56,7 @@ risk:
     url: ${OLLAMA_URL:http://localhost:11434/v1}
     model: gemma4
     api-key: ${NARRATOR_API_KEY:}
-    batch: 5
+    batch: 1   # one case per transaction: at 5, a slow model held the tx for 5 x timeout before any note committed
     max-tokens: 800   # gemma4 spends ~400 on reasoning before it answers; 300 came back empty
     # local by default so the features never leave the machine; any OpenAI-compatible endpoint plugs in here (ollama.com cloud, aimlapi, Gemini) with a key
 

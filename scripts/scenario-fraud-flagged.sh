@@ -80,7 +80,7 @@ echo "$narrative"
 if [ "$generated_by" = gemma4 ]; then
   echo "gemma4 (local model)"
 else
-  echo "template (Ollama not running - install it and pull gemma4 for a real note)"
+  echo "template (Ollama not running, or slower than risk.narrator.timeout - install it and pull gemma4 for a real note)"
 fi
 
 echo "-- saga states of the 31 payments (untouched by the decision above) --"
