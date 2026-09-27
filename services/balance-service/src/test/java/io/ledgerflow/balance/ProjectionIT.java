@@ -36,7 +36,7 @@ import static org.awaitility.Awaitility.await;
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
-@WithMockUser
+@WithMockUser(roles = "account-read")
 class ProjectionIT {
 
     static {

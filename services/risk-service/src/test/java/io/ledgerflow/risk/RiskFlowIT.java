@@ -25,7 +25,7 @@ import static org.awaitility.Awaitility.await;
 @SpringBootTest(properties = "risk.narrator.url=")   // never call out to Ollama from a test run
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
-@WithMockUser
+@WithMockUser(roles = "account-read")
 class RiskFlowIT {
 
     static final JsonMapper json = JacksonMapperUtils.enhancedJsonMapper();

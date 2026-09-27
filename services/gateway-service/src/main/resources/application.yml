@@ -40,6 +40,22 @@ spring:
               uri: ${SETTLEMENT_SERVICE_URL:http://localhost:8087}
               predicates:
                 - Path=/api/v1/batch,/api/v1/batch/**
+            - id: ticketing
+              uri: ${TICKETING_SERVICE_URL:http://localhost:8090}
+              predicates:
+                - Path=/api/v1/events,/api/v1/events/**,/api/v1/orders,/api/v1/orders/**
+            - id: dev-prometheus
+              uri: ${PROMETHEUS_URL:http://localhost:9090}
+              predicates:
+                - Path=/api/v1/dev/prom/**
+              filters:
+                - RewritePath=/api/v1/dev/prom/(?<segment>.*), /api/v1/$\{segment}
+            - id: dev-tempo
+              uri: ${TEMPO_URL:http://localhost:3200}
+              predicates:
+                - Path=/api/v1/dev/tempo/**
+              filters:
+                - RewritePath=/api/v1/dev/tempo/(?<segment>.*), /api/$\{segment}
   security:
     oauth2:
       resourceserver:
@@ -57,6 +73,10 @@ spring:
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
 
 management:
+  metrics:
+    distribution:
+      percentiles-histogram:
+        "[http.server.requests]": true   # the edge's p99 by route for the dev portal; services behind it publish counts and sums only
   info:
     git:
       mode: full
@@ -81,7 +101,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,sbom  # SbomEndpoint; behind the ops token like metrics
+        include: health,info,metrics,sbom  # SbomEndpoint; all but health need a staff role (account-read or dev), see GatewaySecurityConfig
   endpoint:
     health:
       show-details: always

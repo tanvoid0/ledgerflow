@@ -26,7 +26,7 @@ import static org.mockito.Mockito.when;
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
 @TestPropertySource(properties = {"ledgerflow.settlement.line-items=partition", "ledgerflow.settlement.grid-size=4"})
-@WithMockUser
+@WithMockUser(roles = "ledger-write")
 class LineItemsPartitionModeIT {
 
     private static final LocalDate BUSINESS_DATE = LocalDate.of(2026, 9, 3);

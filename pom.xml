@@ -48,6 +48,7 @@
         <module>services/issuer-service</module>
         <module>services/settlement-service</module>
         <module>services/risk-service</module>
+        <module>services/ticketing-service</module>
         <module>services/gateway-service</module>
     </modules>
 

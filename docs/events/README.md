@@ -59,6 +59,22 @@ Producer:  payment-service, appended to the outbox inside `Payments.start`'s own
 Consumers: risk-service only, on its own group, scoring every payment for fraud risk beside the
            authorisation path rather than on it. Full contract: docs/measurements/step-16-risk.md.
 
+## payment.PaymentCaptured / payment.PaymentFailed (v1)
+
+Topic:     ledgerflow.payment.outcome.events.v1, keyed by paymentId (= envelope.aggregateId), `oneOf`.
+Fields:    `PaymentCaptured` (paymentId, accountId, amountMinor, currency); `PaymentFailed` (paymentId, reason,
+           failedAt, accountId, amountMinor, currency). reason/failedAt are the FailureReason and Step enums, as
+           plain strings so this library carries no dependency on payment-service's own types. accountId and
+           the amount come from the state before the terminal one (every waiting state carries them), so a
+           consumer can check the payment was the one it expected, not just one with a matching correlation id.
+           All fields required.
+Producer:  payment-service, appended in `Payments.apply` when the transition lands on a terminal state
+           (`Captured` or `Failed`) - the same commit that stores the state change. Not a saga step: nothing
+           replies to it. `ledgerflow.saga.duration` (tagged `outcome`) is recorded from the payment's
+           `created_at` in the same branch.
+Consumers: ticketing-service's `PaymentOutcomeListener`, confirming or failing the order (and its seats)
+           the payment was for. New topic, forward-only `oneOf` (item 9 above).
+
 ## How long a topic remembers
 
 Redpanda has no volume, so `scripts/demo.sh` sets these on every run (create with `-c`, then

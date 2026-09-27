@@ -11,6 +11,9 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.ErrorResponseException;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -29,6 +32,8 @@ import java.util.UUID;
 @RequiredArgsConstructor
 class PaymentController {
 
+    private static final String LEDGER_WRITE = "ROLE_ledger-write";
+
     private final Payments payments;
 
     /** amountMinor is held on, and later captured from, each wallet listed. beneficiary is optional: who the money is going to. */
@@ -38,10 +43,16 @@ class PaymentController {
                           @NotBlank @Size(min = 3, max = 3) String currency,
                           @Size(max = 64) String beneficiary) {}
 
-    /** 202, not 201: the payment exists, but three other services still have to answer. Poll the GET. */
+    /**
+     * 202, not 201: the payment exists, but three other services still have to answer. Poll the GET.
+     * ledger-write (ops, scripts, k6) pays from any account; everyone else, ticketing's relayed customer included, only from their own.
+     */
     @PostMapping
     @ResponseStatus(HttpStatus.ACCEPTED)
-    PaymentState start(@Valid @RequestBody PaymentRequest req) {
+    PaymentState start(@Valid @RequestBody PaymentRequest req, @AuthenticationPrincipal Jwt jwt, Authentication auth) {
+        var own = req.accountId().toString().equals(jwt.getSubject());
+        var canPayForAny = auth.getAuthorities().stream().anyMatch(a -> LEDGER_WRITE.equals(a.getAuthority()));
+        if (!own && !canPayForAny) throw new ErrorResponseException(HttpStatus.FORBIDDEN);
         return payments.start(req.accountId(), req.wallets(), new Money(req.amountMinor(), req.currency()), req.beneficiary());
     }
 

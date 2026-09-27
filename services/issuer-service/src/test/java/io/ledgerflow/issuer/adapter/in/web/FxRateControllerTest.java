@@ -13,7 +13,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @WebMvcTest(FxRateController.class)
 @ImportAutoConfiguration(LedgerflowSecurityAutoConfiguration.class)   // the slice does not scan our starter
-@WithMockUser
+@WithMockUser(roles = "ledger-write")
 class FxRateControllerTest {
 
     @Autowired

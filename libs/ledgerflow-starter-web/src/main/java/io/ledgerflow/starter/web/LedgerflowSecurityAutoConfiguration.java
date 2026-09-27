@@ -19,8 +19,9 @@ import java.util.Collection;
 import java.util.List;
 
 /**
- * The one security chain every service gets: health open, everything else needs a token. Registered
- * before Boot's own chains (@ConditionalOnDefaultWebSecurity backs off once any SecurityFilterChain
+ * The one security chain every service gets: health open, everything else needs a staff role. Not just a
+ * token: customers hold realm tokens too, and every service is also published on its own host port, so
+ * the gateway's rules are not the only door. Registered before Boot's own chains (@ConditionalOnDefaultWebSecurity backs off once any SecurityFilterChain
  * bean exists) so a service that wants something different overrides this bean, not fights it.
  */
 @AutoConfiguration(beforeName = {   // the four Boot chains that back off on @ConditionalOnDefaultWebSecurity; ours must be registered first
@@ -33,6 +34,9 @@ import java.util.List;
 @EnableMethodSecurity
 public class LedgerflowSecurityAutoConfiguration {
 
+    /** ops, reader and the service accounts; a customer holds none of these. */
+    public static final String[] STAFF = {"account-read", "ledger-write", "dev"};
+
     @Bean
     @ConditionalOnMissingBean(SecurityFilterChain.class)
     SecurityFilterChain api(HttpSecurity http) throws Exception {
@@ -40,7 +44,7 @@ public class LedgerflowSecurityAutoConfiguration {
         converter.setJwtGrantedAuthoritiesConverter(realmRoles());
         http.authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health/**").permitAll()   // /actuator/health/{readiness,liveness}: the probes
-                        .anyRequest().authenticated())
+                        .anyRequest().hasAnyRole(STAFF))
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .csrf(csrf -> csrf.disable())
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(converter)));

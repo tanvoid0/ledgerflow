@@ -25,7 +25,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(AccountController.class)
 @ImportAutoConfiguration({LedgerflowWebAutoConfiguration.class, LedgerflowSecurityAutoConfiguration.class})   // the slice does not scan our starter
-@WithMockUser
+@WithMockUser(roles = "account-read")
 class AccountControllerTest {
 
     @Autowired

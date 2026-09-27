@@ -1,0 +1,121 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ledgerflow.payment.outcome.events.v1",
+  "description": "EventEnvelope<one of payment.PaymentCaptured, payment.PaymentFailed>. Closed content model on purpose: with additionalProperties true, dropping a field would pass BACKWARD.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "eventType": {
+      "type": "string"
+    },
+    "schemaVersion": {
+      "type": "integer"
+    },
+    "aggregateId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "aggregateVersion": {
+      "type": "integer"
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "correlationId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "causationId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "payload": {
+      "oneOf": [
+        {
+          "title": "payment.PaymentCaptured",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "paymentId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "accountId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "amountMinor": {
+              "type": "integer"
+            },
+            "currency": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 3
+            }
+          },
+          "required": [
+            "paymentId",
+            "accountId",
+            "amountMinor",
+            "currency"
+          ]
+        },
+        {
+          "title": "payment.PaymentFailed",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "paymentId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "reason": {
+              "type": "string"
+            },
+            "failedAt": {
+              "type": "string"
+            },
+            "accountId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "amountMinor": {
+              "type": "integer"
+            },
+            "currency": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 3
+            }
+          },
+          "required": [
+            "paymentId",
+            "reason",
+            "failedAt",
+            "accountId",
+            "amountMinor",
+            "currency"
+          ]
+        }
+      ]
+    }
+  },
+  "required": [
+    "eventId",
+    "eventType",
+    "schemaVersion",
+    "aggregateId",
+    "aggregateVersion",
+    "occurredAt",
+    "payload"
+  ]
+}
