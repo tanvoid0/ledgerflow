@@ -48,10 +48,19 @@
         <module>services/issuer-service</module>
         <module>services/settlement-service</module>
         <module>services/risk-service</module>
+        <module>services/gateway-service</module>
     </modules>
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <!-- gateway-service only: routes + the compatibility check disabled below, Boot 4.1 is newer than this train's tested Boot -->
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>2025.1.3</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
             <dependency>
                 <groupId>io.ledgerflow</groupId>
                 <artifactId>ledgerflow-events</artifactId>

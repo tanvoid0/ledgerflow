@@ -1,0 +1,96 @@
+server:
+  port: ${SERVER_PORT:8088}
+  shutdown: graceful
+
+spring:
+  application:
+    name: gateway-service
+  cloud:
+    compatibility-verifier:
+      enabled: false   # this train predates Boot 4.1; nothing routed here needs what changed since
+    gateway:
+      server:
+        webmvc:
+          routes:
+            - id: accounts-transfers
+              uri: ${ACCOUNT_SERVICE_URL:http://localhost:8080}
+              predicates:
+                - Path=/api/v1/accounts,/api/v1/accounts/**,/api/v1/transfers,/api/v1/transfers/**
+            - id: holds
+              uri: ${LEDGER_SERVICE_URL:http://localhost:8081}
+              predicates:
+                - Path=/api/v1/holds,/api/v1/holds/**
+            - id: balances
+              uri: ${BALANCE_SERVICE_URL:http://localhost:8083}
+              predicates:
+                - Path=/api/v1/balances,/api/v1/balances/**
+            - id: cases
+              uri: ${RISK_SERVICE_URL:http://localhost:8084}
+              predicates:
+                - Path=/api/v1/cases,/api/v1/cases/**
+            - id: payments
+              uri: ${PAYMENT_SERVICE_URL:http://localhost:8085}
+              predicates:
+                - Path=/api/v1/payments,/api/v1/payments/**
+            - id: fx
+              uri: ${ISSUER_SERVICE_URL:http://localhost:8086}
+              predicates:
+                - Path=/api/v1/fx,/api/v1/fx/**
+            - id: batch
+              uri: ${SETTLEMENT_SERVICE_URL:http://localhost:8087}
+              predicates:
+                - Path=/api/v1/batch,/api/v1/batch/**
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${OIDC_ISSUER_URI:http://localhost:8180/realms/ledgerflow}   # the string inside the token; KC_HOSTNAME pins it
+          jwk-set-uri: ${OIDC_REALM_URL:http://localhost:8180/realms/ledgerflow}/protocol/openid-connect/certs   # where this process reaches the realm
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+    consumer:
+      group-id: gateway-${random.uuid}   # throwaway: never rejoins, never commits, always starts from latest
+      auto-offset-reset: latest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+management:
+  info:
+    git:
+      mode: full
+    java:
+      enabled: true
+  tracing:
+    sampling:
+      probability: 1.0                  # every trace, locally; 0.01-0.1 in production
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: ${OTLP_ENDPOINT:http://localhost:4318}/v1/traces
+    logging:
+      export:
+        otlp:
+          endpoint: ${OTLP_ENDPOINT:http://localhost:4318}/v1/logs
+  otlp:
+    metrics:
+      export:
+        url: ${OTLP_ENDPOINT:http://localhost:4318}/v1/metrics
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,sbom  # SbomEndpoint; behind the ops token like metrics
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+
+logging:
+  structured:
+    format:
+      console: ecs
+  level:
+    io.ledgerflow: DEBUG

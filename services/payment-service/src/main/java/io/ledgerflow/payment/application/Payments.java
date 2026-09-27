@@ -116,6 +116,12 @@ public class Payments {
                 .query(String.class).optional().map(p -> json.readValue(p, PaymentState.class));
     }
 
+    /** Newest first, for the gateway's payments list. */
+    public List<PaymentState> list(int limit) {
+        return db.sql("SELECT payload FROM sagas ORDER BY created_at DESC LIMIT :limit").param("limit", limit)
+                .query(String.class).list().stream().map(p -> json.readValue(p, PaymentState.class)).toList();
+    }
+
     private void send(UUID paymentId, List<PaymentSaga.Command> commands, String correlationId, String causationId) {
         for (var c : commands) {
             outbox.append(c.topic(), EventEnvelope.of(c.type(), paymentId, 1, correlationId, causationId, c.payload()));

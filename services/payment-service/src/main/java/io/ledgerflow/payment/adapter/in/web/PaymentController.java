@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -47,5 +48,11 @@ class PaymentController {
     @GetMapping("/{id}")
     PaymentState byId(@PathVariable UUID id) {
         return payments.find(id).orElseThrow(() -> new ErrorResponseException(HttpStatus.NOT_FOUND));
+    }
+
+    /** The newest payments, same shape as the single-payment GET. */
+    @GetMapping
+    List<PaymentState> list(@RequestParam(defaultValue = "50") int limit) {
+        return payments.list(Math.clamp(limit, 1, 200));
     }
 }

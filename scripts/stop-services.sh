@@ -6,7 +6,7 @@ cd "$(dirname "$0")/.."
 
 [ -f .local/pids ] || { echo "no .local/pids - nothing to stop"; exit 0; }
 
-PORTS=(8080 8081 8082 8083 8084 8085 8086 8087)
+PORTS=(8080 8081 8082 8083 8084 8085 8086 8087 8088)
 up() { curl -sf "localhost:$1/actuator/health" > /dev/null 2>&1; }
 
 case "$(uname -s)" in

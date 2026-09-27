@@ -11,6 +11,19 @@ Java 25 · Spring Boot 4.1 · Maven multi-module · PostgreSQL 17 · Redpanda ·
 
 One command to a fraud case narrated by a local model, in ninety seconds: `docs/walkthrough.md`.
 
+## See it in a browser
+
+`web/` is the face: log in as `ops` (or `reader`), see every wallet's balance and holds, start a
+payment and watch its ten messages cross the broker on a live map of the eight services, then
+open the risk cases and settlement runs. One origin for all of it: `gateway-service` (8088)
+routes `/api/v1/*` to the owning service and streams every command and event over SSE at
+`/api/v1/stream`. Why one gateway and one app, and what the gateway does not do:
+`docs/adr/0007-a-gateway-and-a-face.md`.
+
+```bash
+cd web && npm install && npm run dev   # http://localhost:5173, against a running stack (host JVMs, compose or kind)
+```
+
 ## Measured, not claimed
 
 Open model (k6 constant-arrival-rate), one machine (Ryzen 9 9950X, 32 threads),
@@ -71,6 +84,8 @@ enforces each guarantee: "The properties, and where they are enforced" below.
 | payment-service | 8085 | the workflow. `POST /api/v1/payments` starts a saga: reserve (ledger), authorize (issuer), issue (settlement). Owns the saga state and a per-step deadline; nothing else. |
 | issuer-service | 8086 | a stub card issuer: authorizes everything except an amount of exactly 1, refunds on request. |
 | settlement-service | 8087 | captures: moves the held money through account-service (`Idempotency-Key` per hold) and remembers each capture so it can revoke it. |
+| gateway-service | 8088 | nothing. The one origin the browser calls: routes `/api/v1/*` by prefix, checks the token on the way in, and streams every command and event as SSE. |
+| web | 8089 | the UI (React, served by nginx, `/api` proxied to the gateway). |
 | risk-service | 8084 | scores every payment for fraud risk off the event stream; rules veto and the score only ranks a payment to review, and its Postgres role cannot connect to any database but its own. |
 
 Three shared libraries: `ledgerflow-events` (Money, WalletRef, EventEnvelope, the

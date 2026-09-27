@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Starts the eight service jars in the background: stdout+stderr to .local/logs/<x>-service.log,
+# Starts the nine service jars in the background: stdout+stderr to .local/logs/<x>-service.log,
 # each pid appended to .local/pids. Refuses outright if a port already answers - a leftover JVM
 # from an earlier run would otherwise get a second one stacked on top of it.
 #   scripts/start-services.sh
@@ -7,8 +7,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-SERVICES=(account ledger notification balance risk payment issuer settlement)
-PORTS=(8080 8081 8082 8083 8084 8085 8086 8087)
+SERVICES=(account ledger notification balance risk payment issuer settlement gateway)
+PORTS=(8080 8081 8082 8083 8084 8085 8086 8087 8088)
 
 [ -f infra/compose/.env ] && source infra/compose/.env
 export OIDC_REALM_URL=${OIDC_REALM_URL:-http://localhost:8180/realms/ledgerflow}
@@ -38,7 +38,7 @@ for i in "${!SERVICES[@]}"; do
   echo "started $svc-service (pid $!)"
 done
 
-echo "waiting for all eight to answer healthy (90s budget)..."
+echo "waiting for all nine to answer healthy (90s budget)..."
 deadline=$((SECONDS + 90))
 for i in "${!SERVICES[@]}"; do
   svc=${SERVICES[$i]}; port=${PORTS[$i]}
@@ -52,7 +52,7 @@ for i in "${!SERVICES[@]}"; do
   done
   echo "$svc-service is up ($port)"
 done
-echo "all eight services are up."
+echo "all nine services are up."
 
 for port in ${EXTRA_NOTIFICATION_PORTS:-}; do
   jar="services/notification-service/target/notification-service-1.0.0-SNAPSHOT.jar"

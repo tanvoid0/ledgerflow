@@ -1,0 +1,38 @@
+namePrefix: gateway-
+resources: [../../base]
+labels:
+  - pairs: {app: gateway}
+    includeSelectors: true
+images:
+  - name: ledgerflow/service
+    newName: ledgerflow/gateway-service
+patches:
+  # no datasource: the gateway routes and streams, it owns no table. DB_PASSWORD from the base env is unused.
+  - target: {kind: Deployment}
+    patch: |
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value: {name: ACCOUNT_SERVICE_URL, value: "http://account-service:8080"}
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value: {name: LEDGER_SERVICE_URL, value: "http://ledger-service:8080"}
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value: {name: BALANCE_SERVICE_URL, value: "http://balance-service:8080"}
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value: {name: RISK_SERVICE_URL, value: "http://risk-service:8080"}
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value: {name: PAYMENT_SERVICE_URL, value: "http://payment-service:8080"}
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value: {name: ISSUER_SERVICE_URL, value: "http://issuer-service:8080"}
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value: {name: SETTLEMENT_SERVICE_URL, value: "http://settlement-service:8080"}
+  - target: {kind: Service}
+    patch: |
+      - op: add
+        path: /spec/ports/0/nodePort
+        value: 30088
