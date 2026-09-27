@@ -52,7 +52,7 @@ class BalanceController {
         var deadline = System.nanoTime() + READ_YOUR_WRITE.toNanos();
         while (!balances.applied(token, accountId, label)) {
             if (System.nanoTime() > deadline) return false;
-            Thread.sleep(25);   // ponytail: a poll, not keyspace notifications; revisit if reads-after-writes ever dominate
+            Thread.sleep(25);   // a poll, not keyspace notifications; revisit if reads-after-writes ever dominate
         }
         return true;
     }
