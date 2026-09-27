@@ -139,6 +139,8 @@ services:
     restart: unless-stopped
     build: ../../web
     image: ledgerflow/web:1.0.0-SNAPSHOT
+    environment:
+      GATEWAY_URL: http://gateway:8080   # the image defaults to kind's Service name, gateway-service
     depends_on:
       - gateway
     ports: ["8089:80"]
