@@ -60,6 +60,7 @@ to the 202, which takes 5ms at every load and says nothing.
 | Payment settled, cluster, four remote batch workers deployed beside it | 100/s | 247 | 360 | 0% |
 | Payment settled, cluster, a JWT checked on every request | 100/s | 260 | 472 | 0% |
 | Payment settled, cluster, Tomcat 11.0.24 -> 11.0.26 (the image scanner's first finding) | 100/s | 265 | 449 | 0% |
+| Payment settled, refund-on-cancel landed, **docker compose** (not comparable to the kind rows above; plus a 12-order cancel fan-out that refunds in 701 ms) | 100/s | 304 | 697 | 0% |
 
 Startup, account-service, host JVM: plain 2.82 s -> AOT cache 1.07 s, median of 3 (`scripts/startup-time.sh`).
 
