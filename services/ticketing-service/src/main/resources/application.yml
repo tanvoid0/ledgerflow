@@ -37,10 +37,11 @@ spring:
       observation-enabled: true
       ack-mode: manual                # one offset commit per poll, not per record
       concurrency: 3
-
-ledgerflow:
-  outbox:
-    enabled: false   # this service publishes nothing; the property removes the beans
+    producer:
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer   # the outbox row is already JSON
+      acks: all
+      properties:
+        enable.idempotence: true
 
 ticketing:
   hold-ttl: ${HOLD_TTL:PT5M}

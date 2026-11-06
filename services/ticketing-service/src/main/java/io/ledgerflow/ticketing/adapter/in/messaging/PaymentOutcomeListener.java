@@ -3,6 +3,7 @@ package io.ledgerflow.ticketing.adapter.in.messaging;
 import io.ledgerflow.events.EventEnvelope;
 import io.ledgerflow.events.payment.PaymentCaptured;
 import io.ledgerflow.events.payment.PaymentFailed;
+import io.ledgerflow.events.payment.PaymentRefunded;
 import io.ledgerflow.starter.messaging.Inbox;
 import io.ledgerflow.starter.messaging.InvalidPayloadException;
 import io.ledgerflow.ticketing.application.Ticketing;
@@ -33,6 +34,10 @@ class PaymentOutcomeListener {
                 case PaymentFailed.TYPE -> {
                     var f = as(event, PaymentFailed.class);
                     ticketing.fail(f.paymentId(), event.correlationId(), f.accountId(), f.amountMinor(), f.currency(), f.reason());
+                }
+                case PaymentRefunded.TYPE -> {
+                    var r = as(event, PaymentRefunded.class);
+                    ticketing.refunded(r.paymentId(), r.accountId(), r.amountMinor(), r.currency());
                 }
                 default -> throw new InvalidPayloadException("ticketing does not take " + event.eventType());
             }

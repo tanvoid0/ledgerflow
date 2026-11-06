@@ -247,6 +247,41 @@ class TicketingFlowIT {
         assertThat(seatStatus(event.id(), "A1")).isEqualTo("SOLD");
     }
 
+    /** Cancel asks payment to refund each CONFIRMED order (and only those); the refund coming back frees the seat once. */
+    @Test
+    void cancelRefundsAConfirmedOrderAndTheRefundFreesItsSeat() {
+        var event = ticketing.createEvent("Refund Show", null, "Venue", "City", "Music", Instant.now().plusSeconds(3600),
+                "org-refund", 2000, "GBP", 1, 2);
+        var buyer = UUID.randomUUID();
+        var paidOrder = ticketing.hold(event.id(), buyer, "alice", List.of("A1"));
+        var paymentId = UUID.randomUUID();
+        when(paymentClient.pay(any(), any(), eq(buyer), anyLong(), any(), any())).thenReturn(paymentId);
+        ticketing.checkout(paidOrder, buyer, "Bearer t", "req-" + paidOrder);
+        ticketing.confirm(paymentId, "req-" + paidOrder, buyer, 2000, "GBP");
+        var heldOrder = keepHeld(ticketing.hold(event.id(), UUID.randomUUID(), "bob", List.of("A2")));
+        assertThat(seatStatus(event.id(), "A1")).isEqualTo("SOLD");
+
+        ticketing.cancelEvent(event.id());
+        assertThat(ticketing.order(heldOrder).orElseThrow().status()).isEqualTo("EXPIRED");
+        assertThat(refundCommands(paymentId)).isEqualTo(1);
+        assertThat(db.sql("SELECT count(*) FROM outbox WHERE event_type = 'payment.RefundOrder'").query(Long.class).single())
+                .isEqualTo(1);   // the HELD order asked for nothing
+        assertThat(ticketing.order(paidOrder).orElseThrow().status()).isEqualTo("CONFIRMED");
+
+        ticketing.refunded(paymentId, buyer, 2000, "GBP");
+        assertThat(ticketing.order(paidOrder).orElseThrow().status()).isEqualTo("REFUNDED");
+        assertThat(seatStatus(event.id(), "A1")).isEqualTo("FREE");
+
+        ticketing.refunded(paymentId, buyer, 2000, "GBP");   // redelivery: the status guard makes it a no-op
+        assertThat(ticketing.order(paidOrder).orElseThrow().status()).isEqualTo("REFUNDED");
+        assertThat(refundCommands(paymentId)).isEqualTo(1);
+    }
+
+    private long refundCommands(UUID paymentId) {
+        return db.sql("SELECT count(*) FROM outbox WHERE event_type = 'payment.RefundOrder' AND aggregate_id = :id")
+                .param("id", paymentId).query(Long.class).single();
+    }
+
     /** Five parallel holds from one account: the advisory lock lets exactly two open orders through. */
     @Test
     void aThirdOpenOrderForOneAccountIsRefused() throws Exception {
