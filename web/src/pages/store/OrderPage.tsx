@@ -47,10 +47,13 @@ function statusLine(o: Order): string {
       return 'Payment failed'
     case 'EXPIRED':
       return 'Hold expired'
+    case 'REFUNDED':
+      return 'Refunded'
   }
 }
 
 function stepState(status: Order['status'], i: number): 'done' | 'active' | 'failed' | 'pending' {
+  if (status === 'REFUNDED') return 'pending' // the order is over, no step is lit
   const terminalFail = status === 'FAILED' || status === 'EXPIRED'
   // PENDING_PAYMENT, FAILED and EXPIRED all sit at the "Payment" step - that's where each of them stalled or broke
   const idx = status === 'HELD' ? 0 : status === 'CONFIRMED' ? 2 : 1
@@ -127,7 +130,7 @@ export function OrderPage() {
     queryFn: () => get<Order>(`/api/v1/orders/${id}`, token),
     refetchInterval: (q) => {
       const s = q.state.data?.status
-      return s === 'CONFIRMED' || s === 'FAILED' || s === 'EXPIRED' ? false : 1000
+      return s === 'CONFIRMED' || s === 'FAILED' || s === 'EXPIRED' || s === 'REFUNDED' ? false : 1000
     },
   })
 
@@ -211,6 +214,13 @@ export function OrderPage() {
             <TicketStub key={seat} order={o} event={event.data} seat={seat} />
           ))}
         </div>
+      )}
+
+      {o.status === 'REFUNDED' && (
+        <Card className="space-y-1 border-brand-600/40 bg-brand-100/40 dark:bg-brand-700/15">
+          <p className="text-sm text-fg">This event was cancelled.</p>
+          <p className="text-xs text-muted">Your money has been returned to your wallet.</p>
+        </Card>
       )}
 
       {(o.status === 'FAILED' || o.status === 'EXPIRED') && (

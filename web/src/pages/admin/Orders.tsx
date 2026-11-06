@@ -10,7 +10,7 @@ import { StateBadge } from '../../components/ui/Badge'
 import { Table, THead, TR, TH, TD } from '../../components/ui/Table'
 import { Skeleton, Empty, ErrorBox } from '../../components/ui/States'
 
-const FILTERS: (OrderStatus | 'All')[] = ['All', 'HELD', 'PENDING_PAYMENT', 'CONFIRMED', 'FAILED', 'EXPIRED']
+const FILTERS: (OrderStatus | 'All')[] = ['All', 'HELD', 'PENDING_PAYMENT', 'CONFIRMED', 'FAILED', 'EXPIRED', 'REFUNDED']
 
 export function Orders() {
   const token = useToken()
