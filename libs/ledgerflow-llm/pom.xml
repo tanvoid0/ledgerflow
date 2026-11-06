@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.ledgerflow</groupId>
+        <artifactId>ledgerflow</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>ledgerflow-llm</artifactId>
+    <name>ledgerflow-llm</name>
+    <description>One proven way to call the local agent platform: an OpenAI-compatible chat client with validated JSON output, model discovery and a loud failure a feature turns into its own template fallback.</description>
+
+    <dependencies>
+        <dependency>
+            <!-- RestClient + Boot's http client factory (read timeout) -->
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-restclient</artifactId>
+        </dependency>
+        <dependency>
+            <!-- tools.jackson JsonMapper: the caller passes the bean, we need the type -->
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-json</artifactId>
+        </dependency>
+        <dependency>
+            <!-- @ConfigurationProperties + @DefaultValue for LlmProperties -->
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-autoconfigure</artifactId>
+        </dependency>
+        <dependency>
+            <!-- MockRestServiceServer stubs the platform for the self-check -->
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+    <!-- library: no spring-boot-maven-plugin -->
+</project>
