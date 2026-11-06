@@ -19,7 +19,7 @@ services:
       - --seeds redpanda:33145
 
   redpanda-2:
-    image: redpandadata/redpanda:v25.2.1@sha256:218469e5d088757bb2c3ff4c5e272f7eebdc4e94c933e6e15aff10b845cbcd07
+    image: redpandadata/redpanda:v26.2.3@sha256:9e83cfa99278f30d0133271c26bf670cd69c94ffa6ba0b42830dd0c3bd9dcfd9
     container_name: ledgerflow-redpanda-2
     command:
       - redpanda start
@@ -39,7 +39,7 @@ services:
       retries: 20
 
   redpanda-3:
-    image: redpandadata/redpanda:v25.2.1@sha256:218469e5d088757bb2c3ff4c5e272f7eebdc4e94c933e6e15aff10b845cbcd07
+    image: redpandadata/redpanda:v26.2.3@sha256:9e83cfa99278f30d0133271c26bf670cd69c94ffa6ba0b42830dd0c3bd9dcfd9
     container_name: ledgerflow-redpanda-3
     command:
       - redpanda start
