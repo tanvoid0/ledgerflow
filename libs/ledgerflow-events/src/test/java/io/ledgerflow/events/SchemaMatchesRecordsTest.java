@@ -14,7 +14,9 @@ import io.ledgerflow.events.ledger.ReleaseWallets;
 import io.ledgerflow.events.ledger.ReserveWallets;
 import io.ledgerflow.events.payment.PaymentCaptured;
 import io.ledgerflow.events.payment.PaymentFailed;
+import io.ledgerflow.events.payment.PaymentRefunded;
 import io.ledgerflow.events.payment.PaymentRequested;
+import io.ledgerflow.events.payment.RefundOrder;
 import io.ledgerflow.events.settlement.CapturesIssued;
 import io.ledgerflow.events.settlement.IssueCaptures;
 import io.ledgerflow.events.settlement.IssueFailed;
@@ -55,7 +57,8 @@ class SchemaMatchesRecordsTest {
             Map.entry(PaymentAuthorized.TOPIC, List.of(PaymentAuthorized.class, PaymentDeclined.class)),
             Map.entry(IssueCaptures.TOPIC, List.of(IssueCaptures.class, RevokeCaptures.class)),
             Map.entry(CapturesIssued.TOPIC, List.of(CapturesIssued.class, IssueFailed.class)),
-            Map.entry(PaymentCaptured.TOPIC, List.of(PaymentCaptured.class, PaymentFailed.class)));
+            Map.entry(PaymentCaptured.TOPIC, List.of(PaymentCaptured.class, PaymentFailed.class, PaymentRefunded.class)),
+            Map.entry(RefundOrder.TOPIC, List.of(RefundOrder.class)));
 
     // state, not events: the schema is the record's own shape, not EventEnvelope<record>
     static final Map<String, Class<? extends Record>> STATE_TOPICS = Map.of(BalanceSnapshot.TOPIC, BalanceSnapshot.class);
