@@ -45,7 +45,7 @@ class EventsControllerTest {
     static class Config {
         @Bean
         TicketingProperties props() {
-            return new TicketingProperties(Duration.ofMinutes(5), Duration.ofMinutes(10), "MAIN", "http://payment", 6);
+            return new TicketingProperties(Duration.ofMinutes(5), Duration.ofMinutes(10), "MAIN", "http://payment", "http://account", 6);
         }
     }
 

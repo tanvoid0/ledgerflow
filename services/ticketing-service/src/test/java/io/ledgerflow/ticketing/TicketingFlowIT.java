@@ -3,6 +3,7 @@ package io.ledgerflow.ticketing;
 import io.ledgerflow.events.EventEnvelope;
 import io.ledgerflow.events.payment.PaymentCaptured;
 import io.ledgerflow.events.payment.PaymentFailed;
+import io.ledgerflow.ticketing.adapter.out.account.AccountClient;
 import io.ledgerflow.ticketing.adapter.out.payment.PaymentClient;
 import io.ledgerflow.ticketing.application.Ticketing;
 import org.junit.jupiter.api.Test;
@@ -52,6 +53,7 @@ class TicketingFlowIT {
     @Autowired JsonMapper json;
 
     @MockitoBean PaymentClient paymentClient;
+    @MockitoBean AccountClient accountClient;
 
     @Test
     void twentyThreadsRaceOneSeatAndExactlyOneWins() throws Exception {

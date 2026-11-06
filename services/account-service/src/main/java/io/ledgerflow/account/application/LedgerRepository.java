@@ -21,4 +21,10 @@ public interface LedgerRepository {
 
     /** Credits the wallet. Never fails on funds. */
     WalletRef credit(UUID walletId, Money amount);
+
+    /** Inserts the account if it is not there already. True when this call created it. */
+    boolean createAccountIfAbsent(UUID id, String name);
+
+    /** The account's wallet with this label, creating it if absent. Idempotent on (account, label). */
+    UUID walletId(UUID accountId, String label);
 }
