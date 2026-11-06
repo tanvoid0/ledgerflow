@@ -1,6 +1,7 @@
 package io.ledgerflow.payment.adapter.in.web;
 
 import io.ledgerflow.events.Money;
+import io.ledgerflow.payment.application.Enrichment;
 import io.ledgerflow.payment.application.Payments;
 import io.ledgerflow.payment.domain.model.PaymentState;
 import io.ledgerflow.starter.web.RequestIdFilter;
@@ -38,6 +39,7 @@ class PaymentController {
     private static final String LEDGER_WRITE = "ROLE_ledger-write";
 
     private final Payments payments;
+    private final Enrichment enrichment;
 
     // ponytail: dev-only fault seam for the "charged, no ticket" scenario. Off by default; even when on it drops only
     // requests whose X-Request-Id starts with "fault-", so normal traffic is untouched. Never enabled in production.
@@ -80,5 +82,17 @@ class PaymentController {
     @GetMapping
     List<PaymentState> list(@RequestParam(defaultValue = "50") int limit) {
         return payments.list(Math.clamp(limit, 1, 200));
+    }
+
+    /**
+     * Phase 3: the LLM-derived category breakdown, so the assistant can answer "break refunds down by category".
+     * Literal path, so it wins over /{id}. kind is optional: payment | refund, or omit for both.
+     */
+    @GetMapping("/breakdown")
+    List<Enrichment.Breakdown> breakdown(@RequestParam(required = false) String kind) {
+        if (kind != null && !Enrichment.PAYMENT.equals(kind) && !Enrichment.REFUND.equals(kind)) {
+            throw new ErrorResponseException(HttpStatus.BAD_REQUEST);
+        }
+        return enrichment.breakdown(kind);
     }
 }
