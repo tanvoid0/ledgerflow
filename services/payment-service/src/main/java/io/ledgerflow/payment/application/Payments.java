@@ -137,6 +137,12 @@ public class Payments {
             log.info("refund for payment {}: nothing captured to give back; ignoring", paymentId);
             return;
         }
+        // a Captured row written before this feature has no accountId/amount; it cannot be announced, so skip it
+        // rather than NPE and poison the listener. Only pre-upgrade data hits this; a fresh capture always has both.
+        if (c.accountId() == null || c.amount() == null) {
+            log.warn("refund for payment {}: Captured row predates the refund feature (no account/amount); cannot refund", paymentId);
+            return;
+        }
         var refunded = new Refunded(paymentId, c.captures());
         db.sql("UPDATE sagas SET state = :state, payload = CAST(:payload AS jsonb), current_step = NULL, deadline_at = NULL, updated_at = now() WHERE payment_id = :id")
                 .param("id", paymentId).param("state", name(refunded)).param("payload", json.writeValueAsString(refunded)).update();
