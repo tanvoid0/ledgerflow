@@ -2,6 +2,8 @@
   "realm": "ledgerflow",
   "enabled": true,
   "sslRequired": "none",
+  "registrationAllowed": true,
+  "defaultRole": {"name": "default-roles-ledgerflow", "composite": true, "clientRole": false},
   "requiredActions": [
     {"alias": "VERIFY_PROFILE", "name": "Verify Profile", "providerId": "VERIFY_PROFILE", "enabled": false, "defaultAction": false, "priority": 90}
   ],
@@ -10,7 +12,8 @@
       {"name": "ledger-write", "description": "can move money"},
       {"name": "account-read", "description": "can read accounts and balances"},
       {"name": "customer", "description": "can buy tickets"},
-      {"name": "dev", "description": "can read the dev portal (prometheus/tempo)"}
+      {"name": "dev", "description": "can read the dev portal (prometheus/tempo)"},
+      {"name": "default-roles-ledgerflow", "description": "self-registered users: a customer", "composite": true, "composites": {"realm": ["customer"]}}
     ]
   },
   "clients": [
