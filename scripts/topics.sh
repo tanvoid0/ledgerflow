@@ -25,7 +25,7 @@ for t in ledger.wallet-hold.events ledger.hold-rejected.events ledger.hold-close
          payment.outcome.events; do
   policy "ledgerflow.$t.v1" 2592000000   # 30d: the outbox is the archive, the topic is the replay window
 done
-for t in ledger.hold.commands issuer.authorization.commands settlement.capture.commands; do
+for t in ledger.hold.commands issuer.authorization.commands settlement.capture.commands payment.refund.commands; do
   policy "ledgerflow.$t.v1" 86400000   # 1d: a command older than the saga's 15s deadline is already Failed
 done
 $RPK topic create ledgerflow.balance.snapshots.v1 -p 3 -r "$RF" "${isr[@]}" \
