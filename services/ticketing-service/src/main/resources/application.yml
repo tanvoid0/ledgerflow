@@ -45,6 +45,8 @@ spring:
 
 ticketing:
   hold-ttl: ${HOLD_TTL:PT5M}
+  orphan-timeout: ${ORPHAN_TIMEOUT:PT10M}
+  sweep-interval-ms: ${SWEEP_INTERVAL_MS:1000}
   wallet: MAIN
   payment-base-url: ${PAYMENT_BASE_URL:http://localhost:8085}
   max-seats: 6

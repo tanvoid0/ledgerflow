@@ -147,7 +147,8 @@ public class Ticketing {
         db.sql("""
                 WITH o AS (UPDATE orders SET status = 'REFUNDED', updated_at = now()
                             WHERE payment_id = :paymentId AND account_id = :account AND amount_minor = :amount
-                              AND currency = :currency AND status = 'CONFIRMED'
+                              AND currency = :currency
+                              AND (status = 'CONFIRMED' OR (status = 'FAILED' AND fail_reason = 'TIMED_OUT'))   -- the orphan: seats freed at FAIL
                             RETURNING id)
                 UPDATE seats SET status = 'FREE', order_id = NULL WHERE order_id IN (SELECT id FROM o) AND status = 'SOLD'
                 """).param("paymentId", paymentId).param("account", accountId).param("amount", amountMinor)
@@ -225,21 +226,23 @@ public class Ticketing {
      * A HELD order past its expiry frees its seats. PENDING_PAYMENT waits on the outcome - unless checkout never
      * learned a paymentId and nothing has arrived for 10 minutes: payment-service most likely never made one.
      */
-    @Scheduled(fixedDelay = 1000)
+    // interval is a dev knob too: the step-36 orphan scenario needs the sweep to fail a faulted order before its
+    // capture lands (~700ms), so it runs the sweep faster than the default 1s. Default unchanged in production.
+    @Scheduled(fixedDelayString = "${ticketing.sweep-interval-ms:1000}")
     @Transactional
     public void sweep() {
         db.sql("""
                 WITH e AS (UPDATE orders SET status = 'EXPIRED', updated_at = now() WHERE status = 'HELD' AND expires_at < now() RETURNING id)
                 UPDATE seats SET status = 'FREE', order_id = NULL WHERE order_id IN (SELECT id FROM e) AND status = 'HELD'
                 """).update();
-        // ponytail: a capture landing more than 10 min after an unanswered checkout finds the order FAILED and is dropped:
-        // charged, no ticket. Refunding unmatched captures is the upgrade path if payment-service outages ever last that long.
+        // ponytail: orphanTimeout is a dev knob (PT10M default) so tests need not wait; a capture arriving after the
+        // timeout is refunded by confirm() - the order is already FAILED, the seats already free.
         db.sql("""
                 WITH t AS (UPDATE orders SET status = 'FAILED', fail_reason = 'TIMED_OUT', updated_at = now()
-                            WHERE status = 'PENDING_PAYMENT' AND payment_id IS NULL AND updated_at < now() - interval '10 minutes'
+                            WHERE status = 'PENDING_PAYMENT' AND payment_id IS NULL AND updated_at < now() - :timeoutMs * interval '1 millisecond'
                             RETURNING id)
                 UPDATE seats SET status = 'FREE', order_id = NULL WHERE order_id IN (SELECT id FROM t) AND status = 'HELD'
-                """).update();
+                """).param("timeoutMs", props.orphanTimeout().toMillis()).update();
     }
 
     /**
@@ -253,14 +256,28 @@ public class Ticketing {
             """;
 
     /** Called from the inbox: idempotent twice over, once by event_id and again here by order status. */
+    @Transactional
     public void confirm(UUID paymentId, String correlationId, UUID accountId, long amountMinor, String currency) {
-        db.sql("""
+        var confirmed = db.sql("""
                 WITH o AS (UPDATE orders SET status = 'CONFIRMED', payment_id = COALESCE(payment_id, :paymentId), updated_at = now()
                             WHERE """ + OUTCOME_MATCH + """
                             RETURNING id)
                 UPDATE seats SET status = 'SOLD' WHERE order_id IN (SELECT id FROM o)
                 """).param("paymentId", paymentId).param("correlationId", correlationId)
                 .param("account", accountId).param("amount", amountMinor).param("currency", currency).update();
+        if (confirmed > 0) return;
+        // Charged, no ticket: the sweep timed the order out before this capture arrived. Stamping payment_id is the
+        // guard - a redelivery no longer has payment_id IS NULL - and the refund rides this transaction via the outbox.
+        var orphans = db.sql("""
+                UPDATE orders SET payment_id = :paymentId, updated_at = now()
+                 WHERE payment_id IS NULL AND request_id = :correlationId AND account_id = :account AND amount_minor = :amount
+                   AND currency = :currency AND status = 'FAILED' AND fail_reason = 'TIMED_OUT'
+                """).param("paymentId", paymentId).param("correlationId", correlationId)
+                .param("account", accountId).param("amount", amountMinor).param("currency", currency).update();
+        if (orphans > 0) {
+            outbox.append(RefundOrder.TOPIC, EventEnvelope.of(RefundOrder.TYPE, paymentId, 1,
+                    correlationId, correlationId, new RefundOrder(paymentId)));
+        }
     }
 
     public void fail(UUID paymentId, String correlationId, UUID accountId, long amountMinor, String currency, String reason) {

@@ -277,6 +277,38 @@ class TicketingFlowIT {
         assertThat(refundCommands(paymentId)).isEqualTo(1);
     }
 
+    /** Charged, no ticket: the capture lands after the sweep failed the order. One refund, however often it is delivered. */
+    @Test
+    void aCaptureAfterTheTimeoutIsRefundedOnceAndTheRefundSettlesTheOrder() {
+        var event = ticketing.createEvent("Orphan Show", null, "Venue", "City", "Music", Instant.now().plusSeconds(3600),
+                "org-orphan", 2000, "GBP", 1, 1);
+        var seat = ticketing.event(event.id()).orElseThrow().seats().getFirst().seat();
+        var accountId = UUID.randomUUID();
+        var orderId = ticketing.hold(event.id(), accountId, "alice", List.of(seat));
+        when(paymentClient.pay(any(), any(), eq(accountId), anyLong(), any(), any()))
+                .thenThrow(new ResourceAccessException("read timed out"));
+        var requestId = "req-" + orderId;
+        ticketing.checkout(orderId, accountId, "Bearer t", requestId);
+
+        db.sql("UPDATE orders SET updated_at = now() - interval '11 minutes' WHERE id = :id").param("id", orderId).update();
+        await().atMost(Duration.ofSeconds(3)).untilAsserted(() ->
+                assertThat(ticketing.order(orderId).orElseThrow().status()).isEqualTo("FAILED"));
+
+        var paymentId = UUID.randomUUID();
+        ticketing.confirm(paymentId, requestId, accountId, 1, "GBP");   // wrong amount: not this order's capture
+        assertThat(refundCommands(paymentId)).isZero();
+        ticketing.confirm(paymentId, requestId, accountId, 2000, "GBP");
+        assertThat(refundCommands(paymentId)).isEqualTo(1);
+        assertThat(ticketing.order(orderId).orElseThrow().paymentId()).isEqualTo(paymentId);
+
+        ticketing.confirm(paymentId, requestId, accountId, 2000, "GBP");   // redelivery: payment_id is set, nothing matches
+        assertThat(refundCommands(paymentId)).isEqualTo(1);
+
+        ticketing.refunded(paymentId, accountId, 2000, "GBP");
+        assertThat(ticketing.order(orderId).orElseThrow().status()).isEqualTo("REFUNDED");
+        assertThat(seatStatus(event.id(), seat)).isEqualTo("FREE");
+    }
+
     private long refundCommands(UUID paymentId) {
         return db.sql("SELECT count(*) FROM outbox WHERE event_type = 'payment.RefundOrder' AND aggregate_id = :id")
                 .param("id", paymentId).query(Long.class).single();

@@ -3,6 +3,7 @@ package io.ledgerflow.payment.adapter.in.web;
 import io.ledgerflow.events.Money;
 import io.ledgerflow.payment.application.Payments;
 import io.ledgerflow.payment.domain.model.PaymentState;
+import io.ledgerflow.starter.web.RequestIdFilter;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -10,6 +11,8 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -36,6 +39,11 @@ class PaymentController {
 
     private final Payments payments;
 
+    // ponytail: dev-only fault seam for the "charged, no ticket" scenario. Off by default; even when on it drops only
+    // requests whose X-Request-Id starts with "fault-", so normal traffic is untouched. Never enabled in production.
+    @Value("${ledgerflow.payment.fault.drop-response:false}")
+    private boolean dropFaultResponse;
+
     /** amountMinor is held on, and later captured from, each wallet listed. beneficiary is optional: who the money is going to. */
     record PaymentRequest(@NotNull UUID accountId,
                           @NotEmpty List<String> wallets,
@@ -53,7 +61,14 @@ class PaymentController {
         var own = req.accountId().toString().equals(jwt.getSubject());
         var canPayForAny = auth.getAuthorities().stream().anyMatch(a -> LEDGER_WRITE.equals(a.getAuthority()));
         if (!own && !canPayForAny) throw new ErrorResponseException(HttpStatus.FORBIDDEN);
-        return payments.start(req.accountId(), req.wallets(), new Money(req.amountMinor(), req.currency()), req.beneficiary());
+        var state = payments.start(req.accountId(), req.wallets(), new Money(req.amountMinor(), req.currency()), req.beneficiary());
+        // start() has committed: the payment exists and will capture. Dropping the 202 leaves the caller with no paymentId -
+        // exactly the orphan ticketing's sweep + refund path (step 36) handles.
+        var requestId = MDC.get(RequestIdFilter.MDC_KEY);
+        if (dropFaultResponse && requestId != null && requestId.startsWith("fault-")) {
+            throw new ErrorResponseException(HttpStatus.SERVICE_UNAVAILABLE);
+        }
+        return state;
     }
 
     @GetMapping("/{id}")
