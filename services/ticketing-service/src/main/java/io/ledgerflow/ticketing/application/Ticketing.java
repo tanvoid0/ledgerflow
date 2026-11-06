@@ -3,6 +3,7 @@ package io.ledgerflow.ticketing.application;
 import io.ledgerflow.events.EventEnvelope;
 import io.ledgerflow.events.payment.RefundOrder;
 import io.ledgerflow.starter.messaging.OutboxAppender;
+import io.ledgerflow.ticketing.adapter.out.account.AccountClient;
 import io.ledgerflow.ticketing.adapter.out.payment.PaymentClient;
 import io.ledgerflow.ticketing.config.TicketingProperties;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +40,7 @@ public class Ticketing {
     private final JdbcClient db;
     private final JsonMapper json;
     private final PaymentClient paymentClient;
+    private final AccountClient accountClient;
     private final TicketingProperties props;
     private final OutboxAppender outbox;
 
@@ -195,6 +197,9 @@ public class Ticketing {
      * not pin a database connection for the whole of the wait. Each step commits on its own.
      */
     public Order checkout(UUID orderId, UUID accountId, String authorization, String requestId) {
+        // A self-registered customer has no account until now; without one the fund hold 404s. Idempotent,
+        // so paying for a second ticket just re-confirms it. Before the claim: a failure leaves the hold untouched.
+        accountClient.ensureAccount(authorization, requestId);
         var claimed = db.sql("""
                 UPDATE orders SET status = 'PENDING_PAYMENT', request_id = :requestId, updated_at = now()
                  WHERE id = :id AND account_id = :account AND status = 'HELD' AND expires_at > now()

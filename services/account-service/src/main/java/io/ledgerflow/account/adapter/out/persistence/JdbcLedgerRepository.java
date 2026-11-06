@@ -90,6 +90,20 @@ class JdbcLedgerRepository implements LedgerRepository {
           .query(WALLET_REF).single();
     }
 
+    @Override
+    public boolean createAccountIfAbsent(UUID id, String name) {
+        return db.sql("INSERT INTO accounts (id, name) VALUES (:id, :name) ON CONFLICT (id) DO NOTHING")
+                 .param("id", id).param("name", name).update() == 1;
+    }
+
+    @Override
+    public UUID walletId(UUID accountId, String label) {
+        db.sql("INSERT INTO wallets (id, account_id, label) VALUES (:id, :account, :label) ON CONFLICT (account_id, label) DO NOTHING")
+          .param("id", UUID.randomUUID()).param("account", accountId).param("label", label).update();
+        return db.sql("SELECT id FROM wallets WHERE account_id = :account AND label = :label")
+                 .param("account", accountId).param("label", label).query(UUID.class).single();
+    }
+
     private static final RowMapper<WalletRef> WALLET_REF =
             (rs, i) -> new WalletRef(rs.getObject("account_id", UUID.class), rs.getString("label"));
 }

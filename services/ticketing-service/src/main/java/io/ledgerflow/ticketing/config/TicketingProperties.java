@@ -13,5 +13,6 @@ public record TicketingProperties(
         /* the one wallet every order pays from - a real storefront would let the buyer pick */
         String wallet,
         String paymentBaseUrl,
+        String accountBaseUrl,
         /* seats per hold; also the seats generated for a new event's front rows fits the demo, not a real box office */
         int maxSeats) {}
