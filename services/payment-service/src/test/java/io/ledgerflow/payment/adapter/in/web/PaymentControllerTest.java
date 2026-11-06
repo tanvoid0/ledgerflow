@@ -1,6 +1,7 @@
 package io.ledgerflow.payment.adapter.in.web;
 
 import io.ledgerflow.events.Money;
+import io.ledgerflow.payment.application.Enrichment;
 import io.ledgerflow.payment.application.Payments;
 import io.ledgerflow.payment.config.PaymentSecurityConfig;
 import io.ledgerflow.payment.domain.model.PaymentState.Captured;
@@ -44,6 +45,9 @@ class PaymentControllerTest {
     @MockitoBean
     Payments payments;
 
+    @MockitoBean
+    Enrichment enrichment;
+
     @Test
     void listReturnsTheNewestPaymentsInTheSameShapeAsById() throws Exception {
         var id = UUID.randomUUID();
@@ -53,6 +57,22 @@ class PaymentControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].paymentId").value(id.toString()))
                 .andExpect(jsonPath("$[0].state").value("Captured"));
+    }
+
+    @Test
+    void breakdownGroupsByCategory() throws Exception {
+        when(enrichment.breakdown("refund")).thenReturn(List.of(new Enrichment.Breakdown("event-cancellation", 3, 13500)));
+        mvc.perform(get("/api/v1/payments/breakdown").param("kind", "refund"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].category").value("event-cancellation"))
+                .andExpect(jsonPath("$[0].count").value(3));
+    }
+
+    @Test
+    void breakdownRejectsUnknownKind() throws Exception {
+        mvc.perform(get("/api/v1/payments/breakdown").param("kind", "wallets"))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(enrichment);
     }
 
     static final UUID ALICE = UUID.fromString("22222222-2222-2222-2222-222222222222");

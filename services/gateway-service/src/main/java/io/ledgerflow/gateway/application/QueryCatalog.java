@@ -22,10 +22,14 @@ public class QueryCatalog {
             Set.of("HELD", "PENDING_PAYMENT", "CONFIRMED", "CANCELLED", "REFUNDED", "EXPIRED", "FAILED");
 
     /** name -> what the LLM is told it does; the description doubles as the prompt's tool list. */
+    private static final Set<String> ENRICHMENT_KINDS = Set.of("payment", "refund");
+
     public static final Map<String, String> TOOLS = Map.of(
             "review_cases", "fraud cases flagged REVIEW or BLOCK, newest 50. No params.",
             "orders_by_status", "ticket orders filtered by status. params: status (one of " + ORDER_STATUSES + "), limit (1-200).",
-            "recent_payments", "the newest payments with amount and state. params: limit (1-200).");
+            "recent_payments", "the newest payments with amount and state. params: limit (1-200).",
+            "category_breakdown", "settled payments or refunds grouped by LLM-derived category, each with a count and total amount. "
+                    + "Use for 'break refunds down by category/reason'. params: kind (one of " + ENRICHMENT_KINDS + "; omit for both).");
 
     private final RestClient api;
 
@@ -54,6 +58,11 @@ public class QueryCatalog {
                 status(params).ifPresent(s -> b.queryParam("status", s));
                 yield b.build().toUri();
             }
+            case "category_breakdown" -> {
+                var b = UriComponentsBuilder.fromPath("/api/v1/payments/breakdown");
+                kind(params).ifPresent(k -> b.queryParam("kind", k));
+                yield b.build().toUri();
+            }
             default -> throw new IllegalArgumentException("unknown tool: " + tool);
         };
     }
@@ -72,5 +81,13 @@ public class QueryCatalog {
         var up = s.strip().toUpperCase();
         if (!ORDER_STATUSES.contains(up)) throw new IllegalArgumentException("unknown order status: " + s);
         return Optional.of(up);
+    }
+
+    private static Optional<String> kind(Map<String, String> params) {
+        var k = params.get("kind");
+        if (k == null) return Optional.empty();
+        var low = k.strip().toLowerCase();
+        if (!ENRICHMENT_KINDS.contains(low)) throw new IllegalArgumentException("unknown enrichment kind: " + k);
+        return Optional.of(low);
     }
 }

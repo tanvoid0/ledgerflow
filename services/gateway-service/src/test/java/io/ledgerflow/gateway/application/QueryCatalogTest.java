@@ -37,4 +37,17 @@ class QueryCatalogTest {
         assertThrows(IllegalArgumentException.class,
                 () -> QueryCatalog.uri("orders_by_status", Map.of("status", "WHATEVER")));
     }
+
+    @Test
+    void categoryBreakdown_normalisesKind_dropsUnknownParams() {
+        assertEquals("/api/v1/payments/breakdown?kind=refund",
+                QueryCatalog.uri("category_breakdown", Map.of("kind", "REFUND", "evil", "' OR 1=1")).toString());
+        assertEquals("/api/v1/payments/breakdown", QueryCatalog.uri("category_breakdown", Map.of()).toString());
+    }
+
+    @Test
+    void categoryBreakdown_rejectsUnknownKind() {
+        assertThrows(IllegalArgumentException.class,
+                () -> QueryCatalog.uri("category_breakdown", Map.of("kind", "wallets")));
+    }
 }

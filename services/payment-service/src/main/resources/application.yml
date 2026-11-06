@@ -43,6 +43,14 @@ spring:
       properties:
         enable.idempotence: true
 
+# Phase 3 enrichment. Blank url (the default) = tag "uncategorised" with no network call, so the stream
+# never stalls on a down platform; set LLM_URL to the agent platform to enable categorisation.
+llm:
+  url: ${LLM_URL:}
+  model: ${LLM_MODEL:gemma4}
+  api-key: ${LLM_API_KEY:}
+  max-tokens: 800   # gemma4 spends ~400 tokens reasoning before it answers
+
 management:
   info:
     git:

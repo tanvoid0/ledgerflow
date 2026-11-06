@@ -1,6 +1,6 @@
 # AI roadmap: LLM capabilities on the ledger
 
-Status: in progress (2026-11-06) · **Phase 0, 1 backend, 2 shipped**; phases 3–4 proposed
+Status: in progress (2026-11-06) · **Phase 0, 1 backend, 2, 3 shipped**; phase 4 proposed
 
 This sequences four AI capabilities onto LedgerFlow, ordered by portfolio
 impact and ascending risk, each building on the one before. The target LLM
@@ -212,6 +212,50 @@ dashboard, never a payment. Idempotent per event (step 11 pattern).
 group by category; replaying an event doesn't double-write.
 **Size:** medium.
 
+**Decision (roadmap "Still open" #4 — enrichment owner): extend `payment-service`,
+no new service.** It already owns the payments read model (`/api/v1/payments`,
+the `recent_payments` tool) and already consumes refund traffic, and it has the
+step-11 `Inbox` idempotency wired. A new service would mean a new Postgres role,
+a new pod and a new Keycloak-less chain for a read model that lives next to data
+payment-service already holds — the "only if nothing fits" case, and one fits.
+So no new `ArchitectureTest`/role (those guard a *new* service, ADR 0005 #5);
+payment-service keeps its existing isolation.
+
+**Shipped (2026-11-06) — `payment-service`:**
+- `PaymentOutcomeEnrichmentListener` reads the outcome topic the saga already
+  publishes (`ledgerflow.payment.outcome.events.v1` — `PaymentCaptured` /
+  `PaymentRefunded` / `PaymentFailed` share it) and tags the two terminal events
+  worth recording. `PaymentFailed` is ignored (nothing settled to categorise).
+- `Enrichment` asks the Phase 0 `LlmClient.chatJson` for a `Tag {category,
+  reasonSummary}`, validates it (`render`: lower-cases + trims + clamps 64/280,
+  invalid → null), and projects to the new `payment_enrichment` read-model table
+  (Flyway `V6`, key `(payment_id, kind)` so a payment and its later refund each
+  get a row). The LLM call is **before** `Inbox.once`, never inside its dedupe
+  transaction — a Kafka consumer thread must not hold a DB row waiting on a token.
+- Idempotent two ways: `Inbox.once` claims `(event_id, group)` and the insert is
+  `ON CONFLICT (payment_id, kind) DO NOTHING`, so a replayed event never
+  double-writes. Platform unreachable / blank `LLM_URL` / unparseable output →
+  the row still lands tagged `uncategorised`; the stream never stalls on a token
+  (ADR 0005 #1, #3, #4).
+- Phase 1 loop closed: gateway `QueryCatalog` gains the whitelisted
+  `category_breakdown` tool (param `kind` ∈ {payment, refund}, validated) → the
+  new `GET /api/v1/payments/breakdown` read endpoint, which groups by category
+  with counts + totals. The assistant can now answer "break refunds down by
+  category". Config `llm.*` (blank url by default).
+- Tests: `EnrichmentRenderTest` (validate/lowercase/truncate/fallback),
+  `QueryCatalogTest` +2 (kind whitelist + unknown-kind reject),
+  `PaymentEnrichmentIT` (captured + refunded project `uncategorised`, replay of
+  an identical envelope stays one row, `PaymentFailed` not projected).
+
+**Deferred (known ceiling):** the tag signal is thin — the outcome event carries
+only amount + kind, not the `beneficiary` (dropped after the `Requested` state),
+so categories are coarse. Richer tags would mean joining `PaymentRequested` over
+the stream (a second listener + correlation), deferred until a demo needs it.
+Live categorisation not run (host stack + platform down, same as phases 0–2);
+proven by the IT's fallback path + unit tests. This also partly answers Phase 1's
+deferred `refund_total(period)`: `category_breakdown(kind=refund)` gives per-
+category refund counts and totals.
+
 ## Phase 4 — agentic ops assistant with human-in-the-loop writes · capstone
 
 **Goal:** the highest-value and highest-risk feature, deliberately last. The
@@ -300,8 +344,9 @@ approved one is idempotent and audited.
    running platform binary so the fix is live.
 3. **`insights` as a new service vs. an endpoint on web/gateway** (Phase 1) —
    lean to an endpoint first, promote to a service only if it earns isolation.
-4. **Enrichment owner** (Phase 3) — new consumer service vs. extend an existing
-   read-model owner.
+4. ~~**Enrichment owner** (Phase 3)~~ — resolved: extend `payment-service` (it
+   already owns the payments read model + refund traffic + the step-11 inbox). A
+   new service would add a role/pod/chain for nothing. See Phase 3's Decision.
 
 ## Not doing yet (YAGNI)
 
