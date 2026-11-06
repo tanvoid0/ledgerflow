@@ -1,5 +1,8 @@
 package io.ledgerflow.ticketing.application;
 
+import io.ledgerflow.events.EventEnvelope;
+import io.ledgerflow.events.payment.RefundOrder;
+import io.ledgerflow.starter.messaging.OutboxAppender;
 import io.ledgerflow.ticketing.adapter.out.payment.PaymentClient;
 import io.ledgerflow.ticketing.config.TicketingProperties;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +40,7 @@ public class Ticketing {
     private final JsonMapper json;
     private final PaymentClient paymentClient;
     private final TicketingProperties props;
+    private final OutboxAppender outbox;
 
     public record EventSummary(UUID id, String slug, String title, String subtitle, String venue, String city,
                                 String category, Instant startsAt, String organiser, long priceMinor, String currency,
@@ -54,6 +58,8 @@ public class Ticketing {
 
     record EventRow(UUID id, String slug, String title, String subtitle, String venue, String city, String category,
                      Instant startsAt, String organiser, long priceMinor, String currency, String status) {}
+
+    record RefundTarget(UUID paymentId, String requestId) {}
 
     record EventMoney(long priceMinor, String currency) {}
 
@@ -124,11 +130,28 @@ public class Ticketing {
         var cancelled = db.sql("UPDATE events SET status = 'CANCELLED' WHERE id = :id AND status = 'ON_SALE'")
                 .param("id", id).update();
         if (cancelled == 0) throw new ErrorResponseException(HttpStatus.NOT_FOUND);
-        // SOLD stays sold, no refunds: HELD orders give their seats back; PENDING_PAYMENT keeps them for its outcome
+        // HELD orders give their seats back; PENDING_PAYMENT keeps them for its outcome; CONFIRMED ones are refunded
+        // (the seat frees when PaymentRefunded comes back). The outbox row rides this transaction.
         db.sql("""
                 WITH e AS (UPDATE orders SET status = 'EXPIRED', updated_at = now() WHERE event_id = :id AND status = 'HELD' RETURNING id)
                 UPDATE seats SET status = 'FREE', order_id = NULL WHERE order_id IN (SELECT id FROM e) AND status = 'HELD'
                 """).param("id", id).update();
+        db.sql("SELECT payment_id, request_id FROM orders WHERE event_id = :id AND status = 'CONFIRMED' AND payment_id IS NOT NULL")
+                .param("id", id).query(RefundTarget.class).list()
+                .forEach(r -> outbox.append(RefundOrder.TOPIC, EventEnvelope.of(RefundOrder.TYPE, r.paymentId(), 1,
+                        r.requestId(), r.requestId(), new RefundOrder(r.paymentId()))));
+    }
+
+    /** Called from the inbox: the money is back, so the order is REFUNDED and its seat is free again. */
+    public void refunded(UUID paymentId, UUID accountId, long amountMinor, String currency) {
+        db.sql("""
+                WITH o AS (UPDATE orders SET status = 'REFUNDED', updated_at = now()
+                            WHERE payment_id = :paymentId AND account_id = :account AND amount_minor = :amount
+                              AND currency = :currency AND status = 'CONFIRMED'
+                            RETURNING id)
+                UPDATE seats SET status = 'FREE', order_id = NULL WHERE order_id IN (SELECT id FROM o) AND status = 'SOLD'
+                """).param("paymentId", paymentId).param("account", accountId).param("amount", amountMinor)
+                .param("currency", currency).update();
     }
 
     /** One transaction: the order row and the row-locked seat claim rise or fall together. */
