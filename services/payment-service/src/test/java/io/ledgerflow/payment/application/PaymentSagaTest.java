@@ -58,7 +58,7 @@ class PaymentSagaTest {
 
         var capture = UUID.randomUUID();
         var captured = PaymentSaga.on(authorized.next(), new CapturesIssued(id, List.of(capture)));
-        assertThat(captured.next()).isEqualTo(new Captured(id, List.of(capture)));
+        assertThat(captured.next()).isEqualTo(new Captured(id, List.of(capture), ACCOUNT, AMOUNT));
         assertThat(payloads(captured)).containsExactly(new CaptureHolds(id));
     }
 

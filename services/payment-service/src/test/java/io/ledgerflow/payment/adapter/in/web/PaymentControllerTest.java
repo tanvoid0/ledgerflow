@@ -47,7 +47,7 @@ class PaymentControllerTest {
     @Test
     void listReturnsTheNewestPaymentsInTheSameShapeAsById() throws Exception {
         var id = UUID.randomUUID();
-        when(payments.list(50)).thenReturn(List.of(new Captured(id, List.of())));
+        when(payments.list(50)).thenReturn(List.of(new Captured(id, List.of(), null, null)));
 
         mvc.perform(get("/api/v1/payments"))
                 .andExpect(status().isOk())

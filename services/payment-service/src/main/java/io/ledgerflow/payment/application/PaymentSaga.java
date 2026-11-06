@@ -19,6 +19,7 @@ import io.ledgerflow.payment.domain.model.PaymentState;
 import io.ledgerflow.payment.domain.model.PaymentState.AuthorizationPending;
 import io.ledgerflow.payment.domain.model.PaymentState.CapturePending;
 import io.ledgerflow.payment.domain.model.PaymentState.Captured;
+import io.ledgerflow.payment.domain.model.PaymentState.Refunded;
 import io.ledgerflow.payment.domain.model.PaymentState.Failed;
 import io.ledgerflow.payment.domain.model.PaymentState.FailureReason;
 import io.ledgerflow.payment.domain.model.PaymentState.Requested;
@@ -69,7 +70,7 @@ public final class PaymentSaga {
             };
 
             case CapturePending c -> switch (reply) {
-                case CapturesIssued e -> new Decision(new Captured(c.paymentId(), e.captureIds()),
+                case CapturesIssued e -> new Decision(new Captured(c.paymentId(), e.captureIds(), c.accountId(), c.amount()),
                         List.of(new Command(CaptureHolds.TOPIC, CaptureHolds.TYPE, new CaptureHolds(c.paymentId()))));
                 case IssueFailed _ -> fail(c, FailureReason.ISSUE_FAILED, Step.ISSUE, undoEverything(c.paymentId()));
                 case StepTimedOut _ -> fail(c, FailureReason.TIMED_OUT, Step.ISSUE, undoEverything(c.paymentId()));
@@ -79,6 +80,7 @@ public final class PaymentSaga {
             // terminal: whatever arrives now is late, and the compensations already sent cover it
             case Captured c -> ignore(c);
             case Failed f -> ignore(f);
+            case Refunded r -> ignore(r);
         };
     }
 
