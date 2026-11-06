@@ -32,6 +32,7 @@ const STATE_TONES: Record<string, Tone> = {
   CONFIRMED: 'ok',
   FAILED: 'bad',
   EXPIRED: 'neutral',
+  REFUNDED: 'brand',
   ON_SALE: 'ok',
   CANCELLED: 'neutral',
 }

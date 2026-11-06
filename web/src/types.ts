@@ -74,7 +74,7 @@ export interface Seat {
   status: SeatStatus
 }
 
-export type OrderStatus = 'HELD' | 'PENDING_PAYMENT' | 'CONFIRMED' | 'FAILED' | 'EXPIRED'
+export type OrderStatus = 'HELD' | 'PENDING_PAYMENT' | 'CONFIRMED' | 'FAILED' | 'EXPIRED' | 'REFUNDED'
 
 export interface Order {
   id: string
