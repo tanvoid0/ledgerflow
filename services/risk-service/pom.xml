@@ -26,6 +26,11 @@
             <groupId>io.ledgerflow</groupId>
             <artifactId>ledgerflow-starter-messaging</artifactId>
         </dependency>
+        <dependency>
+            <!-- phase 2: the shared OpenAI-compatible client, for the case Narrator and the analyst follow-up -->
+            <groupId>io.ledgerflow</groupId>
+            <artifactId>ledgerflow-llm</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>

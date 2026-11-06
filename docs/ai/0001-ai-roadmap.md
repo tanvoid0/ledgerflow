@@ -1,6 +1,6 @@
 # AI roadmap: LLM capabilities on the ledger
 
-Status: in progress (2026-11-06) · **Phase 0 + Phase 1 backend shipped**; phases 2–4 proposed
+Status: in progress (2026-11-06) · **Phase 0, 1 backend, 2 shipped**; phases 3–4 proposed
 
 This sequences four AI capabilities onto LedgerFlow, ordered by portfolio
 impact and ascending risk, each building on the one before. The target LLM
@@ -173,6 +173,24 @@ it back. The LLM never decides.
 **Done-when:** a `REVIEW` gets a validated JSON case note; an analyst follow-up
 answers from the record only; platform down → template, as today.
 **Size:** small–medium (one service, mostly extending existing code).
+
+**Shipped (2026-11-06) — `risk-service`:**
+- `Narrator` now asks for `CaseNote {whatIsUnusual, whatToCheck, confidence}` via
+  `LlmClient.chatJson` (reuses the Phase 0 client — its own `RestClient`/`ChatRequest`/
+  `<think>`-strip deleted). `render` validates before the insert (both sentences non-blank,
+  confidence clamped 0..1) and returns null → template on any invalid/unreachable reply.
+  New nullable `risk_case.confidence` column (Flyway `V3`); batch schedule + template fallback kept.
+- `CaseInvestigator` + `POST /api/v1/cases/{paymentId}/ask`: an analyst asks a follow-up and the
+  LLM answers from that one `risk_decision` row only — never fetches more, never recommends
+  block/approve (the decision is already made), outage → "unavailable".
+- Config migrated: the client config moved from `risk.narrator.{url,model,api-key,max-tokens}`
+  to the shared `llm.*`; `risk.narrator` keeps only the batch knobs (`batch`, `maxAge`).
+- `ArchitectureTest` still green (the lib is `io.ledgerflow.llm`, outside the forbidden packages).
+  Tests: `NarratorRenderTest` (validate/compose/clamp/fallback) + full suite 17/17.
+
+**Not verified live** (same reason as Phase 1): host stack down + platform binary rebuild pending.
+Against raw ollama a reasoning model may wrap the JSON and trip the parse → template; the real
+target is the proxy, where reasoning is split out of `content`. The fallback covers both.
 
 ## Phase 3 — event-stream enrichment / categorisation (async projection)
 

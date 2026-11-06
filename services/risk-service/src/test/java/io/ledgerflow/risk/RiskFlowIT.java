@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 /** A payment requested is a payment scored, end to end: a blocked beneficiary, an account that trips the model, and the API that reads both back. */
-@SpringBootTest(properties = "risk.narrator.url=")   // never call out to Ollama from a test run
+@SpringBootTest(properties = "llm.url=")   // never call out to Ollama from a test run; blank url = template notes
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
 @WithMockUser(roles = "account-read")
