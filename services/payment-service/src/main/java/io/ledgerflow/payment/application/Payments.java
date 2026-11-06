@@ -4,6 +4,8 @@ import io.ledgerflow.events.EventEnvelope;
 import io.ledgerflow.events.Money;
 import io.ledgerflow.events.payment.PaymentCaptured;
 import io.ledgerflow.events.payment.PaymentFailed;
+import io.ledgerflow.events.payment.PaymentRefunded;
+import io.ledgerflow.events.settlement.RevokeCaptures;
 import io.ledgerflow.events.payment.PaymentRequested;
 import io.ledgerflow.payment.config.PaymentProperties;
 import io.ledgerflow.payment.domain.model.PaymentState;
@@ -11,6 +13,7 @@ import io.ledgerflow.payment.domain.model.PaymentState.AuthorizationPending;
 import io.ledgerflow.payment.domain.model.PaymentState.CapturePending;
 import io.ledgerflow.payment.domain.model.PaymentState.Captured;
 import io.ledgerflow.payment.domain.model.PaymentState.Failed;
+import io.ledgerflow.payment.domain.model.PaymentState.Refunded;
 import io.ledgerflow.payment.domain.model.PaymentState.Requested;
 import io.ledgerflow.payment.domain.model.StepTimedOut;
 import io.ledgerflow.starter.messaging.OutboxAppender;
@@ -122,6 +125,29 @@ public class Payments {
         }
     }
 
+    /**
+     * An event was cancelled: give a settled payment's money back. Straight-line, outside the saga's
+     * transition (Captured stays terminal there). Anything but Captured is a no-op, so redelivery and a double cancel are harmless.
+     */
+    @Transactional
+    public void refund(UUID paymentId, EventEnvelope<?> cause) {
+        var row = db.sql("SELECT payload, correlation_id, created_at FROM sagas WHERE payment_id = :id FOR UPDATE")
+                .param("id", paymentId).query(Row.class).optional().orElse(null);
+        if (row == null || !(json.readValue(row.payload(), PaymentState.class) instanceof Captured c)) {
+            log.info("refund for payment {}: nothing captured to give back; ignoring", paymentId);
+            return;
+        }
+        var refunded = new Refunded(paymentId, c.captures());
+        db.sql("UPDATE sagas SET state = :state, payload = CAST(:payload AS jsonb), current_step = NULL, deadline_at = NULL, updated_at = now() WHERE payment_id = :id")
+                .param("id", paymentId).param("state", name(refunded)).param("payload", json.writeValueAsString(refunded)).update();
+        var causationId = cause == null ? null : cause.eventId().toString();
+        outbox.append(RevokeCaptures.TOPIC, EventEnvelope.of(RevokeCaptures.TYPE, paymentId, 1, row.correlationId(), causationId,
+                new RevokeCaptures(paymentId)));
+        outbox.append(PaymentRefunded.TOPIC, EventEnvelope.of(PaymentRefunded.TYPE, paymentId, 1, row.correlationId(), causationId,
+                new PaymentRefunded(paymentId, c.accountId(), c.amount().minorUnits(), c.amount().currency())));
+        meters.counter("ledgerflow.saga.refunded").increment();
+    }
+
     /** A step past its deadline is answered with a timeout, through the same transition as a real reply. */
     @Scheduled(fixedDelay = 1000)
     @Transactional
@@ -168,7 +194,7 @@ public class Payments {
             case Requested r -> new Paid(r.accountId(), r.amount());
             case AuthorizationPending p -> new Paid(p.accountId(), p.amount());
             case CapturePending c -> new Paid(c.accountId(), c.amount());
-            case Captured _, Failed _ -> throw new IllegalStateException("terminal state moved again: " + s);
+            case Captured _, Failed _, Refunded _ -> throw new IllegalStateException("terminal state moved again: " + s);
         };
     }
 

@@ -41,7 +41,13 @@ public sealed interface PaymentState {
         public Step step() { return Step.ISSUE; }
     }
 
-    record Captured(UUID paymentId, List<UUID> captures) implements PaymentState {
+    /** Keeps who paid and how much, so a later refund can say it without the earlier states. */
+    record Captured(UUID paymentId, List<UUID> captures, UUID accountId, Money amount) implements PaymentState {
+        public Step step() { return null; }
+    }
+
+    /** The money went back after the capture (an event cancelled). Reached only through Payments.refund, never the saga's transition. */
+    record Refunded(UUID paymentId, List<UUID> captures) implements PaymentState {
         public Step step() { return null; }
     }
 

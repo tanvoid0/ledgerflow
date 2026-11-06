@@ -11,7 +11,11 @@ import io.ledgerflow.events.ledger.ReleaseWallets;
 import io.ledgerflow.events.ledger.ReserveWallets;
 import io.ledgerflow.events.payment.PaymentCaptured;
 import io.ledgerflow.events.payment.PaymentFailed;
+import io.ledgerflow.events.payment.PaymentRefunded;
 import io.ledgerflow.events.payment.PaymentRequested;
+import io.ledgerflow.events.payment.RefundOrder;
+import io.ledgerflow.events.settlement.RevokeCaptures;
+import io.ledgerflow.payment.domain.model.PaymentState.Refunded;
 import io.ledgerflow.events.settlement.CapturesIssued;
 import io.ledgerflow.events.settlement.IssueCaptures;
 import io.ledgerflow.payment.application.Payments;
@@ -82,13 +86,45 @@ class PaymentFlowIT {
 
         var capture = UUID.randomUUID();
         reply(CapturesIssued.TOPIC, CapturesIssued.TYPE, id, new CapturesIssued(id, List.of(capture)));
-        await().untilAsserted(() -> assertThat(state(id)).isEqualTo(new Captured(id, List.of(capture))));
+        await().untilAsserted(() -> assertThat(state(id)).isEqualTo(new Captured(id, List.of(capture), ACCOUNT, Money.gbp(4500))));
         // CaptureHolds and the outcome event go out in the same transaction, close enough to tie on occurred_at
         var sent = sent(id);
         assertThat(sent).startsWith(ReserveWallets.TYPE, PaymentRequested.TYPE, AuthorizePayment.TYPE, IssueCaptures.TYPE);
         assertThat(sent.subList(4, 6)).containsExactlyInAnyOrder(CaptureHolds.TYPE, PaymentCaptured.TYPE);
-        // Captured itself no longer knows who paid or how much: that comes from the state before it
-        assertThat(outcome(id, PaymentCaptured.class)).isEqualTo(new PaymentCaptured(id, ACCOUNT, 4500, "GBP"));
+        assertThat(outcome(id, PaymentCaptured.class, PaymentCaptured.TYPE)).isEqualTo(new PaymentCaptured(id, ACCOUNT, 4500, "GBP"));
+    }
+
+    @Test
+    void refundOrder_revokesAndAnnouncesOnce_andOnlyForACapturedPayment() {
+        var waiting = payments.start(ACCOUNT, List.of("A-12"), Money.gbp(4500), null).paymentId();
+        var before = sent(waiting).size();
+        var first = reply(RefundOrder.TOPIC, RefundOrder.TYPE, waiting, new RefundOrder(waiting));
+        await().untilAsserted(() -> assertThat(handled(first)).isTrue());
+        assertThat(state(waiting)).isInstanceOf(PaymentState.Requested.class);   // not captured: nothing to give back
+        assertThat(sent(waiting)).hasSize(before);
+
+        var id = captured();
+        reply(RefundOrder.TOPIC, RefundOrder.TYPE, id, new RefundOrder(id));
+        await().untilAsserted(() -> assertThat(state(id)).isInstanceOf(Refunded.class));
+        await().untilAsserted(() -> assertThat(sent(id).subList(6, 8)).containsExactlyInAnyOrder(RevokeCaptures.TYPE, PaymentRefunded.TYPE));
+        assertThat(outcome(id, PaymentRefunded.class, PaymentRefunded.TYPE)).isEqualTo(new PaymentRefunded(id, ACCOUNT, 4500, "GBP"));
+
+        var again = reply(RefundOrder.TOPIC, RefundOrder.TYPE, id, new RefundOrder(id));
+        await().untilAsserted(() -> assertThat(handled(again)).isTrue());
+        assertThat(sent(id)).hasSize(8);   // the second cancel changes nothing
+    }
+
+    /** A payment driven all the way to Captured; its outbox holds the six commands and events up to there. */
+    private UUID captured() {
+        var id = payments.start(ACCOUNT, List.of("A-12"), Money.gbp(4500), null).paymentId();
+        var hold = UUID.randomUUID();
+        reply(FundsHeld.TOPIC, FundsHeld.TYPE, hold, new FundsHeld(hold, List.of(new WalletRef(ACCOUNT, "A-12")), Instant.now(), Money.gbp(4500), id));
+        await().untilAsserted(() -> assertThat(sent(id)).contains(AuthorizePayment.TYPE));
+        reply(PaymentAuthorized.TOPIC, PaymentAuthorized.TYPE, id, new PaymentAuthorized(id, UUID.randomUUID(), Money.gbp(4500)));
+        await().untilAsserted(() -> assertThat(sent(id)).contains(IssueCaptures.TYPE));
+        reply(CapturesIssued.TOPIC, CapturesIssued.TYPE, id, new CapturesIssued(id, List.of(UUID.randomUUID())));
+        await().untilAsserted(() -> assertThat(state(id)).isInstanceOf(Captured.class));
+        return id;
     }
 
     @Test
@@ -99,7 +135,7 @@ class PaymentFlowIT {
                 assertThat(state(id)).isEqualTo(new Failed(id, FailureReason.TIMED_OUT, Step.RESERVE)));
         assertThat(sent(id)).startsWith(ReserveWallets.TYPE, PaymentRequested.TYPE);
         assertThat(sent(id).subList(2, 4)).containsExactlyInAnyOrder(ReleaseWallets.TYPE, PaymentFailed.TYPE);
-        assertThat(outcome(id, PaymentFailed.class)).isEqualTo(new PaymentFailed(id, "TIMED_OUT", "RESERVE", ACCOUNT, 4500, "GBP"));
+        assertThat(outcome(id, PaymentFailed.class, PaymentFailed.TYPE)).isEqualTo(new PaymentFailed(id, "TIMED_OUT", "RESERVE", ACCOUNT, 4500, "GBP"));
 
         var hold = UUID.randomUUID();
         var late = reply(FundsHeld.TOPIC, FundsHeld.TYPE, hold, new FundsHeld(hold, List.of(new WalletRef(ACCOUNT, "A-12")), Instant.now(), Money.gbp(4500), id));
@@ -154,9 +190,9 @@ class PaymentFlowIT {
     }
 
     /** The outcome event's payload as ticketing will read it. */
-    private <T> T outcome(UUID id, Class<T> type) {
-        return json.readValue(db.sql("SELECT payload->>'payload' FROM outbox WHERE aggregate_id = :id AND topic = :topic")
-                .param("id", id).param("topic", PaymentCaptured.TOPIC).query(String.class).single(), type);
+    private <T> T outcome(UUID id, Class<T> type, String eventType) {
+        return json.readValue(db.sql("SELECT payload->>'payload' FROM outbox WHERE aggregate_id = :id AND topic = :topic AND event_type = :type")
+                .param("id", id).param("topic", PaymentCaptured.TOPIC).param("type", eventType).query(String.class).single(), type);
     }
 
     private boolean handled(UUID eventId) {
