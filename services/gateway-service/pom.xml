@@ -18,6 +18,16 @@
             <groupId>io.ledgerflow</groupId>
             <artifactId>ledgerflow-starter-web</artifactId>
         </dependency>
+        <dependency>
+            <!-- phase 1 AI assistant: the shared OpenAI-compatible client (chat, validated JSON, streaming) -->
+            <groupId>io.ledgerflow</groupId>
+            <artifactId>ledgerflow-llm</artifactId>
+        </dependency>
+        <dependency>
+            <!-- RestClient: the assistant self-calls the gateway's own routed API, relaying the caller's token -->
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-restclient</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>

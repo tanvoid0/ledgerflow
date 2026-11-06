@@ -64,6 +64,15 @@ spring:
           jwk-set-uri: ${OIDC_REALM_URL:http://localhost:8180/realms/ledgerflow}/protocol/openid-connect/certs   # where this process reaches the realm
   lifecycle:
     timeout-per-shutdown-phase: 30s
+
+# phase 1 AI assistant (ADR docs/ai/0001): the local agent platform + where the assistant calls the ledger.
+# LLM_URL blank = assistant degrades to an "unavailable" message, never an error on the page.
+llm:
+  url: ${LLM_URL:}
+  model: ${LLM_MODEL:gemma4}      # preferred; discovery picks the tag variant actually served (gemma4:e4b)
+  api-key: ${LLM_API_KEY:}        # secret, per-environment, never committed
+insights:
+  gateway-base: ${INSIGHTS_GATEWAY_BASE:http://localhost:${SERVER_PORT:8088}}
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
     consumer:
