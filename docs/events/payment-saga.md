@@ -28,6 +28,11 @@ Refund (step 35, ADR 0009) is not a saga reply either. A `RefundOrder` for a Cap
 `payment.PaymentRefunded` on the outcome topic, moving the saga to a terminal `Refunded`. Any
 non-Captured state is a no-op, so a redelivered command or a double cancel changes nothing.
 
+`RefundOrder` has a second trigger since step 36 (ADR 0010): a capture arriving for an order the
+sweep already failed — charged, no ticket. Ticketing's `confirm()` detects the late unmatched
+capture, stamps the order (its idempotency guard) and emits the same `RefundOrder`. Same money
+path, new trigger.
+
 ### Guarantees
 
 Delivery: at least once, everywhere; every consumer dedupes on `eventId` through the inbox.

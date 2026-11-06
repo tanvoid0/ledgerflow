@@ -1,0 +1,16 @@
+# Step 36 — "charged, no ticket" orphan scenario overrides. Dev-only; never layered onto a real deployment.
+# These three settings make the orphan form deterministically: payment drops the 202 for a "fault-" request id
+# (after the payment has committed), and ticketing fails the unanswered order fast enough that its ~700ms capture
+# arrives to a FAILED order and is refunded, rather than confirming it.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.app.yml -f docker-compose.step36.yml up -d payment ticketing
+#   SWEEP_INTERVAL_MS/ORPHAN_TIMEOUT only matter under this override; the default stack keeps PT10M / 1000ms.
+services:
+  payment:
+    environment:
+      LEDGERFLOW_PAYMENT_FAULT_DROP_RESPONSE: "true"
+
+  ticketing:
+    environment:
+      ORPHAN_TIMEOUT: PT0.3S      # fail an unanswered checkout well before its capture lands
+      SWEEP_INTERVAL_MS: "100"    # run the sweep often enough to hit that 0.3-0.7s window
