@@ -1,6 +1,6 @@
 # AI roadmap: LLM capabilities on the ledger
 
-Status: in progress (2026-11-06) · **Phase 0, 1 backend, 2, 3 shipped**; phase 4 proposed
+Status: in progress (2026-11-07) · **Phase 0, 1 backend, 2, 3, 4 backend shipped** (web UI deferred throughout)
 
 This sequences four AI capabilities onto LedgerFlow, ordered by portfolio
 impact and ascending risk, each building on the one before. The target LLM
@@ -280,6 +280,39 @@ server re-validates exactly as it would for a human-issued request.
 order; it fires only after approval; a rejected/edited proposal never fires; an
 approved one is idempotent and audited.
 **Size:** large. Build only after 0, 1 and the approval UI exist.
+
+**Shipped (2026-11-07) — gateway propose + ticketing fire, two separate keys:**
+- **Propose (read-only).** `POST /api/v1/insights/propose` (`AssistantController`) →
+  `LedgerAssistant.propose`: reuses Phase 1's read dispatch to pull candidate orders, then one
+  `chatJson` asks for a single `refund_order` command. `LedgerAssistant.validate` (pure, static)
+  is the guard — only a `refund_order` with a well-formed UUID survives; anything else, including
+  a bad/missing id, becomes a decline. The LLM emits a *proposed* command and nothing more; the
+  gateway runs no write. `account-read` role (an analyst may propose); platform down → 503, never
+  an invented proposal (principle 3). Config reuses Phase 1's `llm.*` + `insights.gateway-base`.
+- **Fire (ledger-write).** `POST /api/v1/orders/{id}/refund` (`OrdersController`) →
+  `Ticketing.refundOrder`: publishes the **same `RefundOrder` command cancelEvent sends per order**
+  (the step-35 path) via the outbox, for a CONFIRMED order with a payment. The firing token is the
+  **human's own** `ledger-write` bearer, re-checked by Keycloak (step 31) at the controller and
+  re-validated by ticketing (CONFIRMED-only) — the two keys are a human role the LLM never holds
+  plus the server-side validation a hand-issued refund already passes. Idempotent: `payment.refund`
+  moves a Captured payment once (step 11 inbox on the listener), so a double fire is a no-op and a
+  re-fire of a now-REFUNDED order is 409. Audit: a `log.info` naming actor + order + payment on
+  every money move (the repo's audit style — log + metric, no audit table).
+- Nothing new on the gateway's isolation: propose reaches orders/payments over the gateway's own
+  routed read API with the caller's bearer (no DB, no domain import — ADR 0005 #5 holds), and the
+  fire is a plain routed `POST /api/v1/orders/**` the gateway already proxies to ticketing.
+- Tests: `ProposalTest` (5 cases — the gateway guard: valid refund survives + trims, blank reason
+  defaulted, non-UUID declines, unknown action declines keeping the model's reason, null→default);
+  `TicketingFlowIT.refundOrderFiresTheStep35CommandForOneConfirmedOrder` (one RefundOrder for a
+  CONFIRMED order, refund settles it REFUNDED, HELD→409, unknown→404). Golden set +
+  two-key/platform-down checks in `docs/ai/evals/phase4-actions.md`.
+
+**Deferred:** the approval UI (the React page — same separate-stack deferral as phases 1–3; the
+propose→render→fire loop is demoable over curl, and the fire endpoint is a plain routed POST a UI
+or ops hits directly). Live golden-eval run (host stack + platform down, same as phases 0–3) —
+proven by `ProposalTest` + the IT's command/guard path. No proposal store: the proposal is
+stateless, the client holds it and fires the orderId; the fire re-validates server-side regardless,
+so a store would buy nothing (YAGNI — "no agent memory until a phase needs it").
 
 ## Why this order
 

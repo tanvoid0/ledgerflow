@@ -35,6 +35,14 @@ public class LedgerAssistant {
 
     private static final String PHRASE_USER = "Question: %s%nRows (JSON): %s";
 
+    private static final String PROPOSE_SYSTEM = """
+            You help an operator refund ONE ticket order. You were given rows from a read-only order lookup.
+            Pick the single order the operator means and propose its refund, or decline.
+            Reply with JSON only.
+            To propose: {"action":"refund_order","orderId":"<a uuid taken from the rows>","reason":"<one short sentence>"}.
+            If no row clearly matches: {"action":null,"decline":"<one short sentence>"}.
+            You only propose - a human approves before any money moves. Never invent an orderId that is not in the rows.""";
+
     private final LlmClient llm;
     private final QueryCatalog catalog;
 
@@ -44,6 +52,51 @@ public class LedgerAssistant {
     }
 
     record Dispatch(String tool, Map<String, String> params, String decline) {}
+
+    /** A proposed refund the LLM emits (never executes). The client renders it; firing is a separate ledger-write call. */
+    public record Proposal(String action, String orderId, String reason, String decline) {}
+
+    /**
+     * Phase 4 (docs/ai/0001): propose, never fire, a refund. Reuses Phase 1's read dispatch to pull candidate
+     * orders, then asks for one refund command as validated JSON. The LLM holds no credential and moves nothing;
+     * the proposal is handed to a human, who fires it with their own ledger-write token (POST /api/v1/orders/{id}/refund).
+     */
+    public Proposal propose(String question, String bearer) {
+        Dispatch d = llm.chatJson(dispatchSystem(), question, Dispatch.class);
+        String rows = catalog.has(d.tool()) ? safeRun(d.tool(), d.params(), bearer) : "[]";
+        Proposal raw = llm.chatJson(PROPOSE_SYSTEM, "Operator: %s%nRows (JSON): %s".formatted(question, rows), Proposal.class);
+        return validate(raw);
+    }
+
+    /** Pure, so the guard is unit-testable: only a refund_order with a well-formed orderId survives; anything else declines. */
+    static Proposal validate(Proposal raw) {
+        if (raw != null && "refund_order".equals(raw.action()) && isUuid(raw.orderId())) {
+            var reason = raw.reason() != null && !raw.reason().isBlank() ? raw.reason() : "Operator-requested refund.";
+            return new Proposal("refund_order", raw.orderId().strip(), reason, null);
+        }
+        var decline = raw != null && raw.decline() != null && !raw.decline().isBlank()
+                ? raw.decline() : "No matching order to refund.";
+        return new Proposal(null, null, null, decline);
+    }
+
+    private static boolean isUuid(String s) {
+        if (s == null) return false;
+        try {
+            java.util.UUID.fromString(s.strip());
+            return true;
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    private String safeRun(String tool, Map<String, String> params, String bearer) {
+        try {
+            return catalog.run(tool, params, bearer);
+        } catch (Exception e) {
+            log.warn("propose lookup {} failed: {}", tool, e.toString());
+            return "[]";
+        }
+    }
 
     /** Drives one question onto the emitter: a decline, or the tool's rows phrased token by token. Always completes it. */
     public void answer(String question, String bearer, SseEmitter sse) {
