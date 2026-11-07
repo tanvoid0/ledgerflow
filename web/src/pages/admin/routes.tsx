@@ -1,7 +1,8 @@
 import { Routes, Route } from 'react-router'
-import { ArrowLeftRight, CalendarClock, CreditCard, LayoutDashboard, ShieldAlert, Ticket, ClipboardList } from 'lucide-react'
+import { ArrowLeftRight, Bot, CalendarClock, CreditCard, LayoutDashboard, ShieldAlert, Ticket, ClipboardList } from 'lucide-react'
 import { ConsoleShell, type ConsoleLink } from '../../components/AppShell'
 import { Overview } from './Overview'
+import { Assistant } from './Assistant'
 import { Events } from './Events'
 import { Orders } from './Orders'
 import { Payments } from './Payments'
@@ -20,6 +21,7 @@ export const adminLinks: ConsoleLink[] = [
   { to: '/admin/wallets', label: 'Wallets', icon: ArrowLeftRight },
   { to: '/admin/risk', label: 'Risk', icon: ShieldAlert },
   { to: '/admin/settlement', label: 'Settlement', icon: CalendarClock },
+  { to: '/admin/assistant', label: 'Assistant', icon: Bot },
 ]
 
 export default function AdminArea() {
@@ -27,6 +29,7 @@ export default function AdminArea() {
     <ConsoleShell links={adminLinks} area="ops">
       <Routes>
         <Route index element={<Overview />} />
+        <Route path="assistant" element={<Assistant />} />
         <Route path="events" element={<Events />} />
         <Route path="orders" element={<Orders />} />
         <Route path="payments" element={<Payments />} />
