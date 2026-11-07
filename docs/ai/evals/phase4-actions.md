@@ -11,9 +11,14 @@ The two keys are separate endpoints:
 - **propose** (read-only, `account-read`): `POST /api/v1/insights/propose` → a JSON proposal.
 - **fire** (`ledger-write`): `POST /api/v1/orders/{id}/refund` → the step-35 RefundOrder command.
 
-An `account-read` analyst can propose; only a `ledger-write` human fires. The LLM holds no
-credential and reaches neither write — the human's own token fires the refund, re-checked by
-Keycloak and re-validated by ticketing (CONFIRMED-only) exactly as a hand-issued request.
+Only a `ledger-write` human fires. The LLM holds no credential and reaches neither write — the
+human's own token fires the refund, re-checked by Keycloak and re-validated by ticketing
+(CONFIRMED-only) exactly as a hand-issued request.
+
+> Live note (2026-11-07): propose was meant to be reachable by an `account-read` analyst, but on
+> the running gateway `/insights/propose` returns 403 for an account-read-only caller — the
+> gateway-MVC security chain doesn't match the sub-path `requestMatchers`, so propose currently
+> needs `ledger-write` too. Conservative and harmless to the money path; tracked for a matcher fix.
 
 ## Run
 

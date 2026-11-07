@@ -47,7 +47,9 @@ class GatewaySecurityConfig {
                         .requestMatchers("/api/v1/stream").hasAnyRole("account-read", "dev")
                         // the assistant reads cases/orders/payments as the caller; demand the staff read role it will relay.
                         // /insights/propose is read-only too (it only proposes a refund); firing needs ledger-write on /orders/**.
-                        .requestMatchers("/api/v1/insights", "/api/v1/insights/**").hasRole("account-read")
+                        // Exact paths, not /insights/**: this chain's wildcard does not match the sub-path at runtime, and
+                        // these are the only two insights endpoints - list the next one here when it lands.
+                        .requestMatchers("/api/v1/insights", "/api/v1/insights/propose").hasRole("account-read")
                         .requestMatchers(HttpMethod.GET, "/api/**").hasAnyRole("account-read", "ledger-write")
                         .anyRequest().hasRole("ledger-write"))
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
