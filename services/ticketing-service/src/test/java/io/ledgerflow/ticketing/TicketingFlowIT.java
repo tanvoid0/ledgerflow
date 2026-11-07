@@ -279,6 +279,36 @@ class TicketingFlowIT {
         assertThat(refundCommands(paymentId)).isEqualTo(1);
     }
 
+    /** Phase 4: an approved refund on one confirmed order fires the same RefundOrder command; a non-confirmed order is 409. */
+    @Test
+    void refundOrderFiresTheStep35CommandForOneConfirmedOrder() {
+        var event = ticketing.createEvent("Single Refund", null, "Venue", "City", "Music", Instant.now().plusSeconds(3600),
+                "org-single", 2000, "GBP", 1, 2);
+        var buyer = UUID.randomUUID();
+        var paidOrder = ticketing.hold(event.id(), buyer, "alice", List.of("A1"));
+        var paymentId = UUID.randomUUID();
+        when(paymentClient.pay(any(), any(), eq(buyer), anyLong(), any(), any())).thenReturn(paymentId);
+        ticketing.checkout(paidOrder, buyer, "Bearer t", "req-" + paidOrder);
+        ticketing.confirm(paymentId, "req-" + paidOrder, buyer, 2000, "GBP");
+        var heldOrder = keepHeld(ticketing.hold(event.id(), UUID.randomUUID(), "bob", List.of("A2")));
+
+        ticketing.refundOrder(paidOrder, "ops");
+        assertThat(refundCommands(paymentId)).isEqualTo(1);
+
+        ticketing.refunded(paymentId, buyer, 2000, "GBP");
+        assertThat(ticketing.order(paidOrder).orElseThrow().status()).isEqualTo("REFUNDED");
+
+        // a held order has no settled money to give back -> 409, nothing published
+        assertThatThrownBy(() -> ticketing.refundOrder(heldOrder, "ops"))
+                .isInstanceOf(ErrorResponseException.class)
+                .extracting(e -> ((ErrorResponseException) e).getStatusCode())
+                .isEqualTo(org.springframework.http.HttpStatus.CONFLICT);
+        assertThatThrownBy(() -> ticketing.refundOrder(UUID.randomUUID(), "ops"))
+                .isInstanceOf(ErrorResponseException.class)
+                .extracting(e -> ((ErrorResponseException) e).getStatusCode())
+                .isEqualTo(org.springframework.http.HttpStatus.NOT_FOUND);
+    }
+
     /** Charged, no ticket: the capture lands after the sweep failed the order. One refund, however often it is delivered. */
     @Test
     void aCaptureAfterTheTimeoutIsRefundedOnceAndTheRefundSettlesTheOrder() {

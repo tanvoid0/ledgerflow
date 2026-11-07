@@ -52,6 +52,18 @@ class OrdersController {
         return ticketing.ordersAll(status, Math.clamp(limit, 1, 200));
     }
 
+    /**
+     * Phase 4: fire an approved refund on one confirmed order. ledger-write only - the second key of the two-key
+     * guard: the assistant proposes, a human with the write role (re-checked here by Keycloak) approves. 202: the
+     * money moves async down the step-35 path, poll the order for REFUNDED.
+     */
+    @PostMapping("/{id}/refund")
+    @PreAuthorize("hasRole('ledger-write')")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    void refund(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
+        ticketing.refundOrder(id, jwt.getSubject());
+    }
+
     @GetMapping("/{id}")
     Order byId(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt, Authentication auth) {
         var order = ticketing.order(id).orElseThrow(() -> new ErrorResponseException(HttpStatus.NOT_FOUND));

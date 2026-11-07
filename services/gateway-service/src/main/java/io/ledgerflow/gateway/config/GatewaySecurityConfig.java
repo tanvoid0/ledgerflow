@@ -45,8 +45,9 @@ class GatewaySecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/balances/{accountId}", "/api/v1/balances/{accountId}/**")
                                 .access(GatewaySecurityConfig::staffOrOwner)
                         .requestMatchers("/api/v1/stream").hasAnyRole("account-read", "dev")
-                        // the assistant reads cases/orders/payments as the caller; demand the staff read role it will relay
-                        .requestMatchers("/api/v1/insights").hasRole("account-read")
+                        // the assistant reads cases/orders/payments as the caller; demand the staff read role it will relay.
+                        // /insights/propose is read-only too (it only proposes a refund); firing needs ledger-write on /orders/**.
+                        .requestMatchers("/api/v1/insights", "/api/v1/insights/**").hasRole("account-read")
                         .requestMatchers(HttpMethod.GET, "/api/**").hasAnyRole("account-read", "ledger-write")
                         .anyRequest().hasRole("ledger-write"))
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

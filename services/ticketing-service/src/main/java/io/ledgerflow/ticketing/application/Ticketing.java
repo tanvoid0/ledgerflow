@@ -144,6 +144,25 @@ public class Ticketing {
                         r.requestId(), r.requestId(), new RefundOrder(r.paymentId()))));
     }
 
+    /**
+     * Phase 4 (docs/ai/0001): refund ONE confirmed order on request - an approved assistant proposal, or ops.
+     * Publishes the same RefundOrder command cancelEvent sends per order (the step-35 path) via the outbox, so the
+     * money moves through the existing path with the existing idempotency. The caller's token was already re-checked
+     * by Keycloak at the controller - the LLM only proposed, a human with ledger-write fires this.
+     * ponytail: no REFUNDING intermediate state - payment.refund only moves a Captured payment once, so a double
+     * fire is a no-op downstream and refunded() only matches a still-CONFIRMED order.
+     */
+    @Transactional
+    public void refundOrder(UUID orderId, String actor) {
+        var o = order(orderId).orElseThrow(() -> new ErrorResponseException(HttpStatus.NOT_FOUND));
+        if (!"CONFIRMED".equals(o.status()) || o.paymentId() == null) {
+            throw new ErrorResponseException(HttpStatus.CONFLICT);   // only a settled, confirmed order has money to give back
+        }
+        outbox.append(RefundOrder.TOPIC, EventEnvelope.of(RefundOrder.TYPE, o.paymentId(), 1,
+                o.requestId(), o.requestId(), new RefundOrder(o.paymentId())));
+        log.info("refund requested for order {} (payment {}) by {}", orderId, o.paymentId(), actor);   // audit row for a money move
+    }
+
     /** Called from the inbox: the money is back, so the order is REFUNDED and its seat is free again. */
     public void refunded(UUID paymentId, UUID accountId, long amountMinor, String currency) {
         db.sql("""
