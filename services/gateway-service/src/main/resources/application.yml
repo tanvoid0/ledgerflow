@@ -64,6 +64,13 @@ spring:
           jwk-set-uri: ${OIDC_REALM_URL:http://localhost:8180/realms/ledgerflow}/protocol/openid-connect/certs   # where this process reaches the realm
   lifecycle:
     timeout-per-shutdown-phase: 30s
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+    consumer:
+      group-id: gateway-${random.uuid}   # throwaway: never rejoins, never commits, always starts from latest
+      auto-offset-reset: latest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
 
 # phase 1 AI assistant (ADR docs/ai/0001): the local agent platform + where the assistant calls the ledger.
 # LLM_URL blank = assistant degrades to an "unavailable" message, never an error on the page.
@@ -73,13 +80,6 @@ llm:
   api-key: ${LLM_API_KEY:}        # secret, per-environment, never committed
 insights:
   gateway-base: ${INSIGHTS_GATEWAY_BASE:http://localhost:${SERVER_PORT:8088}}
-  kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
-    consumer:
-      group-id: gateway-${random.uuid}   # throwaway: never rejoins, never commits, always starts from latest
-      auto-offset-reset: latest
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
 
 management:
   metrics:

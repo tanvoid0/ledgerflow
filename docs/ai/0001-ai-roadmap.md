@@ -307,12 +307,25 @@ approved one is idempotent and audited.
   CONFIRMED order, refund settles it REFUNDED, HELD→409, unknown→404). Golden set +
   two-key/platform-down checks in `docs/ai/evals/phase4-actions.md`.
 
-**Deferred:** the approval UI (the React page — same separate-stack deferral as phases 1–3; the
-propose→render→fire loop is demoable over curl, and the fire endpoint is a plain routed POST a UI
-or ops hits directly). Live golden-eval run (host stack + platform down, same as phases 0–3) —
-proven by `ProposalTest` + the IT's command/guard path. No proposal store: the proposal is
-stateless, the client holds it and fires the orderId; the fire re-validates server-side regardless,
-so a store would buy nothing (YAGNI — "no agent memory until a phase needs it").
+**Verified live (2026-11-07, docker compose — the running stack is compose, not kind):** gateway +
+ticketing rebuilt and redeployed. The full money path proven end-to-end against the live stack: a
+seeded order holds → checkout → **CONFIRMED**, `POST /insights/propose` degrades to **503** with
+`LLM_URL` blank (principle 3, no platform wired into compose), `POST /orders/{id}/refund` as
+ledger-write returns **202** and the order settles **CONFIRMED → REFUNDED** down the step-35 command
+path; a replay of the fire is **409** (idempotent, already refunded) and a reader (account-read, no
+write) firing is **403**. Two deploy-time fixes were needed and are in this change: the gateway's
+Kafka consumer config was mis-nested under `insights.kafka` (orphaned — not a Spring property), so
+the stream listener booted with no `group.id` and crash-looped; moved to `spring.kafka`. Known gap:
+`/insights/propose` for an account-read-only caller currently returns 403, not 503 — the
+gateway-MVC security chain isn't matching the sub-path `requestMatchers` (it matches the parent
+`/insights`), so propose effectively needs ledger-write. Conservative (only a would-be approver
+proposes) and harmless to the money path; the ops demo user holds both roles. Tracked for a proper
+matcher fix.
+
+**Deferred:** wiring the agent platform into compose (host-only at `127.0.0.1:18410` + a per-env
+bearer), so propose/ask run a real model rather than degrading — until then the UI shows the
+"unavailable" path live. No proposal store: the proposal is stateless, the client holds it and fires
+the orderId; the fire re-validates server-side regardless, so a store would buy nothing (YAGNI).
 
 ## Why this order
 
