@@ -23,7 +23,7 @@ class LlmClientTest {
     private Fixture withModels(String modelsBody) {
         var builder = RestClient.builder().baseUrl("http://platform");
         var server = MockRestServiceServer.bindTo(builder).build();
-        var props = new LlmProperties("http://platform", "gemma4", null, null, 0);
+        var props = new LlmProperties("http://platform", "gemma4", null, null, 0, "");
         return new Fixture(new LlmClient(builder.build(), props, new JsonMapper()), server);
     }
 

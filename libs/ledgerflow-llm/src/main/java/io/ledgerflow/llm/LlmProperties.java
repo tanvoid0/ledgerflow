@@ -19,4 +19,8 @@ public record LlmProperties(
         String apiKey,
         @DefaultValue("30s") Duration timeout,
         /* generous: the reasoning model spends tokens thinking before it answers, a tight budget returns empty content */
-        @DefaultValue("2048") int maxTokens) {}
+        @DefaultValue("2048") int maxTokens,
+        /* Host header override: left blank the request's Host is the url's authority. Set it when the platform is
+           loopback-bound and reached over a different name (a container hitting host.docker.internal:18410 must send
+           Host: localhost:18410, which the platform's allowlist answers for). Needs -Djdk.httpclient.allowRestrictedHeaders=host. */
+        @DefaultValue("") String hostHeader) {}

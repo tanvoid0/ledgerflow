@@ -15,10 +15,13 @@ Only a `ledger-write` human fires. The LLM holds no credential and reaches neith
 human's own token fires the refund, re-checked by Keycloak and re-validated by ticketing
 (CONFIRMED-only) exactly as a hand-issued request.
 
-> Live note (2026-11-07): propose was meant to be reachable by an `account-read` analyst, but on
-> the running gateway `/insights/propose` returns 403 for an account-read-only caller — the
-> gateway-MVC security chain doesn't match the sub-path `requestMatchers`, so propose currently
-> needs `ledger-write` too. Conservative and harmless to the money path; tracked for a matcher fix.
+> Live run (2026-11-08, compose + platform): **all pass.** Matcher gap **fixed** — propose as an
+> `account-read`-only reader returns 200 (the exact `/insights/propose` matcher). Reader fire → 403,
+> OPS fire → 202 → REFUNDED, re-fire → 409, bogus UUID → 404; propose fired nothing (order stayed
+> CONFIRMED). Decline cases ("refund everything", "capital of France") declined without inventing an
+> id. The propose happy path needs a clear prompt — gemma4:latest's two-step dispatch is phrasing-
+> sensitive; "there is one confirmed order, propose its refund" yields a valid `refund_order` with the
+> real orderId, a vaguer prompt declines (the guard never invents an id either way).
 
 ## Run
 

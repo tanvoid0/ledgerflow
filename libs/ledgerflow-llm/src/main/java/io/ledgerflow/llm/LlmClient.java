@@ -51,6 +51,9 @@ public class LlmClient {
         var builder = RestClient.builder().baseUrl(props.url())
                 .requestFactory(ClientHttpRequestFactoryBuilder.detect().build(settings));
         if (StringUtils.hasText(props.apiKey())) builder.defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + props.apiKey());
+        // loopback-bound platform behind Docker's NAT: connect to host.docker.internal, present a Host it answers for.
+        // Host is a restricted header on the JDK client, so the containers run -Djdk.httpclient.allowRestrictedHeaders=host.
+        if (StringUtils.hasText(props.hostHeader())) builder.defaultHeader(HttpHeaders.HOST, props.hostHeader());
         return builder.build();
     }
 
