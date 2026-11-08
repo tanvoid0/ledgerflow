@@ -1,6 +1,7 @@
 package io.ledgerflow.payment.config;
 
 import io.ledgerflow.starter.web.LedgerflowSecurityAutoConfiguration;
+import jakarta.servlet.DispatcherType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -21,6 +22,10 @@ public class PaymentSecurityConfig {   // public: @WebMvcTest imports it from th
         var converter = new JwtAuthenticationConverter();
         converter.setJwtGrantedAuthoritiesConverter(LedgerflowSecurityAutoConfiguration.realmRoles());
         http.authorizeHttpRequests(auth -> auth
+                        // Let the ERROR dispatch render the controller's real status. Without this, a 4xx/5xx thrown for a
+                        // buyer's own payment (e.g. step 36's fault seam) is re-checked against anyRequest()=STAFF and masked
+                        // as 403, so ticketing reads a refusal instead of the 5xx that means "may have committed".
+                        .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers("/actuator/health/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/payments").authenticated()
                         .anyRequest().hasAnyRole(LedgerflowSecurityAutoConfiguration.STAFF))

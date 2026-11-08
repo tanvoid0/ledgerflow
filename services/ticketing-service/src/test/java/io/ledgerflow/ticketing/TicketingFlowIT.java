@@ -17,6 +17,7 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.ErrorResponseException;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -173,6 +174,27 @@ class TicketingFlowIT {
 
         ticketing.confirm(UUID.randomUUID(), requestId, accountId, 2000, "GBP");
         assertThat(ticketing.order(orderId).orElseThrow().status()).isEqualTo("HELD");
+        assertThat(seatStatus(event.id(), seat)).isEqualTo("HELD");
+    }
+
+    /**
+     * A 5xx RESPONSE (the step-36 fault seam drops its 202 as a 503) is not a refusal: the payment may have committed,
+     * so the order must stay PENDING_PAYMENT for the sweep + late capture, exactly like a connection reset - not roll back.
+     */
+    @Test
+    void a5xxFromPaymentLeavesTheOrderPendingNotRolledBack() {
+        var event = ticketing.createEvent("Dropped Show", null, "Venue", "City", "Music", Instant.now().plusSeconds(3600),
+                "org-dropped", 2000, "GBP", 1, 1);
+        var seat = ticketing.event(event.id()).orElseThrow().seats().getFirst().seat();
+        var accountId = UUID.randomUUID();
+        var orderId = ticketing.hold(event.id(), accountId, "alice", List.of(seat));
+        when(paymentClient.pay(any(), any(), eq(accountId), anyLong(), any(), any()))
+                .thenThrow(new HttpServerErrorException(HttpStatus.SERVICE_UNAVAILABLE));
+        var requestId = "req-" + orderId;
+
+        var order = ticketing.checkout(orderId, accountId, "Bearer t", requestId);
+        assertThat(order.status()).isEqualTo("PENDING_PAYMENT");
+        assertThat(order.paymentId()).isNull();
         assertThat(seatStatus(event.id(), seat)).isEqualTo("HELD");
     }
 
