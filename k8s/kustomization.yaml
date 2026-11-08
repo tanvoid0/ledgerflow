@@ -24,7 +24,7 @@ configMapGenerator:
       - KAFKA_BOOTSTRAP=redpanda:9092
       - OTLP_ENDPOINT=http://lgtm:4318
       - REDIS_HOST=redis
-      - OLLAMA_URL=http://host.docker.internal:11434/v1
+      - LLM_URL=http://host.docker.internal:18410   # the agent platform origin (client adds /v1); LLM_API_KEY (secret) enables it
       - ACCOUNT_BASE_URL=http://account-service:8080
       - ISSUER_BASE_URL=http://issuer-service:8080
       - SETTLEMENT_BATCH_EXPORTDIR=/tmp/exports   # the Paketo run user cannot write /workspace

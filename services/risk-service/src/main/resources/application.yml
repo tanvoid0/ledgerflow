@@ -51,9 +51,9 @@ ledgerflow:
 # blank url = template case notes only, no network call. Local by default so features never leave the machine;
 # any OpenAI-compatible endpoint plugs in here (the agent platform, ollama.com cloud, aimlapi, Gemini) with a key.
 llm:
-  url: ${OLLAMA_URL:http://localhost:11434/v1}
-  model: gemma4
-  api-key: ${NARRATOR_API_KEY:}
+  url: ${LLM_URL:}
+  model: ${LLM_MODEL:gemma4}
+  api-key: ${LLM_API_KEY:}
   max-tokens: 800   # gemma4 spends ~400 on reasoning before it answers; 300 came back empty
 
 risk:

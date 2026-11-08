@@ -1,6 +1,12 @@
 # AI roadmap: LLM capabilities on the ledger
 
-Status: in progress (2026-11-07) · **Phase 0, 1 backend, 2, 3, 4 backend shipped** (web UI deferred throughout)
+Status: **shipped + verified live (2026-11-08)** · Phases 0–4 (backend + ops-console web UI) are in,
+and the agent platform is wired into compose (`gemma4:latest` via the host proxy) and proven end to end:
+the assistant routes + grounds + declines (phase 1), the narrator writes a structured case note with a
+confidence on a fresh REVIEW (phase 2), new payment/refund events get an LLM category (phase 3), and
+propose → human-fire → REFUNDED runs with the guard holding and the two keys separate (phase 4). The
+`/insights/propose` matcher gap is **fixed and confirmed** — an `account-read` reader now reaches propose
+(HTTP 200). See `docs/ai/evals/phase{1,4}-*.md` for the run.
 
 This sequences four AI capabilities onto LedgerFlow, ordered by portfolio
 impact and ascending risk, each building on the one before. The target LLM
@@ -322,9 +328,15 @@ gateway-MVC security chain isn't matching the sub-path `requestMatchers` (it mat
 proposes) and harmless to the money path; the ops demo user holds both roles. Tracked for a proper
 matcher fix.
 
-**Deferred:** wiring the agent platform into compose (host-only at `127.0.0.1:18410` + a per-env
-bearer), so propose/ask run a real model rather than degrading — until then the UI shows the
-"unavailable" path live. No proposal store: the proposal is stateless, the client holds it and fires
+**Wired into compose (2026-11-08):** the three callers (gateway, payment, risk) share `LLM_URL`
+(the host proxy origin — the client adds `/v1`), `LLM_MODEL`, `LLM_API_KEY` (in gitignored
+`infra/compose/.env`, never committed) and reach the host over `host.docker.internal`. The proxy
+binds the host's loopback and rejects `Host: host.docker.internal`, so the client sends a Host it
+answers for via the new `llm.host-header` (`localhost:18410`) with
+`-Djdk.httpclient.allowRestrictedHeaders=host` (Host is restricted on the JDK HTTP client). risk
+was normalised off its old `OLLAMA_URL`/`NARRATOR_API_KEY` names onto the shared `llm.*`. Matcher
+gap resolved — the exact `/api/v1/insights/propose` matcher now authorises an `account-read` reader
+(confirmed 200 live). No proposal store: the proposal is stateless, the client holds it and fires
 the orderId; the fire re-validates server-side regardless, so a store would buy nothing (YAGNI).
 
 ## Why this order

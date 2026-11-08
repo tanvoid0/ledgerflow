@@ -31,6 +31,15 @@ Pass bar: 1–4 pick the named tool and the number/list matches the same query r
 (`curl /api/v1/orders/all?status=…`, `/api/v1/payments`, `/api/v1/cases`); 5–7 decline rather
 than invent. Case 7 is the honest-gap check — the model must not force an unrelated tool.
 
+## Live run (2026-11-08, compose + platform, `gemma4:latest`)
+
+**Pass.** Routing + grounding + declines all hold. `review_cases` → 17, matching the direct
+`/api/v1/cases` count; `recent_payments` → captured rows; "cancelled orders" → correctly empty;
+weather / delete / refund-last-week all decline without inventing (case 7 is the honest-gap check —
+no `refund_total` tool, and the model declines rather than forcing a wrong one). Phrasing is terse
+(the small model echoes ids/counts), but the eval bar — correct tool + grounded number + declines —
+is met.
+
 ## Platform-down check (ADR 0005 principle 3)
 
 Stop the platform (or leave `LLM_URL` blank) and run case 1: the stream must send
