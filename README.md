@@ -61,6 +61,8 @@ to the 202, which takes 5ms at every load and says nothing.
 | Payment settled, cluster, a JWT checked on every request | 100/s | 260 | 472 | 0% |
 | Payment settled, cluster, Tomcat 11.0.24 -> 11.0.26 (the image scanner's first finding) | 100/s | 265 | 449 | 0% |
 | Payment settled, refund-on-cancel landed, **docker compose** (not comparable to the kind rows above; plus a 12-order cancel fan-out that refunds in 701 ms) | 100/s | 304 | 697 | 0% |
+| Payment settled, orphan-capture refund landed + the AI platform wired in live, **docker compose**; enrichment paused for this number (`LLM_URL=""`) to isolate the feature | 100/s | 3200 | 17000 | 0% |
+| Payment settled, buyer self-service cancel landed, **docker compose**, AI platform live and unpaused this time — the fatter tail is the agent platform's async load, not the feature | 100/s | 443 | 10206 | 0% |
 
 Startup, account-service, host JVM: plain 2.82 s -> AOT cache 1.07 s, median of 3 (`scripts/startup-time.sh`).
 
@@ -233,6 +235,9 @@ states in payment-service untouched throughout.
 Buy a ticket end to end, storefront to settled seat: `scripts/scenario-buy-ticket.sh` - a public browse, a
 401 without a token, `alice` holds and pays for a seat, the order confirms, `ops` sees the payment and the
 order, and the dev portal proxy is a 403 for `alice`.
+Cancel it yourself: `scripts/scenario-buyer-cancel.sh` - `alice` cancels her own confirmed order and gets her
+money back, `bob` can't touch it (404), a second cancel is a no-op (409), and an order on an event starting
+within 24h can't be self-cancelled (409).
 
 Load and race: `perf/bench.sh step15` (the fixed suite, ~6 min), `RATE=100 DURATION=60s perf/run.sh transfer my-label` (one scenario), `perf/race.sh`.
 Watch the events: `docker exec ledgerflow-redpanda rpk topic consume ledgerflow.ledger.wallet-hold.events.v1 -f '%p %k %v\n'`.
