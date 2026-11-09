@@ -33,6 +33,10 @@ sweep already failed — charged, no ticket. Ticketing's `confirm()` detects the
 capture, stamps the order (its idempotency guard) and emits the same `RefundOrder`. Same money
 path, new trigger.
 
+`RefundOrder` has a third trigger since step 37 (ADR 0011): the buyer cancelling their own
+CONFIRMED order outside the 24h-to-event cutoff. Same `refundOrder()` call the organiser-cancel
+path uses, different caller — payment-service sees no difference between the three.
+
 ### Guarantees
 
 Delivery: at least once, everywhere; every consumer dedupes on `eventId` through the inbox.
