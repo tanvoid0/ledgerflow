@@ -22,3 +22,4 @@ Thumbs.db
 # local tracking
 PROGRESS.md
 .local/
+.claude/
