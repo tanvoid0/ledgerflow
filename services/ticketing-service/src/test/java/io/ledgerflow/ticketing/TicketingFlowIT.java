@@ -363,6 +363,56 @@ class TicketingFlowIT {
         assertThat(seatStatus(event.id(), seat)).isEqualTo("FREE");
     }
 
+    /** Step 37: the buyer cancels their own order - but only their own, only ON_SALE, and only outside the cutoff. */
+    @Test
+    void buyerCancelsOwnConfirmedOrderOutsideTheCutoff() {
+        var event = ticketing.createEvent("Far Show", null, "Venue", "City", "Music", Instant.now().plus(Duration.ofDays(30)),
+                "org-far", 2000, "GBP", 1, 2);
+        var buyer = UUID.randomUUID();
+        var paidOrder = ticketing.hold(event.id(), buyer, "alice", List.of("A1"));
+        var paymentId = UUID.randomUUID();
+        when(paymentClient.pay(any(), any(), eq(buyer), anyLong(), any(), any())).thenReturn(paymentId);
+        ticketing.checkout(paidOrder, buyer, "Bearer t", "req-" + paidOrder);
+        ticketing.confirm(paymentId, "req-" + paidOrder, buyer, 2000, "GBP");
+
+        var nearEvent = ticketing.createEvent("Near Show", null, "Venue", "City", "Music", Instant.now().plusSeconds(3600),
+                "org-near", 2000, "GBP", 1, 1);
+        var nearOrder = ticketing.hold(nearEvent.id(), buyer, "alice", List.of("A1"));
+        var nearPaymentId = UUID.randomUUID();
+        when(paymentClient.pay(any(), any(), eq(buyer), anyLong(), any(), any())).thenReturn(nearPaymentId);
+        ticketing.checkout(nearOrder, buyer, "Bearer t", "req-" + nearOrder);
+        ticketing.confirm(nearPaymentId, "req-" + nearOrder, buyer, 2000, "GBP");
+
+        // not the owner: hidden behind 404, same as byId
+        assertThatThrownBy(() -> ticketing.cancelOrder(paidOrder, UUID.randomUUID()))
+                .isInstanceOf(ErrorResponseException.class)
+                .extracting(e -> ((ErrorResponseException) e).getStatusCode())
+                .isEqualTo(HttpStatus.NOT_FOUND);
+
+        // inside the 24h cutoff: 409, order untouched
+        assertThatThrownBy(() -> ticketing.cancelOrder(nearOrder, buyer))
+                .isInstanceOf(ErrorResponseException.class)
+                .extracting(e -> ((ErrorResponseException) e).getStatusCode())
+                .isEqualTo(HttpStatus.CONFLICT);
+        assertThat(ticketing.order(nearOrder).orElseThrow().status()).isEqualTo("CONFIRMED");
+
+        // eligible: exactly one refund fires
+        ticketing.cancelOrder(paidOrder, buyer);
+        assertThat(refundCommands(paymentId)).isEqualTo(1);
+        assertThat(ticketing.order(paidOrder).orElseThrow().status()).isEqualTo("CONFIRMED");
+
+        ticketing.refunded(paymentId, buyer, 2000, "GBP");
+        assertThat(ticketing.order(paidOrder).orElseThrow().status()).isEqualTo("REFUNDED");
+        assertThat(seatStatus(event.id(), "A1")).isEqualTo("FREE");
+
+        // already refunded: a second cancel is 409
+        assertThatThrownBy(() -> ticketing.cancelOrder(paidOrder, buyer))
+                .isInstanceOf(ErrorResponseException.class)
+                .extracting(e -> ((ErrorResponseException) e).getStatusCode())
+                .isEqualTo(HttpStatus.CONFLICT);
+        assertThat(refundCommands(paymentId)).isEqualTo(1);
+    }
+
     private long refundCommands(UUID paymentId) {
         return db.sql("SELECT count(*) FROM outbox WHERE event_type = 'payment.RefundOrder' AND aggregate_id = :id")
                 .param("id", paymentId).query(Long.class).single();

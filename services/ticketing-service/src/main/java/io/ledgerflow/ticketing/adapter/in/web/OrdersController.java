@@ -64,6 +64,14 @@ class OrdersController {
         ticketing.refundOrder(id, jwt.getSubject());
     }
 
+    /** Step 37: the buyer cancels their own still-open order. 202 - the refund moves async down the same path. */
+    @PostMapping("/{id}/cancel")
+    @PreAuthorize("hasRole('customer')")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    void cancel(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
+        ticketing.cancelOrder(id, UUID.fromString(jwt.getSubject()));
+    }
+
     @GetMapping("/{id}")
     Order byId(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt, Authentication auth) {
         var order = ticketing.order(id).orElseThrow(() -> new ErrorResponseException(HttpStatus.NOT_FOUND));

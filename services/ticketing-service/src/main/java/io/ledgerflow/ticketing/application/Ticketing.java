@@ -18,6 +18,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -36,6 +37,9 @@ public class Ticketing {
 
     /** Open orders (HELD or PENDING_PAYMENT) one account may have at once, across all events. */
     private static final int MAX_OPEN_ORDERS = 2;
+
+    /** A buyer cancel (step 37) is refused once the event is this close - the organiser can still cancel it. */
+    private static final Duration CANCEL_CUTOFF = Duration.ofHours(24);
 
     private final JdbcClient db;
     private final JsonMapper json;
@@ -161,6 +165,25 @@ public class Ticketing {
         outbox.append(RefundOrder.TOPIC, EventEnvelope.of(RefundOrder.TYPE, o.paymentId(), 1,
                 o.requestId(), o.requestId(), new RefundOrder(o.paymentId())));
         log.info("refund requested for order {} (payment {}) by {}", orderId, o.paymentId(), actor);   // audit row for a money move
+    }
+
+    record EventGate(String status, Instant startsAt) {}
+
+    /**
+     * Step 37: the buyer cancels their own order. Owner mismatch hides behind the same 404 as byId; the event must
+     * still be ON_SALE and outside the cutoff - only ticketing knows starts_at, so that gate lives here, not in
+     * payment-service. Eligible, it's the same money move as refundOrder, just a different actor string for the log.
+     */
+    @Transactional
+    public void cancelOrder(UUID orderId, UUID accountId) {
+        var o = order(orderId).orElseThrow(() -> new ErrorResponseException(HttpStatus.NOT_FOUND));
+        if (!o.accountId().equals(accountId)) throw new ErrorResponseException(HttpStatus.NOT_FOUND);
+        var event = db.sql("SELECT status, starts_at FROM events WHERE id = :id")
+                .param("id", o.eventId()).query(EventGate.class).single();
+        if (!"ON_SALE".equals(event.status()) || event.startsAt().isBefore(Instant.now().plus(CANCEL_CUTOFF))) {
+            throw new ErrorResponseException(HttpStatus.CONFLICT);
+        }
+        refundOrder(orderId, "buyer " + accountId);
     }
 
     /** Called from the inbox: the money is back, so the order is REFUNDED and its seat is free again. */
