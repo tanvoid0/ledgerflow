@@ -1,9 +1,9 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Check } from 'lucide-react'
 import { useRoles, useToken } from '../../roles'
-import { get } from '../../api'
+import { get, post } from '../../api'
 import { recordKey, useLedgerStream } from '../../stream'
 import type { Order, TicketEvent } from '../../types'
 import { formatEventDate, formatMinor, formatTime } from '../../format'
@@ -25,6 +25,7 @@ const EVENT_WORDS: Record<string, string> = {
   'payment.PaymentRequested': 'Payment started',
   'settlement.CapturesIssued': 'Funds sent to the organiser',
   'settlement.IssueFailed': 'Settlement failed',
+  'payment.PaymentRefunded': 'Money returned to your wallet',
 }
 
 const FAIL_WORDS: Record<string, string> = {
@@ -116,6 +117,45 @@ function TicketStub({ order, event, seat }: { order: Order; event: TicketEvent |
   )
 }
 
+// eligibility mirrors Ticketing.cancelOrder exactly: event ON_SALE and more than 24h out
+function cancelEligible(event: TicketEvent | undefined): boolean {
+  if (!event) return false
+  return event.status === 'ON_SALE' && Date.parse(event.startsAt) - Date.now() > 24 * 60 * 60 * 1000
+}
+
+function CancelAction({ order, event, onCancelled }: { order: Order; event: TicketEvent | undefined; onCancelled: () => void }) {
+  const token = useToken()
+  const qc = useQueryClient()
+  const [confirming, setConfirming] = useState(false)
+  const cancel = useMutation({
+    mutationFn: () => post(`/api/v1/orders/${order.id}/cancel`, token, {}),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['order', order.id] })
+      onCancelled()
+    },
+  })
+  if (!event) return null
+  if (!cancelEligible(event)) {
+    return <p className="text-xs text-muted">Cancellation closed — less than 24 h to the event</p>
+  }
+  if (!confirming) {
+    return (
+      <Button variant="ghost" size="sm" onClick={() => setConfirming(true)}>
+        Cancel order
+      </Button>
+    )
+  }
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-xs text-muted">sure?</span>
+      <Button variant="danger" size="sm" loading={cancel.isPending} onClick={() => cancel.mutate()}>
+        Confirm
+      </Button>
+      <Button variant="ghost" size="sm" onClick={() => setConfirming(false)}>Back</Button>
+    </div>
+  )
+}
+
 export function OrderPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -123,6 +163,8 @@ export function OrderPage() {
   const roles = useRoles()
   // the gateway only streams to staff; customers follow the order through the step strip's polling
   const staff = roles.admin || roles.dev
+  // a buyer cancel moves CONFIRMED -> REFUNDED without the gateway's SSE stream; force polling through it
+  const [cancelling, setCancelling] = useState(false)
 
   const order = useQuery({
     enabled: !!id,
@@ -130,7 +172,9 @@ export function OrderPage() {
     queryFn: () => get<Order>(`/api/v1/orders/${id}`, token),
     refetchInterval: (q) => {
       const s = q.state.data?.status
-      return s === 'CONFIRMED' || s === 'FAILED' || s === 'EXPIRED' || s === 'REFUNDED' ? false : 1000
+      if (s === 'REFUNDED') return false
+      if (cancelling) return 1000
+      return s === 'CONFIRMED' || s === 'FAILED' || s === 'EXPIRED' ? false : 1000
     },
   })
 
@@ -203,8 +247,8 @@ export function OrderPage() {
           </div>
         </div>
         <div className="flex items-center gap-2 border-t border-line pt-2 text-sm text-fg">
-          {o.status === 'PENDING_PAYMENT' && <span aria-hidden="true" className="h-1.5 w-1.5 shrink-0 rounded-full bg-warn animate-pulse" />}
-          {statusLine(o)}
+          {(o.status === 'PENDING_PAYMENT' || cancelling) && <span aria-hidden="true" className="h-1.5 w-1.5 shrink-0 rounded-full bg-warn animate-pulse" />}
+          {cancelling ? 'Refunding…' : statusLine(o)}
         </div>
       </Card>
 
@@ -213,13 +257,23 @@ export function OrderPage() {
           {o.seats.map((seat) => (
             <TicketStub key={seat} order={o} event={event.data} seat={seat} />
           ))}
+          <CancelAction order={o} event={event.data} onCancelled={() => setCancelling(true)} />
         </div>
       )}
 
       {o.status === 'REFUNDED' && (
         <Card className="space-y-1 border-brand-600/40 bg-brand-100/40 dark:bg-brand-700/15">
-          <p className="text-sm text-fg">This event was cancelled.</p>
-          <p className="text-xs text-muted">Your money has been returned to your wallet.</p>
+          {event.data && event.data.status !== 'ON_SALE' ? (
+            <>
+              <p className="text-sm text-fg">This event was cancelled.</p>
+              <p className="text-xs text-muted">Your money has been returned to your wallet.</p>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-fg">This order was refunded.</p>
+              <p className="text-xs text-muted">Your money is back in your wallet.</p>
+            </>
+          )}
         </Card>
       )}
 
