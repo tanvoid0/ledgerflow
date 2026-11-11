@@ -2,6 +2,7 @@ package io.ledgerflow.ticketing.application;
 
 import io.ledgerflow.events.EventEnvelope;
 import io.ledgerflow.events.payment.RefundOrder;
+import io.ledgerflow.events.settlement.SettleItem;
 import io.ledgerflow.starter.messaging.OutboxAppender;
 import io.ledgerflow.ticketing.adapter.out.account.AccountClient;
 import io.ledgerflow.ticketing.adapter.out.payment.PaymentClient;
@@ -20,6 +21,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
@@ -312,7 +314,15 @@ public class Ticketing {
                 UPDATE seats SET status = 'SOLD' WHERE order_id IN (SELECT id FROM o)
                 """).param("paymentId", paymentId).param("correlationId", correlationId)
                 .param("account", accountId).param("amount", amountMinor).param("currency", currency).update();
-        if (confirmed > 0) return;
+        if (confirmed > 0) {
+            // The money is now in TREASURY; feed it to the nightly settlement batch so the organiser gets paid.
+            // One item per captured order, keyed and deduped like RefundOrder: a redelivery stamps nothing new.
+            var organiser = db.sql("SELECT e.organiser FROM orders o JOIN events e ON e.id = o.event_id WHERE o.payment_id = :paymentId")
+                    .param("paymentId", paymentId).query(String.class).optional();
+            organiser.ifPresent(m -> outbox.append(SettleItem.TOPIC, EventEnvelope.of(SettleItem.TYPE, paymentId, 1,
+                    correlationId, correlationId, new SettleItem(paymentId, m, amountMinor, currency, LocalDate.now(ZoneOffset.UTC)))));
+            return;
+        }
         // Charged, no ticket: the sweep timed the order out before this capture arrived. Stamping payment_id is the
         // guard - a redelivery no longer has payment_id IS NULL - and the refund rides this transaction via the outbox.
         var orphans = db.sql("""

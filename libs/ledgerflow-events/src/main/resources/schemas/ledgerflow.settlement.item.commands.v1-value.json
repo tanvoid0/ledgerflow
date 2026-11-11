@@ -1,0 +1,82 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ledgerflow.settlement.item.commands.v1",
+  "description": "EventEnvelope<settlement.SettleItem>. Ticketing hands settlement one captured order to net for its organiser. Closed content model on purpose: with additionalProperties true, dropping a field would pass BACKWARD.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "eventType": {
+      "type": "string"
+    },
+    "schemaVersion": {
+      "type": "integer"
+    },
+    "aggregateId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "aggregateVersion": {
+      "type": "integer"
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "correlationId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "causationId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "payload": {
+      "title": "settlement.SettleItem",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "paymentId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "merchantId": {
+          "type": "string"
+        },
+        "amountMinor": {
+          "type": "integer"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "businessDate": {
+          "type": "string",
+          "format": "date"
+        }
+      },
+      "required": [
+        "paymentId",
+        "merchantId",
+        "amountMinor",
+        "currency",
+        "businessDate"
+      ]
+    }
+  },
+  "required": [
+    "eventId",
+    "eventType",
+    "schemaVersion",
+    "aggregateId",
+    "aggregateVersion",
+    "occurredAt",
+    "payload"
+  ]
+}

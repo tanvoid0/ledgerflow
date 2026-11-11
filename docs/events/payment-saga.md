@@ -37,6 +37,17 @@ path, new trigger.
 CONFIRMED order outside the 24h-to-event cutoff. Same `refundOrder()` call the organiser-cancel
 path uses, different caller — payment-service sees no difference between the three.
 
+### The organiser payout (ADR 0012)
+
+Captured money reaches the organiser outside the payment saga, through the nightly settlement batch.
+On `PaymentCaptured`, ticketing's `confirm()` appends `settlement.SettleItem` (on
+`ledgerflow.settlement.item.commands.v1`, keyed by payment id) naming the order's organiser as the
+merchant; settlement inserts it as a `settlement_item`. The nightly batch nets each merchant and
+emits `MerchantSettled` (`ledgerflow.settlement.merchant.events.v1`); settlement's own
+`MerchantPayoutListener` consumes it and transfers the net from the settlement wallet (TREASURY) to
+the organiser's MAIN wallet, idempotency-keyed `payout-<merchantId>-<businessDate>`. None of this is
+a saga reply — the saga is terminal the moment money lands in TREASURY.
+
 ### Guarantees
 
 Delivery: at least once, everywhere; every consumer dedupes on `eventId` through the inbox.
