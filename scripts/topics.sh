@@ -28,6 +28,7 @@ done
 for t in ledger.hold.commands issuer.authorization.commands settlement.capture.commands payment.refund.commands; do
   policy "ledgerflow.$t.v1" 86400000   # 1d: a command older than the saga's 15s deadline is already Failed
 done
+policy ledgerflow.settlement.item.commands.v1 2592000000   # 30d: no saga deadline here, an item just waits for its night's batch
 $RPK topic create ledgerflow.balance.snapshots.v1 -p 3 -r "$RF" "${isr[@]}" \
   -c cleanup.policy=compact -c segment.ms=10000 > /dev/null 2>&1 || true   # segment.ms=10000 makes the cleaner visible in dev; never in production
 # Redpanda silently clamps a topic's segment.ms to this cluster floor (10 minutes by default); dev only, like the segment.ms above
