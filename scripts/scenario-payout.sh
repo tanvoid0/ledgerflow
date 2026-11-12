@@ -3,8 +3,9 @@
 # TREASURY on capture), which now feeds a real settlement_item; the nightly batch nets it for the
 # event's organiser and emits MerchantSettled; the new payout listener moves the net out of TREASURY
 # into the organiser's MAIN wallet. Asserts the organiser's balance rises by exactly the net (gross
-# minus the 2.9% + 30 fee the platform keeps). Assumes a reasonably fresh stack: the batch runs once
-# per business date, so this is a first-run-of-the-day proof.
+# minus the 2.9% + 30 fee the platform keeps). An item is dated by its event's day (UTC), the night after
+# which the cron nets it; the scenario launches that date by hand. The batch runs once per date, so
+# this is a first-run-for-that-date proof.
 #   scripts/scenario-payout.sh
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -74,7 +75,7 @@ buy() {
 }
 
 ORDER=$(buy "$SEAT")
-echo "order $ORDER CONFIRMED, money is in TREASURY, a settlement_item is fed for today"
+echo "order $ORDER CONFIRMED, money is in TREASURY, a settlement_item is fed for the event's day"
 
 # a second order, refunded before tonight's batch: its item must drop out of the net, or TREASURY
 # pays the same money twice (back to the buyer and out to the organiser)
@@ -89,16 +90,16 @@ NET=$(( PRICE - FEE ))
 BEFORE=$(main_balance "$ORG_ACCT")
 echo "organiser MAIN before payout: $BEFORE (expecting +$NET = $PRICE - $FEE fee)"
 
-TODAY=$(date -u +%F)
+DAY=$(jq -r '.startsAt[0:10]' <<< "$DETAIL")   # the cron would run this the morning after the event
 CODE=$(curl -s -o /tmp/payout-launch.json -w '%{http_code}' -X POST -H "Authorization: Bearer $OPS" \
   "$GW/api/v1/batch/jobs/nightlySettlementJob" -H 'content-type: application/json' \
-  -d "$(jq -n --arg d "$TODAY" '{businessDate: $d}')")
+  -d "$(jq -n --arg d "$DAY" '{businessDate: $d}')")
 if [ "$CODE" = "409" ]; then
-  echo "nightlySettlementJob already ran for $TODAY on this stack — rerun on a fresh stack or a new day"
+  echo "nightlySettlementJob already ran for $DAY on this stack — rerun on a fresh stack"
 elif [ "$CODE" != "200" ] && [ "$CODE" != "202" ]; then
   echo "batch launch failed ($CODE): $(cat /tmp/payout-launch.json)"; exit 1
 else
-  echo "launched nightlySettlementJob for $TODAY"
+  echo "launched nightlySettlementJob for $DAY"
 fi
 
 deadline=$((SECONDS + 40))

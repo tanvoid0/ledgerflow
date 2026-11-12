@@ -42,7 +42,9 @@ path uses, different caller — payment-service sees no difference between the t
 Captured money reaches the organiser outside the payment saga, through the nightly settlement batch.
 On `PaymentCaptured`, ticketing's `confirm()` appends `settlement.SettleItem` (on
 `ledgerflow.settlement.item.commands.v1`, keyed by payment id) naming the order's organiser as the
-merchant; settlement inserts it as a `settlement_item`. The nightly batch nets each merchant and
+merchant and the event's UTC day as the business date; settlement inserts it as a `settlement_item`,
+so the organiser is paid the night after the event. A refund before then marks the item REVOKED.
+The nightly batch nets each merchant and
 emits `MerchantSettled` (`ledgerflow.settlement.merchant.events.v1`); settlement's own
 `MerchantPayoutListener` consumes it and transfers the net from the settlement wallet (TREASURY) to
 the organiser's MAIN wallet, idempotency-keyed `payout-<merchantId>-<businessDate>`. None of this is

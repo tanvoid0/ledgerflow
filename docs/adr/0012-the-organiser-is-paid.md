@@ -27,7 +27,7 @@ mechanism, no saga change — `beneficiary` never reaches the saga state (it rid
 - **Ticketing feeds the batch.** `confirm()` already moves an order CONFIRMED on `PaymentCaptured`,
   in a transaction with its outbox (grown in step 35 for `RefundOrder`). It now appends one
   `settlement.SettleItem(paymentId, merchantId = event.organiser, amountMinor, currency,
-  businessDate = today)` on the normal confirm. Settlement grows a `SettleItemListener` that inserts
+  businessDate = the event's day in UTC)` on the normal confirm. Settlement grows a `SettleItemListener` that inserts
   the `settlement_item` row; the shared inbox dedupes on `eventId`, so a redelivered capture inserts
   nothing twice. This is the first production writer of `settlement_item`.
 
@@ -61,13 +61,15 @@ payout never fails for funds.
   payment's `settlement_item` REVOKED while it is still NEW, and an item that arrives after its
   revoke (two topics, no order between them) is inserted REVOKED. Without this, a cancelled order
   was refunded to the buyer and paid to the organiser, both out of TREASURY.
-- **A refund after the payout is not clawed back.** The organiser keeps the net and TREASURY
-  absorbs it. Buyer cancels are allowed up to 24h before the event and organiser cancels at any
-  time, so with a "today" business date most refunds land after the payout. Holding the payout
-  until the event has happened (business date = event date) closes most of it; a negative net
-  carried to the next day closes the rest.
-- **A business date is UTC "today" at confirm time.** An order confirmed either side of midnight UTC
-  lands under that day's batch; fine for a demo, a known edge at the boundary.
+- **The organiser is paid the night after the event, not the night after the sale.** The first cut
+  dated items "today", so a buyer cancel (allowed up to 24h before the event) or an organiser cancel
+  almost always landed after the payout, and TREASURY absorbed the refund. Dated by the event's day,
+  the 01:05 cron nets them only once the event is over, so every cancel before then is a revoke on an
+  unpaid item. Holding the money until the event happens is also what ticket platforms do.
+- **A refund after the payout is still not clawed back.** Only an organiser cancel after the event
+  day can hit it now. A negative net carried to the organiser's next business date would close it.
+- **The event's day is its UTC date.** An event starting late in the UTC day is netted at 01:05, an
+  hour or two after it starts rather than a day; fine for a demo.
 - **Deferred, still.** On-demand organiser onboarding at event-create (vs the seed); a `MerchantPaid`
   outcome event for the ops console; partial / within-day payouts; FX-currency payout nuances beyond
   what the batch already nets.

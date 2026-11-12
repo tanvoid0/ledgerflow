@@ -317,10 +317,16 @@ public class Ticketing {
         if (confirmed > 0) {
             // The money is now in TREASURY; feed it to the nightly settlement batch so the organiser gets paid.
             // One item per captured order, keyed and deduped like RefundOrder: a redelivery stamps nothing new.
-            var organiser = db.sql("SELECT e.organiser FROM orders o JOIN events e ON e.id = o.event_id WHERE o.payment_id = :paymentId")
-                    .param("paymentId", paymentId).query(String.class).optional();
-            organiser.ifPresent(m -> outbox.append(SettleItem.TOPIC, EventEnvelope.of(SettleItem.TYPE, paymentId, 1,
-                    correlationId, correlationId, new SettleItem(paymentId, m, amountMinor, currency, LocalDate.now(ZoneOffset.UTC)))));
+            // Dated by the event's day, not today: the organiser is paid the night after the event, so every
+            // cancel before then is still a revoke on an unpaid item rather than money already gone.
+            var item = db.sql("""
+                    SELECT e.organiser, (e.starts_at AT TIME ZONE 'UTC')::date
+                      FROM orders o JOIN events e ON e.id = o.event_id WHERE o.payment_id = :paymentId
+                    """)
+                    .param("paymentId", paymentId)
+                    .query((rs, n) -> new SettleItem(paymentId, rs.getString(1), amountMinor, currency, rs.getObject(2, LocalDate.class)))
+                    .optional();
+            item.ifPresent(i -> outbox.append(SettleItem.TOPIC, EventEnvelope.of(SettleItem.TYPE, paymentId, 1, correlationId, correlationId, i)));
             return;
         }
         // Charged, no ticket: the sweep timed the order out before this capture arrived. Stamping payment_id is the
