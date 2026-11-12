@@ -40,7 +40,7 @@ Options 2-5, plus what they touch downstream:
 
 - **Ticketing owns seats and orders**, and pays through the existing saga over HTTP with the buyer's
   own token - no new service identity, no new saga step. `payment-service` gains the terminal outcome
-  topic described above; the wire contract and SQL are in `.local/work/step-34-plan.md` §2.
+  topic described above.
 - **The hold is the order row.** `HELD` expires on its own clock; `PENDING_PAYMENT` never does - the
   saga's own step deadlines guarantee an outcome eventually arrives, so the sweep only ever touches
   seats nobody has started paying for.

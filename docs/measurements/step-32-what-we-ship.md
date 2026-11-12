@@ -35,7 +35,7 @@ The fix sits in the pom, not the builder: bumping a Paketo buildpack version wou
 
 One `scripts/build-images.sh` run — `mvnw -T1C install -DskipTests` across the reactor then `spring-boot:build-image` for all eight services — took roughly 15-18 minutes wall clock on this host (the `time` builtin's own report doesn't survive `detach.sh`'s WMI launch, so this is bracketed from the log's own timestamps, not a clean `real`). No `-T1C` race hit this run: every jar's `build-info.properties`, `git.properties` and SBOM were all present on the first pass.
 
-`postgres:17` and `redis:7-alpine` moved upstream between whenever this host last pulled them and today — the host's Docker Desktop holds one digest, the kind cluster's containerd holds another, both honestly answering to the same tag. `docker compose up` and `kubectl apply` would each start a different Postgres without the pin in `.local/work/g-pins.md`.
+`postgres:17` and `redis:7-alpine` moved upstream between whenever this host last pulled them and today. The host's Docker Desktop holds one digest, the kind cluster's containerd holds another, both honestly answering to the same tag. `docker compose up` and `kubectl apply` would each start a different Postgres without the digest pins now in `infra/compose/docker-compose.yml` and `k8s/infra/`.
 
 ## The bot
 

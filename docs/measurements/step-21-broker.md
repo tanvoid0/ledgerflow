@@ -20,7 +20,7 @@ named here as a limit, not fixed by this step.
 
 ## Raft, not ISR
 
-The curriculum's own framing - `min.insync.replicas` as the written-down
+The usual framing - `min.insync.replicas` as the written-down
 margin, `NotEnoughReplicasException` as the system keeping its promise - is
 Kafka's ISR model. Redpanda replicates with Raft instead, and the two
 config keys that model expects do not do what they say here:
@@ -33,7 +33,7 @@ config keys that model expects do not do what they say here:
   at all. There is no flag for "elect a leader with stale data" because
   Raft's leader election already requires a majority of the replica set to
   agree on the log position before anyone can become leader - the
-  "availability traded for truth" decision the curriculum names is made by
+  "availability traded for truth" decision is made by
   the storage engine, not by a config key. For money it comes out the same
   way every time: truth.
 
@@ -41,7 +41,7 @@ config keys that model expects do not do what they say here:
 waits for the broker's ack - but the ack itself now stands for "a majority
 of the replica set has this record," not "every in-sync replica does." A
 replication factor of 3 survives exactly one dead broker with nothing
-lost; losing two is the margin the curriculum asks to remove, covered
+lost; losing two is where the margin runs out, covered
 below as the two-dead-broker case rather than a `min.insync.replicas`
 change, because there is no such change to make.
 

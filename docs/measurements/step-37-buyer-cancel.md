@@ -6,7 +6,7 @@ from `docs/ai/0001`, not disabled for this run). Host AMD Ryzen 9 9950X / 32 thr
 Desktop; no `hs_err`, no container restart. Consumer lag checked 0 across all eight groups
 before and after the fixed suite.
 
-## The scenario is the real done-when, and it passes
+## The scenario passes
 
 `scripts/scenario-buyer-cancel.sh` exits 0 on the default compose stack — no override needed,
 unlike step 36: the buyer-cancel path has no race to force, so there is no dev knob. One run,

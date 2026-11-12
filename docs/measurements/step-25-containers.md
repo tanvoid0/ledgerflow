@@ -191,7 +191,7 @@ has none it can resume from anyway), builds the eight images, `up -d
 registers the Kafka topics and schemas Redpanda otherwise starts without,
 runs two assertions, and drives the same three scenarios `demo.sh` does
 on the host. `demo.sh` itself is unchanged and still runs against host
-JVMs, because the perf work in this curriculum runs on the host, not in
+JVMs, because the perf work in this repo runs on the host, not in
 Docker Desktop's VM.
 
 Wall time for the whole script, cold:

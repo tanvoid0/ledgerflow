@@ -37,7 +37,7 @@ correlationId on the MDC before placing the holds; before this step every saga-p
 
 ## Where the two tables disagreed, and why
 
-Query the read model next to the ledger (the curriculum's lesson for this step):
+Query the read model next to the ledger:
 
 ```
 read model   SELECT sum(heldMinor)                                   -> 307,000

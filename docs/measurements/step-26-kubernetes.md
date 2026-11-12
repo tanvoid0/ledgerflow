@@ -374,7 +374,7 @@ select count(*) from batch_job_execution where status='COMPLETED'         1
 
 `perf/bench.sh step26` runs through the NodePorts this time, not through
 compose's host ports directly, against two replicas of every service -
-the first checkpoint in this curriculum with two of everything running
+the first checkpoint with two of everything running
 at once. `docker stats --no-stream` once during the payments phase,
 against the three `kind` nodes rather than eight named containers, is
 the closest this step gets to step 25's per-service breakdown; kube-proxy

@@ -51,7 +51,7 @@ This is what step 35 actually added. One organiser cancel of a sold-out event em
 `RefundOrder` per CONFIRMED order → one `RevokeCaptures` each in payment-service →
 one TREASURY→buyer transfer each in settlement-service. Every one of those debits the **same**
 TREASURY wallet row (`99999999-…`), so a big cancel is a burst of concurrent debits on one
-row — the watch item the plan called out. Measured with `.local/work/fanout-step35.sh`
+row, the obvious hot spot. Measured with a throwaway fan-out script
 (12 single-seat orders on one event, alice, each CONFIRMED before the next; then one cancel):
 
 | what | value |

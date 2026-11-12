@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 # standalone, not a base overlay: a base overlay would namePrefix this to settlement-worker-service
-# and need a fourth patch kind - the curriculum check reads the bare name settlement-worker, so this
+# and need a fourth patch kind to get the bare name settlement-worker back, so this
 # copies base/deployment.yaml's probes/resources/env by hand instead. No service.yaml - nothing calls in.
 metadata: {name: settlement-worker}
 spec:

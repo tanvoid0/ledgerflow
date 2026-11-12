@@ -5,7 +5,7 @@ checkpoint. **Compose numbers, run with the AI platform wired in and Ollama live
 Host AMD Ryzen 9 9950X / 32 threads, Docker Desktop; no `hs_err`, no container
 restarts across the run.
 
-## The scenario is the real done-when, and it passes
+## The scenario passes
 
 `scripts/scenario-orphan-refund.sh` exits 0 on the step-36 override stack
 (`docker-compose.step36.yml`: payment's fault seam + `ORPHAN_TIMEOUT=PT0.3S`,

@@ -55,8 +55,8 @@ lists after step 35 named the third: the buyer cancelling their own order, unpro
   own; `RefundOrder`/`PaymentRefunded` carry no amount to partially match against; `Refunded` is a
   terminal saga state with nowhere to put "refunded 1 of 3 seats". Doing this needs an amount field on
   both events (a BACKWARD-compatible schema change), a partial-revoke in settlement's `captures`
-  table, a non-terminal saga state, and either split seat/amount rows on `orders` or child order rows
-  — a real subsystem change, not a one-step add. Next candidate step if the curriculum wants it.
+  table, a non-terminal saga state, and either split seat/amount rows on `orders` or child order rows.
+  A real subsystem change, not a one-step add; next in line if partial cancels get asked for.
 - **A cooling-off window shorter than "any time before 24h"** (e.g. instant refund in the first 10
   minutes, partial after). Same primitive, just a second cutoff constant — not worth a knob until a
   step wants to demonstrate it.

@@ -15,8 +15,8 @@ matters to a batch step:
   a negative amount - retrying it is a slower way to fail the same item.
 
 The first FAILED run, with the feed armed to fail ten calls - more than the
-four retries absorb. The curriculum promises a mess of half-committed chunks
-for the restart to cope with; here the mess is smaller than promised: the
+four retries absorb. I expected a mess of half-committed chunks
+for the restart to cope with; here the mess is smaller than expected: the
 feed was down from the first item, so the first chunk read 100, wrote 0 and
 rolled back once. Nothing committed. The restart in the section below still
 has to start from that count, which happens to be zero:
@@ -80,8 +80,8 @@ item's `status = 'REJECTED'`, and logs one WARN.
 
 The skip limit lives inside the policy (`skipCount < 10`), not in
 `.skipLimit()` on the step builder - Batch ignores `.skipLimit()` once a
-custom `SkipPolicy` is set, a detail the curriculum's own snippet gets
-wrong. Ten rejects out of five hundred items is a number for Monday's
+custom `SkipPolicy` is set, which is easy to miss.
+Ten rejects out of five hundred items is a number for Monday's
 report; a hundred means the upstream format changed and the job should
 stop, not quietly reject a fifth of the day.
 
@@ -213,8 +213,8 @@ the bench drives the payment saga, and nothing this step changed runs during
 it (the feed switch is at zero, the schedule is on its production crons) - so
 the p50 swing is the run, not the retry policy. Three checkpoints in a row have
 drifted up on the same load (431 → 527 → 908 ms) with a checked host each time;
-that is a trend to name, not explain here, and a step where load is the lesson
-is where it gets looked at.
+that is a trend to name, not explain here; it gets looked at when load is
+the point of the change.
 
 ## Kept
 
