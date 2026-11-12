@@ -57,6 +57,15 @@ payout never fails for funds.
 - **Payout is off the hot path.** One transfer per merchant per business date, driven by the nightly
   job, not by checkout. No new bench: the money path under load is unchanged (capture, hold, transfer
   are what the benches already measure).
+- **A refund before the batch takes the item out of the net.** Settlement's revoke marks the
+  payment's `settlement_item` REVOKED while it is still NEW, and an item that arrives after its
+  revoke (two topics, no order between them) is inserted REVOKED. Without this, a cancelled order
+  was refunded to the buyer and paid to the organiser, both out of TREASURY.
+- **A refund after the payout is not clawed back.** The organiser keeps the net and TREASURY
+  absorbs it. Buyer cancels are allowed up to 24h before the event and organiser cancels at any
+  time, so with a "today" business date most refunds land after the payout. Holding the payout
+  until the event has happened (business date = event date) closes most of it; a negative net
+  carried to the next day closes the rest.
 - **A business date is UTC "today" at confirm time.** An order confirmed either side of midnight UTC
   lands under that day's batch; fine for a demo, a known edge at the boundary.
 - **Deferred, still.** On-demand organiser onboarding at event-create (vs the seed); a `MerchantPaid`

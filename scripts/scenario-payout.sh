@@ -46,7 +46,7 @@ wait_for_order_status() {
   while :; do
     s=$(curl -sf -H "Authorization: Bearer $ALICE" "$GW/api/v1/orders/$order" | jq -r .status)
     [ "$s" = "$want" ] && return 0
-    [ "$SECONDS" -ge "$deadline" ] && { echo "timed out waiting for $order to reach $want (still $s)"; exit 1; }
+    [ "$SECONDS" -ge "$deadline" ] && { echo "timed out waiting for $order to reach $want (still $s)" >&2; exit 1; }
     sleep 0.2
   done
 }
@@ -58,16 +58,30 @@ ORGANISER=$(jq -r .organiser <<< "$DETAIL")
 PRICE=$(jq -r .priceMinor <<< "$DETAIL")
 CUR=$(jq -r .currency <<< "$DETAIL")
 SEAT=$(jq -r '[.seats[] | select(.status=="FREE")][0].seat' <<< "$DETAIL")
+SEAT2=$(jq -r '[.seats[] | select(.status=="FREE")][1].seat' <<< "$DETAIL")
 ORG_ACCT=$(organiser_account "$ORGANISER")
-echo "event $EVENT, organiser $ORGANISER (account $ORG_ACCT), seat $SEAT at $PRICE $CUR"
+echo "event $EVENT, organiser $ORGANISER (account $ORG_ACCT), seats $SEAT + $SEAT2 at $PRICE $CUR"
 
-ORDER=$(curl -sf -H "Authorization: Bearer $ALICE" -X POST "$GW/api/v1/events/$EVENT/holds" \
-  -H 'content-type: application/json' -d '{"seats":["'"$SEAT"'"]}' | jq -r .id)
-fund "$PRICE" "22222222-0000-0000-0000-000000000001" "$CUR"
-sleep 1
-curl -sf -H "Authorization: Bearer $ALICE" -X POST "$GW/api/v1/orders/$ORDER/checkout" > /dev/null
-wait_for_order_status "$ORDER" CONFIRMED 20
-echo "order $ORDER CONFIRMED — money is in TREASURY, a settlement_item is fed for today"
+buy() {
+  local order
+  order=$(curl -sf -H "Authorization: Bearer $ALICE" -X POST "$GW/api/v1/events/$EVENT/holds" \
+    -H 'content-type: application/json' -d '{"seats":["'"$1"'"]}' | jq -r .id)
+  fund "$PRICE" "22222222-0000-0000-0000-000000000001" "$CUR"
+  sleep 1
+  curl -sf -H "Authorization: Bearer $ALICE" -X POST "$GW/api/v1/orders/$order/checkout" > /dev/null
+  wait_for_order_status "$order" CONFIRMED 20
+  echo "$order"
+}
+
+ORDER=$(buy "$SEAT")
+echo "order $ORDER CONFIRMED, money is in TREASURY, a settlement_item is fed for today"
+
+# a second order, refunded before tonight's batch: its item must drop out of the net, or TREASURY
+# pays the same money twice (back to the buyer and out to the organiser)
+REFUNDED=$(buy "$SEAT2")
+curl -sf -H "Authorization: Bearer $ALICE" -X POST "$GW/api/v1/orders/$REFUNDED/cancel" > /dev/null
+wait_for_order_status "$REFUNDED" REFUNDED 20
+echo "order $REFUNDED CONFIRMED then cancelled by the buyer, REFUNDED before the batch"
 
 # --- 2. net it and pay the organiser ---
 FEE=$(( PRICE * 29 / 1000 + 30 ))

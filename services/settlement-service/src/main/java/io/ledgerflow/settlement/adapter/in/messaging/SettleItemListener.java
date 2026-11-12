@@ -31,8 +31,11 @@ class SettleItemListener {
         inbox.once(event, () -> {
             var item = json.treeToValue(event.payload(), SettleItem.class);
             db.sql("""
-                    INSERT INTO settlement_item (payment_id, merchant_id, amount_minor, currency, business_date)
-                    VALUES (:paymentId, :merchantId, :amount, :currency, :businessDate)
+                    INSERT INTO settlement_item (payment_id, merchant_id, amount_minor, currency, business_date, status)
+                    VALUES (:paymentId, :merchantId, :amount, :currency, :businessDate,
+                            -- the revoke can land first (different topic): then the item is born already out of the net
+                            CASE WHEN EXISTS (SELECT 1 FROM captures WHERE payment_id = :paymentId AND status = 'REVOKED')
+                                 THEN 'REVOKED' ELSE 'NEW' END)
                     """)
                     .param("paymentId", item.paymentId())
                     .param("merchantId", item.merchantId())

@@ -94,6 +94,9 @@ class CaptureCommandListener {
                     "reversal of capture " + capture.id()));
             db.sql("UPDATE captures SET status = 'REVOKED' WHERE id = :id").param("id", capture.id()).update();
         }
+        // refunded before the nightly batch: take it out of the organiser's net, or TREASURY pays the money out twice
+        db.sql("UPDATE settlement_item SET status = 'REVOKED' WHERE payment_id = :paymentId AND status = 'NEW'")
+                .param("paymentId", paymentId).update();
         log.info("revoke for payment {}: {} capture(s) reversed", paymentId, open.size());
     }
 
