@@ -66,8 +66,11 @@ payout never fails for funds.
   almost always landed after the payout, and TREASURY absorbed the refund. Dated by the event's day,
   the 01:05 cron nets them only once the event is over, so every cancel before then is a revoke on an
   unpaid item. Holding the money until the event happens is also what ticket platforms do.
-- **A refund after the payout is still not clawed back.** Only an organiser cancel after the event
-  day can hit it now. A negative net carried to the organiser's next business date would close it.
+- **A refund after the payout is clawed back.** Only an organiser cancel after the event day can hit
+  it. The revoke finds the payment's SETTLED item and moves its `net_minor` from the organiser's
+  wallet back to TREASURY, keyed `clawback-<itemId>`, then marks it CLAWED_BACK. The platform's fee
+  is not recovered. If the payout has not landed yet or the wallet is short, it logs and skips; a
+  negative net carried to the next business date would cover that.
 - **The event's day is its UTC date.** An event starting late in the UTC day is netted at 01:05, an
   hour or two after it starts rather than a day; fine for a demo.
 - **Deferred, still.** On-demand organiser onboarding at event-create (vs the seed); a `MerchantPaid`

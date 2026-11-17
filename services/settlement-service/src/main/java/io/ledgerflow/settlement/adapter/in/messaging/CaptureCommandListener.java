@@ -23,6 +23,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -97,8 +98,36 @@ class CaptureCommandListener {
         // refunded before the nightly batch: take it out of the organiser's net, or TREASURY pays the money out twice
         db.sql("UPDATE settlement_item SET status = 'REVOKED' WHERE payment_id = :paymentId AND status = 'NEW'")
                 .param("paymentId", paymentId).update();
+        clawBackPaid(paymentId);
         log.info("revoke for payment {}: {} capture(s) reversed", paymentId, open.size());
     }
+
+    /**
+     * Refunded after the batch already netted it: the organiser holds money the buyer just got back, so pull
+     * the item's net out of their wallet. Keyed by the item, so a redelivery is the same transfer.
+     */
+    private void clawBackPaid(UUID paymentId) {
+        var paid = db.sql("""
+                SELECT i.id, i.merchant_id, l.net_minor, l.currency
+                FROM settlement_item i JOIN settlement_line l ON l.item_id = i.id
+                WHERE i.payment_id = :paymentId AND i.status = 'SETTLED'
+                """).param("paymentId", paymentId).query(PaidItem.class).list();
+        for (var item : paid) {
+            var organiserId = UUID.nameUUIDFromBytes(("organiser:" + item.merchantId()).getBytes(StandardCharsets.UTF_8));
+            try {
+                account.transfer("clawback-" + item.id(), new TransferRequest(
+                        account.account(organiserId).walletId("MAIN"), props.settlementWalletId(), item.netMinor(), item.currency(),
+                        "clawback of payout for payment " + paymentId));
+            } catch (HttpClientErrorException e) {
+                // TODO: payout not landed yet or organiser wallet short; carry a negative net to the next batch instead
+                log.warn("clawback for payment {} from {} failed: {}", paymentId, item.merchantId(), e.getStatusCode());
+                continue;
+            }
+            db.sql("UPDATE settlement_item SET status = 'CLAWED_BACK' WHERE id = :id").param("id", item.id()).update();
+        }
+    }
+
+    private record PaidItem(long id, String merchantId, long netMinor, String currency) {}
 
     private void record(UUID entryId, UUID paymentId, UUID holdId, UUID walletId, Money amount) {
         db.sql("""

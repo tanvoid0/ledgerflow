@@ -1,0 +1,89 @@
+package io.ledgerflow.settlement.adapter.in.messaging;
+
+import io.ledgerflow.events.EventEnvelope;
+import io.ledgerflow.events.settlement.RevokeCaptures;
+import io.ledgerflow.settlement.TestcontainersConfiguration;
+import io.ledgerflow.settlement.adapter.out.account.AccountClient;
+import io.ledgerflow.settlement.adapter.out.account.AccountClient.AccountView;
+import io.ledgerflow.settlement.adapter.out.account.AccountClient.TransferRequest;
+import io.ledgerflow.settlement.adapter.out.account.AccountClient.TransferResponse;
+import io.ledgerflow.settlement.adapter.out.account.AccountClient.WalletView;
+import io.ledgerflow.settlement.adapter.out.issuer.FxRateGateway;
+import io.ledgerflow.settlement.config.SettlementProperties;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.kafka.support.Acknowledgment;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import tools.jackson.databind.json.JsonMapper;
+
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.startsWith;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+/** A refund after the organiser was paid pulls the item's net back out of the organiser's wallet, once. */
+@SpringBootTest
+@Import(TestcontainersConfiguration.class)
+class ClawbackIT {
+
+    @Autowired CaptureCommandListener listener;
+    @Autowired JdbcClient db;
+    @Autowired JsonMapper json;
+    @Autowired SettlementProperties props;
+    @MockitoBean AccountClient account;
+    @MockitoBean FxRateGateway fx;
+
+    @Test
+    void settledItemIsClawedBackFromTheOrganiserOnce() {
+        var paymentId = UUID.randomUUID();
+        var organiser = UUID.nameUUIDFromBytes("organiser:org-clawback".getBytes(StandardCharsets.UTF_8));
+        var organiserWallet = UUID.randomUUID();
+        when(account.account(organiser)).thenReturn(new AccountView(organiser, List.of(new WalletView(organiserWallet, "MAIN"))));
+        when(account.transfer(any(), any())).thenReturn(new TransferResponse(UUID.randomUUID()));
+        long itemId = db.sql("""
+                INSERT INTO settlement_item (payment_id, merchant_id, amount_minor, currency, business_date, status)
+                VALUES (:p, 'org-clawback', 2800, 'GBP', DATE '2027-04-01', 'SETTLED') RETURNING id
+                """).param("p", paymentId).query(Long.class).single();
+        db.sql("INSERT INTO settlement_line VALUES (:id, DATE '2027-04-01', 'org-clawback', 'GBP', 2800, 111, 2689)")
+                .param("id", itemId).update();
+
+        revoke(paymentId);
+        revoke(paymentId);
+
+        verify(account).transfer(eq("clawback-" + itemId),
+                eq(new TransferRequest(organiserWallet, props.settlementWalletId(), 2689, "GBP", "clawback of payout for payment " + paymentId)));
+        assertThat(db.sql("SELECT status FROM settlement_item WHERE id = :id").param("id", itemId).query(String.class).single())
+                .isEqualTo("CLAWED_BACK");
+    }
+
+    @Test
+    void unpaidItemIsNotClawedBack() {
+        var paymentId = UUID.randomUUID();
+        db.sql("""
+                INSERT INTO settlement_item (payment_id, merchant_id, amount_minor, currency, business_date, status)
+                VALUES (:p, 'org-clawback', 2800, 'GBP', DATE '2027-04-02', 'NEW')
+                """).param("p", paymentId).update();
+
+        revoke(paymentId);
+
+        verify(account, never()).transfer(startsWith("clawback-"), any());
+        assertThat(db.sql("SELECT status FROM settlement_item WHERE payment_id = :p").param("p", paymentId).query(String.class).single())
+                .isEqualTo("REVOKED");
+    }
+
+    private void revoke(UUID paymentId) {
+        EventEnvelope<tools.jackson.databind.JsonNode> cmd = EventEnvelope.of(RevokeCaptures.TYPE, paymentId, 1, "test", null, json.valueToTree(new RevokeCaptures(paymentId)));
+        listener.onCommand(cmd, mock(Acknowledgment.class));
+    }
+}
