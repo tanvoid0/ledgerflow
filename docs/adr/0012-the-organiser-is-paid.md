@@ -69,8 +69,9 @@ payout never fails for funds.
 - **A refund after the payout is clawed back.** Only an organiser cancel after the event day can hit
   it. The revoke finds the payment's SETTLED item and moves its `net_minor` from the organiser's
   wallet back to TREASURY, keyed `clawback-<itemId>`, then marks it CLAWED_BACK. The platform's fee
-  is not recovered. If the payout has not landed yet or the wallet is short, it logs and skips; a
-  negative net carried to the next business date would cover that.
+  is not recovered. If the wallet is short (including a payout that has not landed yet), the amount
+  goes into `settlement_carry` and the item is marked CARRIED. The organiser's next batch takes it off
+  their net, and whatever that day cannot cover carries on to the one after.
 - **The event's day is its UTC date.** An event starting late in the UTC day is netted at 01:05, an
   hour or two after it starts rather than a day; fine for a demo.
 - **Deferred, still.** On-demand organiser onboarding at event-create (vs the seed); a `MerchantPaid`

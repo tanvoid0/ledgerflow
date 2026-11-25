@@ -13,10 +13,17 @@ import io.ledgerflow.settlement.config.SettlementProperties;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.kafka.support.Acknowledgment;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.assertj.MockMvcTester;
+import org.springframework.web.client.HttpClientErrorException;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.nio.charset.StandardCharsets;
@@ -33,7 +40,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /** A refund after the organiser was paid pulls the item's net back out of the organiser's wallet, once. */
-@SpringBootTest
+@SpringBootTest(properties = "settlement.batch.export-dir=target/statements")
+@AutoConfigureMockMvc
+@WithMockUser(roles = "ledger-write")
 @Import(TestcontainersConfiguration.class)
 class ClawbackIT {
 
@@ -41,6 +50,7 @@ class ClawbackIT {
     @Autowired JdbcClient db;
     @Autowired JsonMapper json;
     @Autowired SettlementProperties props;
+    @Autowired MockMvcTester mvc;
     @MockitoBean AccountClient account;
     @MockitoBean FxRateGateway fx;
 
@@ -80,6 +90,40 @@ class ClawbackIT {
         verify(account, never()).transfer(startsWith("clawback-"), any());
         assertThat(db.sql("SELECT status FROM settlement_item WHERE payment_id = :p").param("p", paymentId).query(String.class).single())
                 .isEqualTo("REVOKED");
+    }
+
+    @Test
+    void shortWalletCarriesTheDebtIntoLaterBatches() {
+        var paymentId = UUID.randomUUID();
+        var organiser = UUID.nameUUIDFromBytes("organiser:org-short".getBytes(StandardCharsets.UTF_8));
+        when(account.account(organiser)).thenReturn(new AccountView(organiser, List.of(new WalletView(UUID.randomUUID(), "MAIN"))));
+        when(account.transfer(any(), any())).thenThrow(HttpClientErrorException.create(
+                HttpStatus.UNPROCESSABLE_CONTENT, "insufficient funds", HttpHeaders.EMPTY, new byte[0], null));
+        long itemId = db.sql("""
+                INSERT INTO settlement_item (payment_id, merchant_id, amount_minor, currency, business_date, status)
+                VALUES (:p, 'org-short', 2800, 'GBP', DATE '2027-05-01', 'SETTLED') RETURNING id
+                """).param("p", paymentId).query(Long.class).single();
+        db.sql("INSERT INTO settlement_line VALUES (:id, DATE '2027-05-01', 'org-short', 'GBP', 2800, 111, 2689)")
+                .param("id", itemId).update();
+
+        revoke(paymentId);
+        revoke(paymentId);
+
+        // 2689 owed: the first day only nets 941, the other 1748 comes off the next
+        assertThat(netFor("2027-05-02", 1000)).isEqualTo(941 - 2689);
+        assertThat(netFor("2027-05-03", 5000)).isEqualTo(4825 - 1748);
+    }
+
+    private long netFor(String date, long gross) {
+        db.sql("""
+                INSERT INTO settlement_item (payment_id, merchant_id, amount_minor, currency, business_date, status)
+                VALUES (:p, 'org-short', :gross, 'GBP', CAST(:date AS date), 'NEW')
+                """).param("p", UUID.randomUUID()).param("gross", gross).param("date", date).update();
+        assertThat(mvc.post().uri("/api/v1/batch/jobs/nightlySettlementJob").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"businessDate\":\"%s\"}".formatted(date)))
+                .hasStatusOk().bodyJson().extractingPath("$.status").isEqualTo("COMPLETED");
+        return db.sql("SELECT net_minor FROM settlement_batch WHERE merchant_id = 'org-short' AND business_date = CAST(:date AS date)")
+                .param("date", date).query(Long.class).single();
     }
 
     private void revoke(UUID paymentId) {

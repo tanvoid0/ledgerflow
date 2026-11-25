@@ -104,7 +104,8 @@ class CaptureCommandListener {
 
     /**
      * Refunded after the batch already netted it: the organiser holds money the buyer just got back, so pull
-     * the item's net out of their wallet. Keyed by the item, so a redelivery is the same transfer.
+     * the item's net out of their wallet. Keyed by the item, so a redelivery is the same transfer. A wallet that
+     * cannot cover it owes the amount instead, and the merchant's next batch takes it out of their net.
      */
     private void clawBackPaid(UUID paymentId) {
         var paid = db.sql("""
@@ -114,16 +115,27 @@ class CaptureCommandListener {
                 """).param("paymentId", paymentId).query(PaidItem.class).list();
         for (var item : paid) {
             var organiserId = UUID.nameUUIDFromBytes(("organiser:" + item.merchantId()).getBytes(StandardCharsets.UTF_8));
+            var status = "CLAWED_BACK";
             try {
                 account.transfer("clawback-" + item.id(), new TransferRequest(
                         account.account(organiserId).walletId("MAIN"), props.settlementWalletId(), item.netMinor(), item.currency(),
                         "clawback of payout for payment " + paymentId));
-            } catch (HttpClientErrorException e) {
-                // TODO: payout not landed yet or organiser wallet short; carry a negative net to the next batch instead
-                log.warn("clawback for payment {} from {} failed: {}", paymentId, item.merchantId(), e.getStatusCode());
+            } catch (HttpClientErrorException.NotFound e) {
+                // no payout account, so they were never paid and owe nothing
+                log.warn("clawback for payment {}: no payout account for {}", paymentId, item.merchantId());
                 continue;
+            } catch (HttpClientErrorException e) {
+                if (e.getStatusCode().value() != 422) throw e;
+                log.warn("clawback for payment {}: {} short, carrying {} to the next batch", paymentId, item.merchantId(), item.netMinor());
+                db.sql("""
+                        INSERT INTO settlement_carry (source, merchant_id, currency, amount_minor)
+                        VALUES (:source, :merchantId, :currency, :amount) ON CONFLICT (source) DO NOTHING
+                        """)
+                        .param("source", "clawback-" + item.id()).param("merchantId", item.merchantId())
+                        .param("currency", item.currency()).param("amount", item.netMinor()).update();
+                status = "CARRIED";
             }
-            db.sql("UPDATE settlement_item SET status = 'CLAWED_BACK' WHERE id = :id").param("id", item.id()).update();
+            db.sql("UPDATE settlement_item SET status = :status WHERE id = :id").param("status", status).param("id", item.id()).update();
         }
     }
 

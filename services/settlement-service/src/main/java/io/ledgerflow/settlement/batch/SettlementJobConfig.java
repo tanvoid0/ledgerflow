@@ -260,8 +260,9 @@ class SettlementJobConfig {
 
     /**
      * One transaction: net the day's lines (GBP settlement_line and every other currency's settlement_line_fx)
-     * into settlement_batch, then mark their items SETTLED. Both statements are idempotent (upsert, and a status
-     * filter that only matches NEW), so if the JVM dies between them, step 24 reruns the whole tasklet and lands
+     * into settlement_batch, then mark their items SETTLED. Open carries come off the first batch a merchant gets
+     * (never a date already netted, whose payout key is spent), and a negative net is carried on again. The
+     * statements are idempotent, so if the JVM dies between them, step 24 reruns the whole tasklet and lands
      * in the same place. The second statement also requires a line in either table: a rejected row must not come
      * out SETTLED. The two summary numbers computed after the insert go into the step execution context for
      * ExecutionContextPromotionListener to lift into the job execution context.
@@ -272,18 +273,41 @@ class SettlementJobConfig {
         return (contribution, chunkContext) -> {
             LocalDate date = LocalDate.parse(businessDate);
             db.sql("""
+                    update settlement_carry c set applied_on = :date
+                     where c.applied_on is null
+                       and exists (
+                           select 1 from settlement_line l
+                            where l.business_date = :date and l.merchant_id = c.merchant_id and l.currency = c.currency
+                           union all
+                           select 1 from settlement_line_fx l
+                            where l.business_date = :date and l.merchant_id = c.merchant_id and l.currency = c.currency)
+                       and not exists (
+                           select 1 from settlement_batch b
+                            where b.business_date = :date and b.merchant_id = c.merchant_id and b.currency = c.currency)
+                    """).param("date", date).update();
+            db.sql("""
                     insert into settlement_batch (business_date, merchant_id, currency, gross_minor, fee_minor, net_minor, line_count)
-                    select business_date, merchant_id, currency, sum(gross_minor), sum(fee_minor), sum(net_minor), count(*)
+                    select business_date, merchant_id, currency, sum(gross_minor), sum(fee_minor), sum(net_minor), sum(lines)
                       from (
-                          select business_date, merchant_id, currency, gross_minor, fee_minor, net_minor
+                          select business_date, merchant_id, currency, gross_minor, fee_minor, net_minor, 1 as lines
                             from settlement_line where business_date = :date
                           union all
-                          select business_date, merchant_id, currency, gross_minor, fee_minor, net_minor
+                          select business_date, merchant_id, currency, gross_minor, fee_minor, net_minor, 1
                             from settlement_line_fx where business_date = :date
+                          union all
+                          select applied_on, merchant_id, currency, 0, 0, -amount_minor, 0
+                            from settlement_carry where applied_on = :date
                       ) l group by 1, 2, 3
                     on conflict (business_date, merchant_id, currency) do update set
                         gross_minor = excluded.gross_minor, fee_minor = excluded.fee_minor,
                         net_minor = excluded.net_minor, line_count = excluded.line_count
+                    """).param("date", date).update();
+            db.sql("delete from settlement_carry where from_date = :date and applied_on is null").param("date", date).update();
+            db.sql("""
+                    insert into settlement_carry (source, merchant_id, currency, amount_minor, from_date)
+                    select concat('residual-', business_date, '-', merchant_id, '-', currency), merchant_id, currency, -net_minor, business_date
+                      from settlement_batch where business_date = :date and net_minor < 0
+                    on conflict (source) do nothing
                     """).param("date", date).update();
             db.sql("""
                     update settlement_item set status = 'SETTLED' where business_date = :date and status = 'NEW'
