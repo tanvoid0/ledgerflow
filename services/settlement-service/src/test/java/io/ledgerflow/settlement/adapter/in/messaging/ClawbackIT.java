@@ -29,8 +29,12 @@ import tools.jackson.databind.json.JsonMapper;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.startsWith;
@@ -112,6 +116,34 @@ class ClawbackIT {
         // 2689 owed: the first day only nets 941, the other 1748 comes off the next
         assertThat(netFor("2027-05-02", 1000)).isEqualTo(941 - 2689);
         assertThat(netFor("2027-05-03", 5000)).isEqualTo(4825 - 1748);
+    }
+
+    @Test
+    void concurrentRevokesClawBackOnce() throws Exception {
+        var paymentId = UUID.randomUUID();
+        var organiser = UUID.nameUUIDFromBytes("organiser:org-race".getBytes(StandardCharsets.UTF_8));
+        when(account.account(organiser)).thenReturn(new AccountView(organiser, List.of(new WalletView(UUID.randomUUID(), "MAIN"))));
+        long itemId = db.sql("""
+                INSERT INTO settlement_item (payment_id, merchant_id, amount_minor, currency, business_date, status)
+                VALUES (:p, 'org-race', 2800, 'GBP', DATE '2027-06-01', 'SETTLED') RETURNING id
+                """).param("p", paymentId).query(Long.class).single();
+        db.sql("INSERT INTO settlement_line VALUES (:id, DATE '2027-06-01', 'org-race', 'GBP', 2800, 111, 2689)")
+                .param("id", itemId).update();
+        var second = new FutureTask<Void>(() -> revoke(paymentId), null);
+        // while the first holds the item a second revoke arrives and must wait; then the wallet turns out short
+        when(account.transfer(any(), any())).thenAnswer(call -> {
+            new Thread(second).start();
+            assertThatThrownBy(() -> second.get(2, TimeUnit.SECONDS)).isInstanceOf(TimeoutException.class);
+            throw HttpClientErrorException.create(
+                    HttpStatus.UNPROCESSABLE_CONTENT, "insufficient funds", HttpHeaders.EMPTY, new byte[0], null);
+        }).thenReturn(new TransferResponse(UUID.randomUUID()));
+
+        revoke(paymentId);
+        second.get(10, TimeUnit.SECONDS);
+
+        verify(account).transfer(eq("clawback-" + itemId), any());
+        assertThat(db.sql("SELECT status FROM settlement_item WHERE id = :id").param("id", itemId).query(String.class).single())
+                .isEqualTo("CARRIED");
     }
 
     private long netFor(String date, long gross) {

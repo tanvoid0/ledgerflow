@@ -105,13 +105,15 @@ class CaptureCommandListener {
     /**
      * Refunded after the batch already netted it: the organiser holds money the buyer just got back, so pull
      * the item's net out of their wallet. Keyed by the item, so a redelivery is the same transfer. A wallet that
-     * cannot cover it owes the amount instead, and the merchant's next batch takes it out of their net.
+     * cannot cover it owes the amount instead, and the merchant's next batch takes it out of their net. The item
+     * stays locked until the inbox transaction commits: a concurrent revoke waits, then finds it no longer SETTLED.
      */
     private void clawBackPaid(UUID paymentId) {
         var paid = db.sql("""
                 SELECT i.id, i.merchant_id, l.net_minor, l.currency
                 FROM settlement_item i JOIN settlement_line l ON l.item_id = i.id
                 WHERE i.payment_id = :paymentId AND i.status = 'SETTLED'
+                FOR UPDATE OF i
                 """).param("paymentId", paymentId).query(PaidItem.class).list();
         for (var item : paid) {
             var organiserId = UUID.nameUUIDFromBytes(("organiser:" + item.merchantId()).getBytes(StandardCharsets.UTF_8));
