@@ -111,7 +111,10 @@ class CaptureCommandListener {
     private void clawBackPaid(UUID paymentId) {
         var paid = db.sql("""
                 SELECT i.id, i.merchant_id, l.net_minor, l.currency
-                FROM settlement_item i JOIN settlement_line l ON l.item_id = i.id
+                FROM settlement_item i
+                JOIN (SELECT item_id, net_minor, currency FROM settlement_line
+                      UNION ALL
+                      SELECT item_id, net_minor, currency FROM settlement_line_fx) l ON l.item_id = i.id
                 WHERE i.payment_id = :paymentId AND i.status = 'SETTLED'
                 FOR UPDATE OF i
                 """).param("paymentId", paymentId).query(PaidItem.class).list();

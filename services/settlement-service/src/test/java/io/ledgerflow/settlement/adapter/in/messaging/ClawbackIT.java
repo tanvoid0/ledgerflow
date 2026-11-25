@@ -82,6 +82,28 @@ class ClawbackIT {
     }
 
     @Test
+    void foreignCurrencyItemIsClawedBackInItsOwnCurrency() {
+        var paymentId = UUID.randomUUID();
+        var organiser = UUID.nameUUIDFromBytes("organiser:org-fx".getBytes(StandardCharsets.UTF_8));
+        var organiserWallet = UUID.randomUUID();
+        when(account.account(organiser)).thenReturn(new AccountView(organiser, List.of(new WalletView(organiserWallet, "MAIN"))));
+        when(account.transfer(any(), any())).thenReturn(new TransferResponse(UUID.randomUUID()));
+        long itemId = db.sql("""
+                INSERT INTO settlement_item (payment_id, merchant_id, amount_minor, currency, business_date, status)
+                VALUES (:p, 'org-fx', 2800, 'EUR', DATE '2027-07-01', 'SETTLED') RETURNING id
+                """).param("p", paymentId).query(Long.class).single();
+        db.sql("INSERT INTO settlement_line_fx VALUES (:id, DATE '2027-07-01', 'org-fx', 'EUR', 2800, 125, 2675)")
+                .param("id", itemId).update();
+
+        revoke(paymentId);
+
+        verify(account).transfer(eq("clawback-" + itemId),
+                eq(new TransferRequest(organiserWallet, props.settlementWalletId(), 2675, "EUR", "clawback of payout for payment " + paymentId)));
+        assertThat(db.sql("SELECT status FROM settlement_item WHERE id = :id").param("id", itemId).query(String.class).single())
+                .isEqualTo("CLAWED_BACK");
+    }
+
+    @Test
     void unpaidItemIsNotClawedBack() {
         var paymentId = UUID.randomUUID();
         db.sql("""
